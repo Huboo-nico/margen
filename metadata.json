@@ -1,6 +1,6 @@
 {
   "name": "MVP Rentabilidad Fulfilment",
-  "description": "Calculadora operativa para estimar márgenes de fulfilment por cliente, pick, pack, incidencias y envío.",
+  "description": "Calculadora operativa para cotizar y analizar márgenes de fulfilment por cliente, preparación, picks, embalaje, envío y almacenaje.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

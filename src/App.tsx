@@ -2,7 +2,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { CalculatorInputs, ClientProfile } from './types';
 import { DEFAULT_INPUTS, INITIAL_CLIENT_PROFILES } from './data/constants';
 import { calculateAll } from './utils/calculations';
-import { Sidebar } from './components/Sidebar';
 import { ClientManagerHeader } from './components/ClientManagerHeader';
 import { ResumenTab } from './components/ResumenTab';
 import { PreciosMargenesTab } from './components/PreciosMargenesTab';
@@ -11,7 +10,7 @@ import { PropuestaClienteTab } from './components/PropuestaClienteTab';
 import { ComparativaClientesTab } from './components/ComparativaClientesTab';
 import { RateCardTab } from './components/RateCardTab';
 import { AyudaTab } from './components/AyudaTab';
-import { SlidersHorizontal, PackageCheck } from 'lucide-react';
+import { PackageCheck } from 'lucide-react';
 
 const STORAGE_KEY = 'fulfilment_calculator_clients_v2';
 
@@ -36,7 +35,6 @@ export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<
     'Resumen' | 'Precios & Margen' | 'Desglose' | 'Propuesta Cliente' | 'Comparativa' | 'Rate card' | 'Ayuda'
   >('Resumen');
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Active client & inputs
   const currentClient = clients.find((c) => c.id === activeClientId) || clients[0];
@@ -171,7 +169,7 @@ export const App: React.FC = () => {
 
   const tabs = [
     { id: 'Resumen', label: 'Resumen Cliente' },
-    { id: 'Precios & Margen', label: 'Precios & Margen (Carrier Style)' },
+    { id: 'Precios & Margen', label: 'Precios & Margen' },
     { id: 'Desglose', label: 'Desglose Operativo' },
     { id: 'Propuesta Cliente', label: 'Propuesta Comercial' },
     { id: 'Comparativa', label: 'Comparativa Clientes' },
@@ -182,35 +180,25 @@ export const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900">
       {/* Top Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-3.5 flex items-center justify-between sticky top-0 z-20 shadow-2xs">
+      <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3.5 flex items-center justify-between sticky top-0 z-20 shadow-2xs">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-red-600 flex items-center justify-center text-white shadow-2xs">
+          <div className="w-9 h-9 rounded-lg bg-red-600 flex items-center justify-center text-white shadow-2xs shrink-0">
             <PackageCheck className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-black text-gray-900 tracking-tight">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-lg sm:text-xl font-black text-gray-900 tracking-tight">
                 Calculadora Rentabilidad Fulfilment
               </h1>
               <span className="px-2 py-0.5 text-[11px] font-bold rounded bg-amber-100 text-amber-800">
                 Cliente por Cliente
               </span>
             </div>
-            <p className="text-xs text-gray-500">
-              Preparación (Pack + 1er Pick), picks adicionales, incidencias, almacenamiento y envío con márgenes modificables.
+            <p className="text-xs text-gray-500 hidden sm:block">
+              Preparación (Pack + 1er Pick), picks adicionales, packaging, envío y almacenaje con márgenes modificables.
             </p>
           </div>
         </div>
-
-        {/* Mobile sidebar toggle button */}
-        <button
-          type="button"
-          onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
-          className="lg:hidden flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition cursor-pointer"
-        >
-          <SlidersHorizontal className="w-4 h-4" />
-          <span>Configuración</span>
-        </button>
       </header>
 
       {/* Client Switcher & Name Editor Bar */}
@@ -230,32 +218,25 @@ export const App: React.FC = () => {
         currentInputs={inputs}
       />
 
-      {/* Main Content Area with Sidebar */}
-      <div className="flex-1 flex flex-col lg:flex-row">
-        {/* Sidebar */}
-        <div className={`${mobileSidebarOpen ? 'block' : 'hidden'} lg:block`}>
-          <Sidebar inputs={inputs} results={results} onChange={handleInputChange} />
+      {/* Main Responsive Content Area */}
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Navigation Tabs */}
+        <div className="border-b border-gray-200 mb-6 flex gap-1 overflow-x-auto pb-0.5 scrollbar-none">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`pb-3 px-3.5 text-xs sm:text-sm font-semibold transition border-b-2 -mb-px whitespace-nowrap cursor-pointer ${
+                activeTab === tab.id
+                  ? 'border-red-600 text-red-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
-
-        {/* Main Panel */}
-        <main className="flex-1 p-6 max-w-6xl">
-          {/* Navigation Tabs */}
-          <div className="border-b border-gray-200 mb-6 flex gap-1 overflow-x-auto">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={`pb-3 px-3.5 text-xs sm:text-sm font-semibold transition border-b-2 -mb-px whitespace-nowrap cursor-pointer ${
-                  activeTab === tab.id
-                    ? 'border-red-600 text-red-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
 
           {/* Active Tab Content */}
           <div className="transition-all">
@@ -293,7 +274,6 @@ export const App: React.FC = () => {
             {activeTab === 'Ayuda' && <AyudaTab />}
           </div>
         </main>
-      </div>
     </div>
   );
 };
