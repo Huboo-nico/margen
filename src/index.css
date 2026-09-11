@@ -1,1 +1,26 @@
 @import "tailwindcss";
+
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide unnecessary background navigation and controls during printing */
+  nav, aside, .no-print, .print\:hidden {
+    display: none !important;
+  }
+
+  /* Prevent awkward page cuts in tables and metric cards */
+  table, tr, td, th, .break-inside-avoid {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  @page {
+    margin: 12mm 10mm;
+    size: A4 portrait;
+  }
+}

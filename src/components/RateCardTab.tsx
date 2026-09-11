@@ -117,9 +117,7 @@ export const RateCardTab: React.FC = () => {
               <tr>
                 <th className="px-5 py-3">Producto</th>
                 <th className="px-5 py-3 text-right">Multiplicador pick</th>
-                <th className="px-5 py-3 text-right">Surcharge precio</th>
-                <th className="px-5 py-3 text-right">Surcharge coste</th>
-                <th className="px-5 py-3 text-right">Return rate</th>
+                <th className="px-5 py-3 text-right">Tasa de Devolución (Return rate)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -130,12 +128,6 @@ export const RateCardTab: React.FC = () => {
                     <td className="px-5 py-3 font-medium text-gray-800">{prod}</td>
                     <td className="px-5 py-3 text-right font-mono text-gray-900 font-medium">
                       {p.pickMultiplier.toFixed(2)}
-                    </td>
-                    <td className="px-5 py-3 text-right font-mono text-gray-700">
-                      {formatEur(p.surchargePrice)}
-                    </td>
-                    <td className="px-5 py-3 text-right font-mono text-gray-700">
-                      {formatEur(p.surchargeCost)}
                     </td>
                     <td className="px-5 py-3 text-right font-mono text-gray-700">
                       {formatPct(p.returnRate)}

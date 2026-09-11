@@ -70,32 +70,11 @@ export const AyudaTab: React.FC = () => {
       </div>
 
       <div>
-        <h3 className="text-base font-semibold text-gray-900 mb-2">Multiplicadores</h3>
-        <p className="text-sm text-gray-700 mb-2">El coste de picking se ajusta por:</p>
+        <h3 className="text-base font-semibold text-gray-900 mb-2">Multiplicadores de Complejidad</h3>
+        <p className="text-sm text-gray-700 mb-2">El coste operativo de picking se ajusta por:</p>
         <pre className="bg-gray-100 p-3 rounded text-xs font-mono text-gray-800 border border-gray-200">
           {`Coste pick ajustado =\nCoste pick base\n* Multiplicador SKU\n* Multiplicador producto`}
         </pre>
-      </div>
-
-      <div>
-        <h3 className="text-base font-semibold text-gray-900 mb-2">Incidencias / producto</h3>
-        <p className="text-sm text-gray-700 mb-2">
-          El surcharge de producto se añade como línea independiente:
-        </p>
-        <ul className="list-disc list-inside space-y-1 text-sm text-gray-700 mb-3">
-          <li>Precio extra por pedido.</li>
-          <li>Coste extra por pedido.</li>
-        </ul>
-        <p className="text-sm text-gray-700 mb-2">Sirve para cubrir:</p>
-        <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
-          <li>Perfume.</li>
-          <li>Alcohol.</li>
-          <li>Vidrio.</li>
-          <li>Frágil.</li>
-          <li>Más devoluciones.</li>
-          <li>Más manipulación.</li>
-          <li>Packaging especial.</li>
-        </ul>
       </div>
 
       <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">

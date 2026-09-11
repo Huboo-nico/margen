@@ -3,7 +3,6 @@ import {
   CalculatorInputs,
   CalculationResults,
   ProductType,
-  PackCostSource,
 } from '../types';
 import { PRODUCT_PROFILES } from '../data/constants';
 import { ChevronDown, ChevronRight, AlertCircle, Package, Truck, Layers, User } from 'lucide-react';
@@ -22,8 +21,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
     const prof = PRODUCT_PROFILES[newProduct];
     onChange({
       productType: newProduct,
-      surchargePrice: prof.surchargePrice,
-      surchargeCost: prof.surchargeCost,
+      surchargePrice: 0,
+      surchargeCost: 0,
       returnRate: prof.returnRate,
     });
   };
@@ -96,14 +95,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
             <label className="block text-xs font-medium text-gray-700 mb-1">
               Fuente de coste pack base
             </label>
-            <select
-              value={inputs.packCostSource}
-              onChange={(e) => onChange({ packCostSource: e.target.value as PackCostSource })}
-              className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-red-500 bg-white"
-            >
-              <option value="Calculadora (negociado)">Calculadora (negociado)</option>
-              <option value="Rate card ES (estándar)">Rate card ES (estándar)</option>
-            </select>
+            <div className="w-full border border-gray-200 bg-gray-50 rounded px-2.5 py-1.5 text-xs text-gray-800 font-medium flex items-center justify-between">
+              <span>Calculadora (negociado)</span>
+              <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-semibold">Siempre activo</span>
+            </div>
+            <p className="text-[10px] text-gray-400 mt-0.5">Los costes de pack base se rigen por la calculadora operativa.</p>
           </div>
 
           <div className="bg-gray-50 p-2.5 rounded-md border border-gray-200 text-[11px] space-y-1">
@@ -626,37 +622,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
                     value={inputs.insertCost}
                     onChange={(e) => onChange({ insertCost: Math.max(0, Number(e.target.value)) })}
                     className="w-full border border-gray-300 rounded px-1.5 py-1 text-xs font-mono"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Fragilidad / Surcharge */}
-            <div className="border-b border-gray-100 pb-2">
-              <span className="text-xs font-semibold text-gray-800 block mb-1">
-                Incidencias / Fragilidad
-              </span>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[10px] text-gray-500">Surcharge Precio €</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={inputs.surchargePrice}
-                    onChange={(e) => onChange({ surchargePrice: Math.max(0, Number(e.target.value)) })}
-                    className="w-full border border-gray-300 rounded px-2 py-1 text-xs font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-gray-500">Surcharge Coste €</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={inputs.surchargeCost}
-                    onChange={(e) => onChange({ surchargeCost: Math.max(0, Number(e.target.value)) })}
-                    className="w-full border border-gray-300 rounded px-2 py-1 text-xs font-mono"
                   />
                 </div>
               </div>

@@ -1,14 +1,65 @@
-import React from 'react';
-import { CalculationResults } from '../types';
+import React, { useState } from 'react';
+import { CalculationResults, CalculatorInputs } from '../types';
 import { formatEur, formatPct, formatMarkup } from '../utils/calculations';
-import { AlertTriangle, CheckCircle, Package, Truck, Info, ArrowUpRight } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Package, Truck, Info, ArrowUpRight, FileText } from 'lucide-react';
+import { InternalReportModal } from './InternalReportModal';
 
 interface ResumenTabProps {
   results: CalculationResults;
+  inputs?: CalculatorInputs;
   onOpenPricingSimulator?: () => void;
 }
 
-export const ResumenTab: React.FC<ResumenTabProps> = ({ results, onOpenPricingSimulator }) => {
+export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenPricingSimulator }) => {
+  const [showPdfModal, setShowPdfModal] = useState(false);
+
+  // Fallback default inputs if not passed
+  const effectiveInputs: CalculatorInputs = inputs || {
+    clientName: results.clientName,
+    clientNotes: '',
+    skuCount: 15,
+    productType: 'Suplementos',
+    packCostSource: 'Calculadora (negociado)',
+    volumeMode: 'Pedidos/día',
+    workingDays: 22,
+    ordersPerDay: results.ordersPerDay,
+    ordersMonth: results.ordersMonth,
+    unitsPerOrder: results.unitsPerOrder,
+    mixSpk: 0,
+    mixSpl: 0,
+    mixMpl: 50,
+    mixLpl: 50,
+    packPriceMode: 'margin',
+    packMarginTarget: results.packMargin || 0.38,
+    packPriceManual: results.packPrice,
+    firstPickPriceMode: 'margin',
+    firstPickMarginTarget: results.firstPickMargin || 0.28,
+    firstPickPriceManual: results.firstPickPrice,
+    additionalPickPriceMode: 'margin',
+    additionalPickMarginTarget: results.additionalPickMargin || 0.28,
+    additionalPickPriceManual: results.additionalPickPrice,
+    shippingPriceMode: 'margin',
+    carrierCost: results.carrierCost,
+    shippingMarginTarget: results.shippingMargin || 0.2,
+    shippingPriceManual: results.shippingPrice,
+    insertsPerOrder: 0,
+    insertPrice: 0.15,
+    insertCost: 0.05,
+    packagingPrice: 0.3,
+    packagingCost: 0.15,
+    surchargePrice: 0,
+    surchargeCost: 0,
+    returnRate: 0.02,
+    returnHandlingPrice: 1.5,
+    returnHandlingCost: 0.8,
+    goodsInPalletsMonth: 0,
+    goodsInPrice: 12.5,
+    goodsInCost: 7.0,
+    storagePalletWeeksMonth: 0,
+    storagePrice: 3.5,
+    storageCost: 1.8,
+  };
+
   return (
     <div className="space-y-6">
       {/* Client Headline Banner */}
@@ -27,16 +78,29 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, onOpenPricingSi
           </p>
         </div>
 
-        {onOpenPricingSimulator && (
+        <div className="flex flex-wrap items-center gap-2.5 self-start md:self-auto">
+          {/* Internal PDF Presentation Button */}
           <button
             type="button"
-            onClick={onOpenPricingSimulator}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-700 hover:underline cursor-pointer self-start md:self-auto"
+            onClick={() => setShowPdfModal(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 hover:bg-black text-white text-xs font-semibold rounded-lg shadow-xs transition cursor-pointer"
+            title="Generar informe PDF confidencial para presentar internamente con desglose operativo"
           >
-            <span>Ajustar precios & márgenes</span>
-            <ArrowUpRight className="w-3.5 h-3.5" />
+            <FileText className="w-3.5 h-3.5 text-red-400" />
+            <span>Crear PDF Interno</span>
           </button>
-        )}
+
+          {onOpenPricingSimulator && (
+            <button
+              type="button"
+              onClick={onOpenPricingSimulator}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-700 hover:underline cursor-pointer"
+            >
+              <span>Ajustar precios & márgenes</span>
+              <ArrowUpRight className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Main KPI Grid */}
@@ -211,21 +275,149 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, onOpenPricingSi
             </span>
           </div>
 
-          <table className="w-full text-xs text-left">
-            <tbody className="divide-y divide-gray-100">
-              {results.orderSummary.map((item, idx) => (
-                <tr key={idx} className="hover:bg-gray-50/80 transition">
-                  <td className="px-5 py-2.5 font-medium text-gray-800">
-                    <div>{item.concepto}</div>
-                    {item.detalle && <div className="text-[11px] text-gray-400">{item.detalle}</div>}
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-gray-100 text-gray-600 font-semibold uppercase text-[10px] border-b border-gray-200">
+                <tr>
+                  <th className="px-4 py-2.5">Concepto Operativo</th>
+                  <th className="px-3 py-2.5 text-right">Coste</th>
+                  <th className="px-3 py-2.5 text-right">Margen</th>
+                  <th className="px-3 py-2.5 text-right text-blue-700">Markup</th>
+                  <th className="px-4 py-2.5 text-right font-bold text-gray-900">Precio Venta</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {/* 1. Preparación base Pack */}
+                <tr className="hover:bg-gray-50/80 transition">
+                  <td className="px-4 py-2.5 font-medium text-gray-900">
+                    <div>Preparación base (Pack)</div>
+                    <div className="text-[11px] text-gray-400">
+                      Caja/sobre, packaging y manipulado base (Calculadora)
+                    </div>
                   </td>
-                  <td className="px-5 py-2.5 text-right font-mono font-bold text-gray-900">
-                    {item.valor}
+                  <td className="px-3 py-2.5 text-right font-mono text-gray-700">
+                    {formatEur(results.packCost)}
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono font-semibold text-emerald-700">
+                    {formatPct(results.packMargin)}
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono font-semibold text-blue-700">
+                    {formatMarkup(results.packMarkup)}
+                  </td>
+                  <td className="px-4 py-2.5 text-right font-mono font-bold text-gray-900">
+                    {formatEur(results.packPrice)}
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+
+                {/* 2. 1er Pick */}
+                <tr className="hover:bg-gray-50/80 transition">
+                  <td className="px-4 py-2.5 font-medium text-gray-900">
+                    <div>1er Pick (1ª unidad)</div>
+                    <div className="text-[11px] text-gray-400">
+                      Picking de la primera unidad del pedido
+                    </div>
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono text-gray-700">
+                    {formatEur(results.firstPickCost)}
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono font-semibold text-emerald-700">
+                    {formatPct(results.firstPickMargin)}
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono font-semibold text-blue-700">
+                    {formatMarkup(results.firstPickMarkup)}
+                  </td>
+                  <td className="px-4 py-2.5 text-right font-mono font-bold text-gray-900">
+                    {formatEur(results.firstPickPrice)}
+                  </td>
+                </tr>
+
+                {/* 3. Subtotal Base Pedido */}
+                <tr className="bg-red-50/40 border-y border-red-100 font-semibold">
+                  <td className="px-4 py-2.5 text-red-950 font-bold">
+                    <div>Total Preparación + 1er Pick (Base Pedido)</div>
+                    <div className="text-[11px] text-red-700 font-normal">
+                      Fee base mínimo aplicado por pedido
+                    </div>
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono text-red-950">
+                    {formatEur(results.prepPlusFirstPickCost)}
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono font-bold text-red-700">
+                    {formatPct(results.prepPlusFirstPickMargin)}
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono font-bold text-blue-800">
+                    {formatMarkup(results.prepPlusFirstPickMarkup)}
+                  </td>
+                  <td className="px-4 py-2.5 text-right font-mono font-black text-red-700">
+                    {formatEur(results.prepPlusFirstPickPrice)}
+                  </td>
+                </tr>
+
+                {/* 4. Picks adicionales */}
+                <tr className="hover:bg-gray-50/80 transition">
+                  <td className="px-4 py-2.5 font-medium text-gray-900">
+                    <div>Picks adicionales (&gt; 1 unidad)</div>
+                    <div className="text-[11px] text-gray-400">
+                      Por unidad extra (media actual: {(results.unitsPerOrder - 1).toFixed(1)} uds extras)
+                    </div>
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono text-gray-700">
+                    {formatEur(results.additionalPickCost)}
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono font-semibold text-emerald-700">
+                    {formatPct(results.additionalPickMargin)}
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono font-semibold text-blue-700">
+                    {formatMarkup(results.additionalPickMarkup)}
+                  </td>
+                  <td className="px-4 py-2.5 text-right font-mono font-bold text-gray-900">
+                    {formatEur(results.additionalPickPrice)}
+                  </td>
+                </tr>
+
+                {/* 5. Envío Transporte */}
+                <tr className="hover:bg-gray-50/80 transition">
+                  <td className="px-4 py-2.5 font-medium text-gray-900">
+                    <div>Envío Transporte (Carrier)</div>
+                    <div className="text-[11px] text-gray-400">
+                      Tarifa nacional peninsular 24-48h
+                    </div>
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono text-gray-700">
+                    {formatEur(results.carrierCost)}
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono font-semibold text-emerald-700">
+                    {formatPct(results.shippingMargin)}
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-mono font-semibold text-blue-700">
+                    {formatMarkup(results.shippingMarkup)}
+                  </td>
+                  <td className="px-4 py-2.5 text-right font-mono font-bold text-blue-700">
+                    {formatEur(results.shippingPrice)}
+                  </td>
+                </tr>
+
+                {/* 6. Total Facturado Pedido */}
+                <tr className="bg-gray-50 font-bold border-t border-gray-200">
+                  <td className="px-4 py-3 text-gray-900">
+                    TOTAL ESTIMADO POR PEDIDO (CON ENVÍO)
+                  </td>
+                  <td className="px-3 py-3 text-right font-mono text-gray-700">
+                    {formatEur(results.orderCostExShipping + results.carrierCost)}
+                  </td>
+                  <td className="px-3 py-3 text-right font-mono font-bold text-gray-900">
+                    {formatPct(results.marginTotal)}
+                  </td>
+                  <td className="px-3 py-3 text-right font-mono font-bold text-blue-700">
+                    {formatMarkup(results.markupTotal)}
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono font-black text-gray-900 text-sm">
+                    {formatEur(results.orderRevenueExShipping + results.shippingPrice)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Right 1 Col: Envío & Alertas */}
@@ -291,6 +483,14 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, onOpenPricingSi
           </div>
         </div>
       </div>
+
+      {/* Modal for Internal PDF Presentation */}
+      <InternalReportModal
+        isOpen={showPdfModal}
+        onClose={() => setShowPdfModal(false)}
+        results={results}
+        inputs={effectiveInputs}
+      />
     </div>
   );
 };

@@ -9,7 +9,6 @@ import {
   PACK_TYPES,
   PACK_PRICES,
   PACK_COSTS_CALCULATOR,
-  PACK_COSTS_STANDARD_ES,
   BASE_FIRST_PICK_COST,
   BASE_ADDITIONAL_PICK_COST,
   PRODUCT_PROFILES,
@@ -85,7 +84,6 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
     clientName,
     skuCount,
     productType,
-    packCostSource,
     volumeMode,
     workingDays,
     unitsPerOrder,
@@ -112,8 +110,6 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
     insertCost,
     packagingPrice,
     packagingCost,
-    surchargePrice,
-    surchargeCost,
     returnRate,
     returnHandlingPrice,
     returnHandlingCost,
@@ -139,11 +135,8 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
     ordersPerDay = workingDays > 0 ? Number(ordersMonth) / Number(workingDays) : 0;
   }
 
-  // Pack costs & mix
-  const packCosts =
-    packCostSource === 'Calculadora (negociado)'
-      ? PACK_COSTS_CALCULATOR
-      : PACK_COSTS_STANDARD_ES;
+  // Pack costs & mix: Siempre calculadora
+  const packCosts = PACK_COSTS_CALCULATOR;
 
   const mixRaw: Record<PackType, number> = {
     SPK: Number(mixSpk),
@@ -237,8 +230,8 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
   const packagingPricePerOrder = Number(packagingPrice);
   const packagingCostPerOrder = Number(packagingCost);
 
-  const surchargePricePerOrder = Number(surchargePrice);
-  const surchargeCostPerOrder = Number(surchargeCost);
+  const surchargePricePerOrder = 0;
+  const surchargeCostPerOrder = 0;
 
   const returnRevenuePerOrder = Number(returnRate) * Number(returnHandlingPrice);
   const returnCostPerOrder = Number(returnRate) * Number(returnHandlingCost);
@@ -249,7 +242,6 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
     totalPickPricePerOrder +
     insertRevenuePerOrder +
     packagingPricePerOrder +
-    surchargePricePerOrder +
     returnRevenuePerOrder;
 
   const orderCostExShipping =
@@ -257,7 +249,6 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
     totalPickCostPerOrder +
     insertCostPerOrder +
     packagingCostPerOrder +
-    surchargeCostPerOrder +
     returnCostPerOrder;
 
   const orderProfitExShipping = orderRevenueExShipping - orderCostExShipping;
@@ -326,15 +317,6 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
         'El pick adicional no tiene contribución positiva; no compensa el primer pick subsidiado.'
       );
     }
-  }
-
-  if (
-    ['Perfume', 'Vidrio', 'Perfume + vidrio'].includes(productType) &&
-    Number(surchargePrice) < 0.2
-  ) {
-    alerts.push(
-      'Producto frágil/perfume detectado: se recomienda un surcharge >= 0.20 €/pedido para cubrir incidencias.'
-    );
   }
 
   if (shippingMargin !== null && shippingMargin < 0.1) {
@@ -410,20 +392,6 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
         packagingCostPerOrder * Number(ordersMonth)
       ),
       markup: markupFromPrice(packagingPricePerOrder, packagingCostPerOrder),
-    },
-    {
-      linea: 'Incidencias / Fragilidad',
-      categoria: 'Servicios',
-      unitPrice: surchargePricePerOrder,
-      unitCost: surchargeCostPerOrder,
-      ingresos: surchargePricePerOrder * Number(ordersMonth),
-      costes: surchargeCostPerOrder * Number(ordersMonth),
-      beneficio: (surchargePricePerOrder - surchargeCostPerOrder) * Number(ordersMonth),
-      margen: marginFromPrice(
-        surchargePricePerOrder * Number(ordersMonth),
-        surchargeCostPerOrder * Number(ordersMonth)
-      ),
-      markup: markupFromPrice(surchargePricePerOrder, surchargeCostPerOrder),
     },
     {
       linea: 'Devoluciones (Returns)',

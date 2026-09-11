@@ -262,6 +262,7 @@ export const App: React.FC = () => {
             {activeTab === 'Resumen' && (
               <ResumenTab
                 results={results}
+                inputs={inputs}
                 onOpenPricingSimulator={() => setActiveTab('Precios & Margen')}
               />
             )}

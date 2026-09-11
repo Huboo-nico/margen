@@ -38,7 +38,6 @@ Fecha: ${new Date().toLocaleDateString('es-ES')}
 4. SERVICIOS ADICIONALES:
 - Packaging base estándar: ${formatEur(inputs.packagingPrice)} por pedido
 - Inserts publicitarios: ${formatEur(inputs.insertPrice)} por folleto
-- Cobertura incidencias / fragilidad: ${formatEur(inputs.surchargePrice)} por pedido
 
 5. ALMACENAJE Y RECEPCIÓN:
 - Almacenaje en estantería/rack: ${formatEur(inputs.storagePrice)} por pallet / semana

@@ -260,27 +260,6 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
         />
 
         <PriceMarginRow
-          label="Incidencias / Fragilidad (Surcharge)"
-          subLabel={`Cobertura especial para ${inputs.productType} (roturas, manipulado especial)`}
-          cost={inputs.surchargeCost}
-          mode="price"
-          marginTarget={
-            inputs.surchargePrice > 0
-              ? (inputs.surchargePrice - inputs.surchargeCost) / inputs.surchargePrice
-              : 0
-          }
-          manualPrice={inputs.surchargePrice}
-          allowCostEdit={true}
-          onCostChange={(c) => onChange({ surchargeCost: c })}
-          onModeChange={() => {}}
-          onMarginChange={(mg) => {
-            const p = priceFromCostMargin(inputs.surchargeCost, mg);
-            onChange({ surchargePrice: Number(p.toFixed(2)) });
-          }}
-          onPriceChange={(p) => onChange({ surchargePrice: p })}
-        />
-
-        <PriceMarginRow
           label="Recepción de pallets (Goods-in por pallet)"
           subLabel="Descarga, control de albarán y ubicación en rack"
           cost={inputs.goodsInCost}

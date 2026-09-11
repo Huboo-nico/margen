@@ -60,32 +60,32 @@ export const RETURN_HANDLING_COST = 3.33;
 export const PRODUCT_PROFILES: Record<ProductType, ProductProfile> = {
   Suplementos: {
     pickMultiplier: 1.00,
-    surchargePrice: 0.02,
-    surchargeCost: 0.01,
+    surchargePrice: 0,
+    surchargeCost: 0,
     returnRate: 0.02,
   },
   Cosmética: {
     pickMultiplier: 1.05,
-    surchargePrice: 0.08,
-    surchargeCost: 0.04,
+    surchargePrice: 0,
+    surchargeCost: 0,
     returnRate: 0.04,
   },
   Perfume: {
     pickMultiplier: 1.15,
-    surchargePrice: 0.20,
-    surchargeCost: 0.12,
+    surchargePrice: 0,
+    surchargeCost: 0,
     returnRate: 0.05,
   },
   Vidrio: {
     pickMultiplier: 1.25,
-    surchargePrice: 0.35,
-    surchargeCost: 0.22,
+    surchargePrice: 0,
+    surchargeCost: 0,
     returnRate: 0.07,
   },
   'Perfume + vidrio': {
     pickMultiplier: 1.35,
-    surchargePrice: 0.50,
-    surchargeCost: 0.32,
+    surchargePrice: 0,
+    surchargeCost: 0,
     returnRate: 0.08,
   },
 };
@@ -169,7 +169,7 @@ export const INITIAL_CLIENT_PROFILES: ClientProfile[] = [
   {
     id: 'client-2',
     name: 'Aura Glow (Cosmética & Perfume)',
-    notes: 'Frágil, con surcharge de packaging e incidencia',
+    notes: 'Volumen alto, pedidos multi-unidad cosmética',
     updatedAt: new Date().toISOString(),
     inputs: {
       ...DEFAULT_INPUTS,
@@ -183,8 +183,8 @@ export const INITIAL_CLIENT_PROFILES: ClientProfile[] = [
       mixSpl: 40,
       mixMpl: 40,
       mixLpl: 0,
-      surchargePrice: 0.50,
-      surchargeCost: 0.32,
+      surchargePrice: 0,
+      surchargeCost: 0,
       returnRate: 0.08,
       carrierCost: 4.80,
       shippingMarginTarget: 0.22,
