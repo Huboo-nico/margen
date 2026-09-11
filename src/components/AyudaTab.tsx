@@ -1,0 +1,92 @@
+import React from 'react';
+
+export const AyudaTab: React.FC = () => {
+  return (
+    <div className="space-y-6 text-gray-800 max-w-4xl">
+      <h2 className="text-xl font-bold text-gray-900">Cómo funciona esta calculadora</h2>
+
+      <p className="text-sm leading-relaxed text-gray-600">
+        Esta MVP calcula márgenes operativos sin guardar datos.
+      </p>
+
+      <div>
+        <h3 className="text-base font-semibold text-gray-900 mb-2">Fórmulas principales</h3>
+
+        <div className="space-y-3 text-sm">
+          <div>
+            <p className="font-semibold text-gray-700 mb-1">Margen:</p>
+            <pre className="bg-gray-100 p-3 rounded text-xs font-mono text-gray-800 border border-gray-200">
+              Margen = (Ingreso - Coste) / Ingreso
+            </pre>
+          </div>
+
+          <div>
+            <p className="font-semibold text-gray-700 mb-1">Precio objetivo por margen:</p>
+            <pre className="bg-gray-100 p-3 rounded text-xs font-mono text-gray-800 border border-gray-200">
+              Precio = Coste / (1 - Margen objetivo)
+            </pre>
+          </div>
+
+          <div>
+            <p className="font-semibold text-gray-700 mb-1">Pick por pedido:</p>
+            <pre className="bg-gray-100 p-3 rounded text-xs font-mono text-gray-800 border border-gray-200">
+              {`Pick revenue = Primer pick + (Units - 1) * Pick adicional\nPick cost = Coste primer pick + (Units - 1) * Coste pick adicional`}
+            </pre>
+          </div>
+
+          <div>
+            <p className="font-semibold text-gray-700 mb-1">Envío:</p>
+            <pre className="bg-gray-100 p-3 rounded text-xs font-mono text-gray-800 border border-gray-200">
+              Precio envío = Carrier cost / (1 - Margen envío objetivo)
+            </pre>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-base font-semibold text-gray-900 mb-2">Segmentación SKU</h3>
+        <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+          <li><strong>Simple:</strong> hasta 20 SKUs.</li>
+          <li><strong>Medio:</strong> 21 a 100 SKUs.</li>
+          <li><strong>Complejo:</strong> más de 100 SKUs.</li>
+        </ul>
+      </div>
+
+      <div>
+        <h3 className="text-base font-semibold text-gray-900 mb-2">Multiplicadores</h3>
+        <p className="text-sm text-gray-700 mb-2">El coste de picking se ajusta por:</p>
+        <pre className="bg-gray-100 p-3 rounded text-xs font-mono text-gray-800 border border-gray-200">
+          {`Coste pick ajustado =\nCoste pick base\n* Multiplicador SKU\n* Multiplicador producto`}
+        </pre>
+      </div>
+
+      <div>
+        <h3 className="text-base font-semibold text-gray-900 mb-2">Incidencias / producto</h3>
+        <p className="text-sm text-gray-700 mb-2">
+          El surcharge de producto se añade como línea independiente:
+        </p>
+        <ul className="list-disc list-inside space-y-1 text-sm text-gray-700 mb-3">
+          <li>Precio extra por pedido.</li>
+          <li>Coste extra por pedido.</li>
+        </ul>
+        <p className="text-sm text-gray-700 mb-2">Sirve para cubrir:</p>
+        <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+          <li>Perfume.</li>
+          <li>Alcohol.</li>
+          <li>Vidrio.</li>
+          <li>Frágil.</li>
+          <li>Más devoluciones.</li>
+          <li>Más manipulación.</li>
+          <li>Packaging especial.</li>
+        </ul>
+      </div>
+
+      <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+        <h3 className="text-sm font-semibold text-blue-950 mb-1">Importante</h3>
+        <p className="text-xs text-blue-900 leading-relaxed">
+          Esta herramienta no guarda datos. Si refrescas o cambias de sesión, se vuelve a calcular desde cero.
+        </p>
+      </div>
+    </div>
+  );
+};

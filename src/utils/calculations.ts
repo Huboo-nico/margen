@@ -1,0 +1,572 @@
+import {
+  CalculatorInputs,
+  CalculationResults,
+  MonthlyLine,
+  OrderSummaryItem,
+  PackType,
+} from '../types';
+import {
+  PACK_TYPES,
+  PACK_PRICES,
+  PACK_COSTS_CALCULATOR,
+  PACK_COSTS_STANDARD_ES,
+  BASE_FIRST_PICK_COST,
+  BASE_ADDITIONAL_PICK_COST,
+  PRODUCT_PROFILES,
+} from '../data/constants';
+
+export function getSkuTier(skuCount: number): {
+  tierName: string;
+  skuMultiplier: number;
+  targetPickMarginDefault: number;
+} {
+  if (skuCount <= 20) {
+    return { tierName: 'Simple', skuMultiplier: 1.0, targetPickMarginDefault: 0.28 };
+  } else if (skuCount <= 100) {
+    return { tierName: 'Medio', skuMultiplier: 1.1, targetPickMarginDefault: 0.35 };
+  } else {
+    return { tierName: 'Complejo', skuMultiplier: 1.3, targetPickMarginDefault: 0.42 };
+  }
+}
+
+export function priceFromCostMargin(cost: number, targetMargin: number): number {
+  const c = Number(cost) || 0.0;
+  let tm = Number(targetMargin) || 0.0;
+  tm = Math.max(0.0, Math.min(tm, 0.95));
+  const denom = 1.0 - tm;
+  return denom > 0 ? c / denom : c;
+}
+
+export function marginFromPrice(price: number, cost: number): number | null {
+  const p = Number(price);
+  const c = Number(cost);
+  if (isNaN(p) || isNaN(c) || p === 0) {
+    return null;
+  }
+  return (p - c) / p;
+}
+
+export function formatEur(value: number | null | undefined): string {
+  if (value === null || value === undefined || isNaN(value)) {
+    return 'n/a';
+  }
+  return `${value.toLocaleString('es-ES', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} €`;
+}
+
+export function formatPct(value: number | null | undefined): string {
+  if (value === null || value === undefined || isNaN(value)) {
+    return 'n/a';
+  }
+  return `${(value * 100).toFixed(1)}%`;
+}
+
+export function calculateAll(inputs: CalculatorInputs): CalculationResults {
+  const {
+    clientName,
+    skuCount,
+    productType,
+    packCostSource,
+    volumeMode,
+    workingDays,
+    unitsPerOrder,
+    mixSpk,
+    mixSpl,
+    mixMpl,
+    mixLpl,
+    packPriceMode,
+    packMarginTarget,
+    packPriceManual,
+    packCostOverride,
+    firstPickPriceMode,
+    firstPickMarginTarget,
+    firstPickPriceManual,
+    additionalPickPriceMode,
+    additionalPickMarginTarget,
+    additionalPickPriceManual,
+    shippingPriceMode,
+    carrierCost,
+    shippingMarginTarget,
+    shippingPriceManual,
+    insertsPerOrder,
+    insertPrice,
+    insertCost,
+    packagingPrice,
+    packagingCost,
+    surchargePrice,
+    surchargeCost,
+    returnRate,
+    returnHandlingPrice,
+    returnHandlingCost,
+    goodsInPalletsMonth,
+    goodsInPrice,
+    goodsInCost,
+    storagePalletWeeksMonth,
+    storagePrice,
+    storageCost,
+  } = inputs;
+
+  const { tierName, skuMultiplier, targetPickMarginDefault } = getSkuTier(Number(skuCount));
+  const profile = PRODUCT_PROFILES[productType] || PRODUCT_PROFILES['Suplementos'];
+  const productPickMultiplier = profile.pickMultiplier;
+
+  // Orders volume
+  let ordersPerDay = inputs.ordersPerDay;
+  let ordersMonth = inputs.ordersMonth;
+
+  if (volumeMode === 'Pedidos/día') {
+    ordersMonth = Number(ordersPerDay) * Number(workingDays);
+  } else {
+    ordersPerDay = workingDays > 0 ? Number(ordersMonth) / Number(workingDays) : 0;
+  }
+
+  // Pack costs & mix
+  const packCosts =
+    packCostSource === 'Calculadora (negociado)'
+      ? PACK_COSTS_CALCULATOR
+      : PACK_COSTS_STANDARD_ES;
+
+  const mixRaw: Record<PackType, number> = {
+    SPK: Number(mixSpk),
+    SPL: Number(mixSpl),
+    MPL: Number(mixMpl),
+    LPL: Number(mixLpl),
+  };
+
+  const mixTotal = Object.values(mixRaw).reduce((a, b) => a + b, 0);
+  const mix: Record<PackType, number> =
+    mixTotal === 0
+      ? { SPK: 0.25, SPL: 0.25, MPL: 0.25, LPL: 0.25 }
+      : {
+          SPK: mixRaw.SPK / mixTotal,
+          SPL: mixRaw.SPL / mixTotal,
+          MPL: mixRaw.MPL / mixTotal,
+          LPL: mixRaw.LPL / mixTotal,
+        };
+
+  let defaultPackPriceFromMix = 0;
+  let defaultPackCostFromMix = 0;
+  for (const k of PACK_TYPES) {
+    defaultPackPriceFromMix += mix[k] * PACK_PRICES[k];
+    defaultPackCostFromMix += mix[k] * packCosts[k];
+  }
+
+  // 1. Preparación (Pack base)
+  const packCost =
+    packCostOverride !== undefined && packCostOverride !== null && packCostOverride > 0
+      ? Number(packCostOverride)
+      : defaultPackCostFromMix;
+
+  let packPrice = 0;
+  if (packPriceMode === 'margin') {
+    packPrice = priceFromCostMargin(packCost, packMarginTarget);
+  } else {
+    packPrice = Number(packPriceManual) || defaultPackPriceFromMix;
+  }
+  const packMargin = marginFromPrice(packPrice, packCost);
+
+  // 2. 1er Pick
+  const firstPickCost = BASE_FIRST_PICK_COST * skuMultiplier * productPickMultiplier;
+  let firstPickPrice = 0;
+  if (firstPickPriceMode === 'margin') {
+    firstPickPrice = priceFromCostMargin(firstPickCost, firstPickMarginTarget);
+  } else {
+    firstPickPrice = Number(firstPickPriceManual) || 0.0;
+  }
+  const firstPickMargin = marginFromPrice(firstPickPrice, firstPickCost);
+
+  // 3. COMBINADO: Preparación (Pack) + 1er Pick
+  const prepPlusFirstPickCost = packCost + firstPickCost;
+  const prepPlusFirstPickPrice = packPrice + firstPickPrice;
+  const prepPlusFirstPickMargin = marginFromPrice(prepPlusFirstPickPrice, prepPlusFirstPickCost);
+  const prepPlusFirstPickProfit = prepPlusFirstPickPrice - prepPlusFirstPickCost;
+
+  // 4. Picks Adicionales (>1 unidad)
+  const additionalPickCost = BASE_ADDITIONAL_PICK_COST * skuMultiplier * productPickMultiplier;
+  let additionalPickPrice = 0;
+  if (additionalPickPriceMode === 'margin') {
+    additionalPickPrice = priceFromCostMargin(additionalPickCost, additionalPickMarginTarget);
+  } else {
+    additionalPickPrice = Number(additionalPickPriceManual) || 0.0;
+  }
+  const additionalPickMargin = marginFromPrice(additionalPickPrice, additionalPickCost);
+
+  const additionalPicksPerOrder = Math.max(0.0, Number(unitsPerOrder) - 1.0);
+  const additionalPicksCostTotal = additionalPicksPerOrder * additionalPickCost;
+  const additionalPicksPriceTotal = additionalPicksPerOrder * additionalPickPrice;
+
+  // Picking total (1st + Adicionales)
+  const totalPickPricePerOrder = firstPickPrice + additionalPicksPriceTotal;
+  const totalPickCostPerOrder = firstPickCost + additionalPicksCostTotal;
+  const marginPick = marginFromPrice(totalPickPricePerOrder, totalPickCostPerOrder);
+
+  // 5. Envío (Carrier)
+  let shippingPrice = 0;
+  if (shippingPriceMode === 'margin') {
+    shippingPrice =
+      Number(carrierCost) / Math.max(1.0 - Number(shippingMarginTarget), 0.01);
+  } else {
+    shippingPrice = Number(shippingPriceManual) || Number(carrierCost);
+  }
+  const shippingMargin = marginFromPrice(shippingPrice, Number(carrierCost));
+  const shippingProfitPerOrder = shippingPrice - Number(carrierCost);
+
+  // 6. Servicios Unitarios por Pedido
+  const insertRevenuePerOrder = Number(insertsPerOrder) * Number(insertPrice);
+  const insertCostPerOrder = Number(insertsPerOrder) * Number(insertCost);
+
+  const packagingPricePerOrder = Number(packagingPrice);
+  const packagingCostPerOrder = Number(packagingCost);
+
+  const surchargePricePerOrder = Number(surchargePrice);
+  const surchargeCostPerOrder = Number(surchargeCost);
+
+  const returnRevenuePerOrder = Number(returnRate) * Number(returnHandlingPrice);
+  const returnCostPerOrder = Number(returnRate) * Number(returnHandlingCost);
+
+  // Pedido sin envío (Preparación + Picking + Servicios)
+  const orderRevenueExShipping =
+    packPrice +
+    totalPickPricePerOrder +
+    insertRevenuePerOrder +
+    packagingPricePerOrder +
+    surchargePricePerOrder +
+    returnRevenuePerOrder;
+
+  const orderCostExShipping =
+    packCost +
+    totalPickCostPerOrder +
+    insertCostPerOrder +
+    packagingCostPerOrder +
+    surchargeCostPerOrder +
+    returnCostPerOrder;
+
+  const orderProfitExShipping = orderRevenueExShipping - orderCostExShipping;
+  const marginOrderExShipping = marginFromPrice(orderRevenueExShipping, orderCostExShipping);
+
+  // 7. Mensual Operativo
+  const orderRevenueMonth = orderRevenueExShipping * Number(ordersMonth);
+  const orderCostMonth = orderCostExShipping * Number(ordersMonth);
+
+  const goodsInRevenueMonth = Number(goodsInPalletsMonth) * Number(goodsInPrice);
+  const goodsInCostMonth = Number(goodsInPalletsMonth) * Number(goodsInCost);
+
+  const storageRevenueMonth = Number(storagePalletWeeksMonth) * Number(storagePrice);
+  const storageCostMonth = Number(storagePalletWeeksMonth) * Number(storageCost);
+
+  const fulfilmentRevenueMonthExShipping =
+    orderRevenueMonth + goodsInRevenueMonth + storageRevenueMonth;
+  const fulfilmentCostMonthExShipping =
+    orderCostMonth + goodsInCostMonth + storageCostMonth;
+
+  // Mensual Envío
+  const shippingRevenueMonth = shippingPrice * Number(ordersMonth);
+  const shippingCostMonth = Number(carrierCost) * Number(ordersMonth);
+
+  // Totales Mensuales
+  const totalRevenueMonth = fulfilmentRevenueMonthExShipping + shippingRevenueMonth;
+  const totalCostMonth = fulfilmentCostMonthExShipping + shippingCostMonth;
+  const totalProfitMonth = totalRevenueMonth - totalCostMonth;
+
+  // Márgenes Globales
+  const marginTotal = marginFromPrice(totalRevenueMonth, totalCostMonth);
+  const marginExShipping = marginFromPrice(
+    fulfilmentRevenueMonthExShipping,
+    fulfilmentCostMonthExShipping
+  );
+  const marginShipping = marginFromPrice(shippingRevenueMonth, shippingCostMonth);
+
+  const profitPerOrder =
+    Number(ordersMonth) > 0 ? totalProfitMonth / Number(ordersMonth) : 0.0;
+
+  // Alertas inteligentes
+  const alerts: string[] = [];
+
+  if (ordersMonth > 0 && marginTotal !== null && marginTotal < 0.2) {
+    alerts.push('El margen total mensual está por debajo del 20%. Considera ajustar márgenes o precios.');
+  }
+
+  if (prepPlusFirstPickPrice < prepPlusFirstPickCost) {
+    alerts.push('¡Atención! El fee de Preparación + 1er Pick está por debajo de su coste operativo.');
+  }
+
+  if (firstPickPrice < firstPickCost) {
+    alerts.push('El primer pick se está cobrando por debajo de su coste ajustado.');
+    if (additionalPickPrice > additionalPickCost) {
+      const breakevenUnits =
+        1 + (firstPickCost - firstPickPrice) / (additionalPickPrice - additionalPickCost);
+      if (Number(unitsPerOrder) < breakevenUnits) {
+        alerts.push(
+          `Con primer pick subsidiado, el break-even es ${breakevenUnits.toFixed(
+            2
+          )} units/pedido. Tu units/order es ${Number(unitsPerOrder).toFixed(2)}.`
+        );
+      }
+    } else {
+      alerts.push(
+        'El pick adicional no tiene contribución positiva; no compensa el primer pick subsidiado.'
+      );
+    }
+  }
+
+  if (
+    ['Perfume', 'Vidrio', 'Perfume + vidrio'].includes(productType) &&
+    Number(surchargePrice) < 0.2
+  ) {
+    alerts.push(
+      'Producto frágil/perfume detectado: se recomienda un surcharge >= 0.20 €/pedido para cubrir incidencias.'
+    );
+  }
+
+  if (shippingMargin !== null && shippingMargin < 0.1) {
+    alerts.push('El margen de envío es bajo (<10%). Podría absorber subidas de tarifas de carrier.');
+  }
+
+  if (Number(carrierCost) >= shippingPrice) {
+    alerts.push('El precio de venta de envío es igual o inferior al coste del carrier (margen negativo o nulo).');
+  }
+
+  // Monthly breakdown lines
+  const lines: MonthlyLine[] = [
+    {
+      linea: 'Preparación base (Pack)',
+      categoria: 'Preparación',
+      unitPrice: packPrice,
+      unitCost: packCost,
+      ingresos: packPrice * Number(ordersMonth),
+      costes: packCost * Number(ordersMonth),
+      beneficio: (packPrice - packCost) * Number(ordersMonth),
+      margen: marginFromPrice(packPrice * Number(ordersMonth), packCost * Number(ordersMonth)),
+    },
+    {
+      linea: '1er Pick',
+      categoria: 'Pick',
+      unitPrice: firstPickPrice,
+      unitCost: firstPickCost,
+      ingresos: firstPickPrice * Number(ordersMonth),
+      costes: firstPickCost * Number(ordersMonth),
+      beneficio: (firstPickPrice - firstPickCost) * Number(ordersMonth),
+      margen: marginFromPrice(firstPickPrice * Number(ordersMonth), firstPickCost * Number(ordersMonth)),
+    },
+    {
+      linea: 'Picks adicionales (>1 unidad)',
+      categoria: 'Pick',
+      unitPrice: additionalPicksPriceTotal,
+      unitCost: additionalPicksCostTotal,
+      ingresos: additionalPicksPriceTotal * Number(ordersMonth),
+      costes: additionalPicksCostTotal * Number(ordersMonth),
+      beneficio: (additionalPicksPriceTotal - additionalPicksCostTotal) * Number(ordersMonth),
+      margen: marginFromPrice(
+        additionalPicksPriceTotal * Number(ordersMonth),
+        additionalPicksCostTotal * Number(ordersMonth)
+      ),
+    },
+    {
+      linea: 'Inserts publicitarios',
+      categoria: 'Servicios',
+      unitPrice: insertRevenuePerOrder,
+      unitCost: insertCostPerOrder,
+      ingresos: insertRevenuePerOrder * Number(ordersMonth),
+      costes: insertCostPerOrder * Number(ordersMonth),
+      beneficio: (insertRevenuePerOrder - insertCostPerOrder) * Number(ordersMonth),
+      margen: marginFromPrice(
+        insertRevenuePerOrder * Number(ordersMonth),
+        insertCostPerOrder * Number(ordersMonth)
+      ),
+    },
+    {
+      linea: 'Packaging base',
+      categoria: 'Servicios',
+      unitPrice: packagingPricePerOrder,
+      unitCost: packagingCostPerOrder,
+      ingresos: packagingPricePerOrder * Number(ordersMonth),
+      costes: packagingCostPerOrder * Number(ordersMonth),
+      beneficio: (packagingPricePerOrder - packagingCostPerOrder) * Number(ordersMonth),
+      margen: marginFromPrice(
+        packagingPricePerOrder * Number(ordersMonth),
+        packagingCostPerOrder * Number(ordersMonth)
+      ),
+    },
+    {
+      linea: 'Incidencias / Fragilidad',
+      categoria: 'Servicios',
+      unitPrice: surchargePricePerOrder,
+      unitCost: surchargeCostPerOrder,
+      ingresos: surchargePricePerOrder * Number(ordersMonth),
+      costes: surchargeCostPerOrder * Number(ordersMonth),
+      beneficio: (surchargePricePerOrder - surchargeCostPerOrder) * Number(ordersMonth),
+      margen: marginFromPrice(
+        surchargePricePerOrder * Number(ordersMonth),
+        surchargeCostPerOrder * Number(ordersMonth)
+      ),
+    },
+    {
+      linea: 'Devoluciones (Returns)',
+      categoria: 'Servicios',
+      unitPrice: returnRevenuePerOrder,
+      unitCost: returnCostPerOrder,
+      ingresos: returnRevenuePerOrder * Number(ordersMonth),
+      costes: returnCostPerOrder * Number(ordersMonth),
+      beneficio: (returnRevenuePerOrder - returnCostPerOrder) * Number(ordersMonth),
+      margen: marginFromPrice(
+        returnRevenuePerOrder * Number(ordersMonth),
+        returnCostPerOrder * Number(ordersMonth)
+      ),
+    },
+    {
+      linea: 'Goods-in (Recepción)',
+      categoria: 'Almacén',
+      unitPrice: Number(goodsInPrice),
+      unitCost: Number(goodsInCost),
+      ingresos: goodsInRevenueMonth,
+      costes: goodsInCostMonth,
+      beneficio: goodsInRevenueMonth - goodsInCostMonth,
+      margen: marginFromPrice(goodsInRevenueMonth, goodsInCostMonth),
+    },
+    {
+      linea: 'Almacenaje (Storage)',
+      categoria: 'Almacén',
+      unitPrice: Number(storagePrice),
+      unitCost: Number(storageCost),
+      ingresos: storageRevenueMonth,
+      costes: storageCostMonth,
+      beneficio: storageRevenueMonth - storageCostMonth,
+      margen: marginFromPrice(storageRevenueMonth, storageCostMonth),
+    },
+    {
+      linea: 'Envío (Carrier)',
+      categoria: 'Envío',
+      unitPrice: shippingPrice,
+      unitCost: Number(carrierCost),
+      ingresos: shippingRevenueMonth,
+      costes: shippingCostMonth,
+      beneficio: shippingRevenueMonth - shippingCostMonth,
+      margen: marginFromPrice(shippingRevenueMonth, shippingCostMonth),
+    },
+  ];
+
+  const orderSummary: OrderSummaryItem[] = [
+    {
+      concepto: 'Preparación base (Pack)',
+      valor: formatEur(packPrice),
+      detalle: `Coste: ${formatEur(packCost)} | Margen: ${formatPct(packMargin)}`,
+    },
+    {
+      concepto: '1er Pick',
+      valor: formatEur(firstPickPrice),
+      detalle: `Coste: ${formatEur(firstPickCost)} | Margen: ${formatPct(firstPickMargin)}`,
+    },
+    {
+      concepto: 'Total Preparación + 1er Pick (Base Pedido)',
+      valor: formatEur(prepPlusFirstPickPrice),
+      detalle: `Coste total: ${formatEur(prepPlusFirstPickCost)} | Margen: ${formatPct(
+        prepPlusFirstPickMargin
+      )} | Beneficio: ${formatEur(prepPlusFirstPickProfit)}`,
+    },
+    {
+      concepto: 'Picks adicionales (por unidad extra)',
+      valor: formatEur(additionalPickPrice),
+      detalle: `Coste: ${formatEur(additionalPickCost)} | Margen: ${formatPct(additionalPickMargin)}`,
+    },
+    {
+      concepto: 'Ingreso operativo por pedido (sin envío)',
+      valor: formatEur(orderRevenueExShipping),
+      detalle: `Coste: ${formatEur(orderCostExShipping)} | Beneficio: ${formatEur(orderProfitExShipping)}`,
+    },
+    {
+      concepto: 'Margen operativo por pedido (sin envío)',
+      valor: formatPct(marginOrderExShipping),
+    },
+    {
+      concepto: 'Precio de venta Carrier (Envío)',
+      valor: formatEur(shippingPrice),
+      detalle: `Coste carrier: ${formatEur(carrierCost)} | Margen: ${formatPct(shippingMargin)}`,
+    },
+    {
+      concepto: 'Beneficio total estimado por pedido',
+      valor: formatEur(profitPerOrder),
+      detalle: `Total factura con envío: ${formatEur(orderRevenueExShipping + shippingPrice)}`,
+    },
+  ];
+
+  return {
+    clientName,
+    tierName,
+    skuMultiplier,
+    targetPickMarginDefault,
+    productPickMultiplier,
+    ordersPerDay,
+    ordersMonth,
+    unitsPerOrder: Number(unitsPerOrder),
+
+    packCost,
+    packPrice,
+    packMargin,
+
+    firstPickCost,
+    firstPickPrice,
+    firstPickMargin,
+
+    prepPlusFirstPickCost,
+    prepPlusFirstPickPrice,
+    prepPlusFirstPickMargin,
+    prepPlusFirstPickProfit,
+
+    additionalPickCost,
+    additionalPickPrice,
+    additionalPickMargin,
+    additionalPicksPerOrder,
+    additionalPicksCostTotal,
+    additionalPicksPriceTotal,
+
+    totalPickPricePerOrder,
+    totalPickCostPerOrder,
+    marginPick,
+
+    carrierCost: Number(carrierCost),
+    shippingPrice,
+    shippingMargin,
+    shippingProfitPerOrder,
+
+    orderRevenueExShipping,
+    orderCostExShipping,
+    orderProfitExShipping,
+    marginOrderExShipping,
+
+    insertRevenuePerOrder,
+    insertCostPerOrder,
+    packagingPricePerOrder,
+    packagingCostPerOrder,
+    surchargePricePerOrder,
+    surchargeCostPerOrder,
+    returnRevenuePerOrder,
+    returnCostPerOrder,
+
+    orderRevenueMonth,
+    orderCostMonth,
+    goodsInRevenueMonth,
+    goodsInCostMonth,
+    storageRevenueMonth,
+    storageCostMonth,
+
+    fulfilmentRevenueMonthExShipping,
+    fulfilmentCostMonthExShipping,
+    shippingRevenueMonth,
+    shippingCostMonth,
+
+    totalRevenueMonth,
+    totalCostMonth,
+    totalProfitMonth,
+    profitPerOrder,
+
+    marginTotal,
+    marginExShipping,
+    marginShipping,
+
+    alerts,
+    lines,
+    orderSummary,
+  };
+}
