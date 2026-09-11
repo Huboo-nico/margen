@@ -1,13 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ClientProfile } from '../types';
 import { calculateAll, formatEur, formatPct } from '../utils/calculations';
-import { ArrowRight, Plus } from 'lucide-react';
+import { ArrowRight, Plus, Edit2, Check, Trash2, Tag } from 'lucide-react';
 
 interface ComparativaClientesTabProps {
   clients: ClientProfile[];
   activeClientId: string;
   onSelectClient: (id: string) => void;
   onCreateClient: () => void;
+  onRenameClient: (id: string, newName: string) => void;
+  onUpdateNotes: (id: string, notes: string) => void;
+  onDeleteClient: (id: string) => void;
 }
 
 export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
@@ -15,26 +18,56 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
   activeClientId,
   onSelectClient,
   onCreateClient,
+  onRenameClient,
+  onUpdateNotes,
+  onDeleteClient,
 }) => {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [tempName, setTempName] = useState<string>('');
+  const [editingNotesId, setEditingNotesId] = useState<string | null>(null);
+  const [tempNotes, setTempNotes] = useState<string>('');
+
   const calculatedClients = clients.map((c) => ({
     profile: c,
     res: calculateAll(c.inputs),
   }));
 
+  const startEditName = (id: string, currentName: string) => {
+    setEditingId(id);
+    setTempName(currentName);
+  };
+
+  const saveName = (id: string) => {
+    if (tempName.trim()) {
+      onRenameClient(id, tempName.trim());
+    }
+    setEditingId(null);
+  };
+
+  const startEditNotes = (id: string, currentNotes: string) => {
+    setEditingNotesId(id);
+    setTempNotes(currentNotes);
+  };
+
+  const saveNotes = (id: string) => {
+    onUpdateNotes(id, tempNotes.trim());
+    setEditingNotesId(null);
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-gray-900">Comparativa de Clientes</h2>
           <p className="text-xs text-gray-500">
-            Vista global para contrastar márgenes, tarifas de preparación y rentabilidad cliente por cliente.
+            Puedes hacer clic en el nombre o notas de cualquier cliente para editarlo directamente.
           </p>
         </div>
 
         <button
           type="button"
           onClick={onCreateClient}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-2xs transition cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-2xs transition cursor-pointer self-start sm:self-auto"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>Añadir nuevo cliente</span>
@@ -46,7 +79,7 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
           <table className="w-full text-xs text-left">
             <thead className="bg-gray-50 border-b border-gray-200 text-[11px] font-bold text-gray-600 uppercase">
               <tr>
-                <th className="px-4 py-3">Cliente</th>
+                <th className="px-4 py-3 min-w-[200px]">Cliente (Nombre editable)</th>
                 <th className="px-3 py-3">Perfil</th>
                 <th className="px-3 py-3 text-right">Pedidos / mes</th>
                 <th className="px-3 py-3 text-right">Units / order</th>
@@ -60,56 +93,134 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
                 <th className="px-3 py-3 text-right font-bold text-emerald-800">
                   Beneficio / mes
                 </th>
-                <th className="px-4 py-3 text-center">Acción</th>
+                <th className="px-4 py-3 text-center">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {calculatedClients.map(({ profile, res }) => {
                 const isActive = profile.id === activeClientId;
+                const isEditingThis = editingId === profile.id;
+                const isEditingNotesThis = editingNotesId === profile.id;
+
                 return (
                   <tr
                     key={profile.id}
-                    className={`transition hover:bg-gray-50 ${
+                    className={`transition hover:bg-gray-50/80 ${
                       isActive ? 'bg-red-50/20 font-medium' : ''
                     }`}
                   >
+                    {/* Editable Client Name & Notes */}
                     <td className="px-4 py-3 font-bold text-gray-900">
-                      <div className="flex items-center gap-1.5">
-                        <span>{profile.name}</span>
-                        {isActive && (
-                          <span className="px-1.5 py-0.2 rounded text-[10px] bg-red-100 text-red-700 font-semibold">
-                            Activo
+                      {isEditingThis ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            value={tempName}
+                            onChange={(e) => setTempName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') saveName(profile.id);
+                              if (e.key === 'Escape') setEditingId(null);
+                            }}
+                            autoFocus
+                            className="border border-red-400 rounded px-2 py-0.5 text-xs font-bold text-gray-900 focus:outline-none focus:ring-1 focus:ring-red-500 w-full"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => saveName(profile.id)}
+                            className="p-1 text-emerald-600 hover:bg-emerald-50 rounded"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 group">
+                          <span
+                            onClick={() => startEditName(profile.id, profile.name)}
+                            className="cursor-pointer hover:text-red-600 hover:underline"
+                            title="Haz clic para editar el nombre"
+                          >
+                            {profile.name}
                           </span>
-                        )}
-                      </div>
-                      {profile.notes && (
-                        <div className="text-[10px] text-gray-400 font-normal mt-0.5">
-                          {profile.notes}
+                          <button
+                            type="button"
+                            onClick={() => startEditName(profile.id, profile.name)}
+                            className="opacity-0 group-hover:opacity-100 p-0.5 text-gray-400 hover:text-red-600 transition cursor-pointer"
+                            title="Editar nombre"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                          </button>
+                          {isActive && (
+                            <span className="px-1.5 py-0.2 rounded text-[10px] bg-red-100 text-red-700 font-semibold shrink-0">
+                              Activo
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Notes subrow */}
+                      {isEditingNotesThis ? (
+                        <div className="flex items-center gap-1 mt-1">
+                          <input
+                            type="text"
+                            value={tempNotes}
+                            onChange={(e) => setTempNotes(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') saveNotes(profile.id);
+                              if (e.key === 'Escape') setEditingNotesId(null);
+                            }}
+                            autoFocus
+                            placeholder="Nota / etiqueta..."
+                            className="border border-gray-300 rounded px-1.5 py-0.2 text-[10px] text-gray-700 w-full"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => saveNotes(profile.id)}
+                            className="p-0.5 text-emerald-600 hover:bg-emerald-50 rounded"
+                          >
+                            <Check className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div
+                          onClick={() => startEditNotes(profile.id, profile.notes || '')}
+                          className="text-[10px] text-gray-400 font-normal mt-0.5 cursor-pointer hover:text-gray-600 flex items-center gap-1"
+                          title="Haz clic para editar nota"
+                        >
+                          <Tag className="w-2.5 h-2.5 text-gray-300" />
+                          <span>{profile.notes || '+ Añadir nota'}</span>
                         </div>
                       )}
                     </td>
+
                     <td className="px-3 py-3 text-gray-600">
                       <div>{profile.inputs.productType}</div>
                       <div className="text-[10px] text-gray-400">{profile.inputs.skuCount} SKUs</div>
                     </td>
+
                     <td className="px-3 py-3 text-right font-mono text-gray-900">
                       {res.ordersMonth.toLocaleString('es-ES', { maximumFractionDigits: 0 })}
                     </td>
+
                     <td className="px-3 py-3 text-right font-mono text-gray-700">
                       {res.unitsPerOrder.toFixed(1)}
                     </td>
+
                     <td className="px-3 py-3 text-right font-mono font-bold text-red-700 bg-red-50/30">
                       {formatEur(res.prepPlusFirstPickPrice)}
                     </td>
+
                     <td className="px-3 py-3 text-right font-mono text-gray-800">
                       {formatEur(res.additionalPickPrice)}
                     </td>
+
                     <td className="px-3 py-3 text-right font-mono text-blue-700">
                       {formatEur(res.shippingPrice)}
                     </td>
+
                     <td className="px-3 py-3 text-right font-mono text-gray-900">
                       {formatEur(res.totalRevenueMonth)}
                     </td>
+
                     <td className="px-3 py-3 text-right font-mono">
                       <span
                         className={`font-semibold ${
@@ -121,22 +232,42 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
                         {formatPct(res.marginTotal)}
                       </span>
                     </td>
+
                     <td className="px-3 py-3 text-right font-mono font-bold text-emerald-700">
                       {formatEur(res.totalProfitMonth)}
                     </td>
+
+                    {/* Actions */}
                     <td className="px-4 py-3 text-center">
-                      <button
-                        type="button"
-                        onClick={() => onSelectClient(profile.id)}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold cursor-pointer transition ${
-                          isActive
-                            ? 'bg-gray-100 text-gray-600'
-                            : 'bg-red-50 text-red-700 hover:bg-red-100'
-                        }`}
-                      >
-                        <span>{isActive ? 'Editando' : 'Calcular'}</span>
-                        {!isActive && <ArrowRight className="w-3 h-3" />}
-                      </button>
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => onSelectClient(profile.id)}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold cursor-pointer transition ${
+                            isActive
+                              ? 'bg-gray-100 text-gray-600'
+                              : 'bg-red-50 text-red-700 hover:bg-red-100'
+                          }`}
+                        >
+                          <span>{isActive ? 'Editando' : 'Calcular'}</span>
+                          {!isActive && <ArrowRight className="w-3 h-3" />}
+                        </button>
+
+                        {clients.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm(`¿Eliminar cliente "${profile.name}"?`)) {
+                                onDeleteClient(profile.id);
+                              }
+                            }}
+                            title="Eliminar cliente"
+                            className="p-1 text-gray-300 hover:text-red-600 hover:bg-red-50 rounded transition cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

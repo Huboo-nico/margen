@@ -89,7 +89,7 @@ export const App: React.FC = () => {
     const newClient: ClientProfile = {
       id: newId,
       name: newName,
-      notes: 'Nuevo cliente en estudio',
+      notes: '',
       updatedAt: new Date().toISOString(),
       inputs: {
         ...DEFAULT_INPUTS,
@@ -129,8 +129,44 @@ export const App: React.FC = () => {
     setInputs(nextActive.inputs);
   };
 
-  const handleRenameClient = (name: string) => {
+  const handleRenameActiveClient = (name: string) => {
     handleInputChange({ clientName: name });
+  };
+
+  const handleRenameClientById = (id: string, newName: string) => {
+    setClients((prev) =>
+      prev.map((c) => {
+        if (c.id === id) {
+          return {
+            ...c,
+            name: newName,
+            updatedAt: new Date().toISOString(),
+            inputs: {
+              ...c.inputs,
+              clientName: newName,
+            },
+          };
+        }
+        return c;
+      })
+    );
+    if (id === activeClientId) {
+      setInputs((prev) => ({ ...prev, clientName: newName }));
+    }
+  };
+
+  const handleUpdateNotes = (id: string, notes: string) => {
+    setClients((prev) =>
+      prev.map((c) =>
+        c.id === id
+          ? {
+              ...c,
+              notes,
+              updatedAt: new Date().toISOString(),
+            }
+          : c
+      )
+    );
   };
 
   const tabs = [
@@ -177,7 +213,7 @@ export const App: React.FC = () => {
         </button>
       </header>
 
-      {/* Client Switcher Bar */}
+      {/* Client Switcher & Name Editor Bar */}
       <ClientManagerHeader
         clients={clients}
         activeClientId={activeClientId}
@@ -189,7 +225,8 @@ export const App: React.FC = () => {
         onCreateClient={handleCreateClient}
         onDuplicateClient={handleDuplicateClient}
         onDeleteClient={handleDeleteClient}
-        onRenameClient={handleRenameClient}
+        onRenameClient={handleRenameActiveClient}
+        onUpdateNotes={(notes) => handleUpdateNotes(activeClientId, notes)}
         currentInputs={inputs}
       />
 
@@ -246,6 +283,9 @@ export const App: React.FC = () => {
                   setActiveTab('Resumen');
                 }}
                 onCreateClient={handleCreateClient}
+                onRenameClient={handleRenameClientById}
+                onUpdateNotes={handleUpdateNotes}
+                onDeleteClient={handleDeleteClient}
               />
             )}
             {activeTab === 'Rate card' && <RateCardTab />}

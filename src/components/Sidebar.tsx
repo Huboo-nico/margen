@@ -43,16 +43,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
         </div>
 
         <div className="space-y-3">
-          <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              Nombre / Referencia del Cliente
-            </label>
+          <div className="bg-red-50/40 p-2.5 rounded-lg border border-red-100">
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-bold text-gray-800">
+                Nombre del Cliente
+              </label>
+              <span className="text-[10px] text-red-600 font-semibold bg-white px-1.5 py-0.2 rounded border border-red-200">
+                Personalizable
+              </span>
+            </div>
             <input
               type="text"
               value={inputs.clientName}
               onChange={(e) => onChange({ clientName: e.target.value })}
               placeholder="Ej: Cliente Cosmética Bio"
-              className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-xs font-semibold text-gray-900 focus:ring-1 focus:ring-red-500"
+              className="w-full bg-white border border-gray-300 rounded px-2.5 py-1.5 text-xs font-bold text-gray-900 focus:ring-2 focus:ring-red-500 focus:border-red-500 shadow-2xs"
             />
           </div>
 
