@@ -1,7 +1,7 @@
 import React from 'react';
 import { CalculatorInputs, CalculationResults } from '../types';
 import { PriceMarginRow } from './PriceMarginRow';
-import { formatEur, formatPct, priceFromCostMargin } from '../utils/calculations';
+import { formatEur, formatPct, formatMarkup, priceFromCostMargin } from '../utils/calculations';
 import { Sliders } from 'lucide-react';
 
 interface PreciosMargenesTabProps {
@@ -102,16 +102,21 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
             </span>
           </div>
           <div>
-            <span className="text-[11px] text-gray-500 block">Margen Total Global:</span>
-            <span
-              className={`text-base font-bold font-mono ${
-                results.marginTotal !== null && results.marginTotal >= 0.2
-                  ? 'text-gray-900'
-                  : 'text-amber-600'
-              }`}
-            >
-              {formatPct(results.marginTotal)}
-            </span>
+            <span className="text-[11px] text-gray-500 block">Margen & Markup Global:</span>
+            <div className="flex items-baseline gap-1.5">
+              <span
+                className={`text-base font-bold font-mono ${
+                  results.marginTotal !== null && results.marginTotal >= 0.2
+                    ? 'text-gray-900'
+                    : 'text-amber-600'
+                }`}
+              >
+                {formatPct(results.marginTotal)}
+              </span>
+              <span className="text-xs font-semibold font-mono text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.2 rounded">
+                Markup {formatMarkup(results.markupTotal)}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -124,7 +129,8 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
           </h3>
           <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-200">
             Total Preparación + 1er Pick: {formatEur(results.prepPlusFirstPickPrice)} (Margen:{' '}
-            {formatPct(results.prepPlusFirstPickMargin)})
+            {formatPct(results.prepPlusFirstPickMargin)} | Markup:{' '}
+            {formatMarkup(results.prepPlusFirstPickMarkup)})
           </span>
         </div>
 
@@ -180,9 +186,15 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
 
       {/* 3. Envío (Carrier) */}
       <div className="space-y-3">
-        <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
-          3. Envío (Carrier Cost + Margen)
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+            3. Envío (Carrier Cost + Margen)
+          </h3>
+          <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+            Venta Envío: {formatEur(results.shippingPrice)} (Margen: {formatPct(results.shippingMargin)} | Markup:{' '}
+            {formatMarkup(results.shippingMarkup)})
+          </span>
+        </div>
 
         <PriceMarginRow
           label="Envío Carrier nacional / estándar"

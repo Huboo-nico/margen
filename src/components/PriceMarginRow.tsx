@@ -1,6 +1,6 @@
 import React from 'react';
 import { PricingControlMode } from '../types';
-import { priceFromCostMargin, marginFromPrice, formatEur } from '../utils/calculations';
+import { priceFromCostMargin, marginFromPrice, markupFromPrice, formatEur, formatMarkup } from '../utils/calculations';
 
 interface PriceMarginRowProps {
   label: string;
@@ -32,6 +32,7 @@ export const PriceMarginRow: React.FC<PriceMarginRowProps> = ({
   const currentPrice =
     mode === 'margin' ? priceFromCostMargin(cost, marginTarget) : manualPrice;
   const currentMargin = marginFromPrice(currentPrice, cost);
+  const currentMarkup = markupFromPrice(currentPrice, cost);
   const profit = currentPrice - cost;
 
   const handlePriceInput = (val: number) => {
@@ -108,13 +109,18 @@ export const PriceMarginRow: React.FC<PriceMarginRowProps> = ({
           )}
         </div>
 
-        {/* 2. Margen % */}
+        {/* 2. Margen % y Markup % */}
         <div>
           <div className="flex justify-between items-center text-[11px] font-medium text-gray-500 mb-0.5">
-            <span>Margen objetivo</span>
-            <span className="font-mono text-gray-800">
-              {currentMargin !== null ? `${(currentMargin * 100).toFixed(1)}%` : '0%'}
-            </span>
+            <span>Margen / Markup</span>
+            <div className="flex items-center gap-1.5 font-mono">
+              <span className="font-bold text-gray-800">
+                {currentMargin !== null ? `${(currentMargin * 100).toFixed(1)}%` : '0%'}
+              </span>
+              <span className="text-[10px] text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.2 rounded font-semibold" title="Markup: incremento sobre el coste">
+                Markup {formatMarkup(currentMarkup)}
+              </span>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <input

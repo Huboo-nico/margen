@@ -1,6 +1,6 @@
 import React from 'react';
 import { CalculationResults } from '../types';
-import { formatEur, formatPct } from '../utils/calculations';
+import { formatEur, formatPct, formatMarkup } from '../utils/calculations';
 import { AlertTriangle, CheckCircle, Package, Truck, Info, ArrowUpRight } from 'lucide-react';
 
 interface ResumenTabProps {
@@ -66,7 +66,12 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, onOpenPricingSi
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs">
-          <span className="text-xs font-medium text-gray-500 block mb-1">Margen Total</span>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-medium text-gray-500">Margen Total</span>
+            <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.2 rounded font-mono border border-blue-200">
+              Markup {formatMarkup(results.markupTotal)}
+            </span>
+          </div>
           <span
             className={`text-2xl font-extrabold tracking-tight block ${
               results.marginTotal !== null && results.marginTotal >= 0.2
@@ -82,12 +87,17 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, onOpenPricingSi
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs">
-          <span className="text-xs font-medium text-gray-500 block mb-1">Margen Sin Envío</span>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-medium text-gray-500">Sin Envío</span>
+            <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.2 rounded font-mono border border-blue-200">
+              Markup {formatMarkup(results.markupExShipping)}
+            </span>
+          </div>
           <span className="text-2xl font-extrabold text-gray-900 tracking-tight block">
             {formatPct(results.marginExShipping)}
           </span>
           <span className="text-[11px] text-gray-400 mt-1 block">
-            Margen Envío (Carrier): {formatPct(results.marginShipping)}
+            Margen Envío: {formatPct(results.marginShipping)} (Markup {formatMarkup(results.shippingMarkup)})
           </span>
         </div>
       </div>
@@ -113,7 +123,10 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, onOpenPricingSi
               {formatEur(results.prepPlusFirstPickPrice)}
             </span>
             <span className="text-[11px] font-semibold text-emerald-700 block">
-              Margen: {formatPct(results.prepPlusFirstPickMargin)} (+{formatEur(results.prepPlusFirstPickProfit)}/pedido)
+              Margen: {formatPct(results.prepPlusFirstPickMargin)} · Markup: {formatMarkup(results.prepPlusFirstPickMarkup)}
+            </span>
+            <span className="text-[10px] text-gray-500 block">
+              +{formatEur(results.prepPlusFirstPickProfit)} beneficio/pedido
             </span>
           </div>
         </div>
@@ -134,6 +147,10 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, onOpenPricingSi
                 <span>Margen aplicado:</span>
                 <span className="font-mono font-medium text-emerald-700">{formatPct(results.packMargin)}</span>
               </div>
+              <div className="flex justify-between">
+                <span>Markup s/coste:</span>
+                <span className="font-mono font-medium text-blue-700">{formatMarkup(results.packMarkup)}</span>
+              </div>
             </div>
           </div>
 
@@ -152,6 +169,10 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, onOpenPricingSi
                 <span>Margen aplicado:</span>
                 <span className="font-mono font-medium text-emerald-700">{formatPct(results.firstPickMargin)}</span>
               </div>
+              <div className="flex justify-between">
+                <span>Markup s/coste:</span>
+                <span className="font-mono font-medium text-blue-700">{formatMarkup(results.firstPickMarkup)}</span>
+              </div>
             </div>
           </div>
 
@@ -169,6 +190,10 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, onOpenPricingSi
               <div className="flex justify-between">
                 <span>Margen aplicado:</span>
                 <span className="font-mono font-medium text-emerald-700">{formatPct(results.additionalPickMargin)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Markup s/coste:</span>
+                <span className="font-mono font-medium text-blue-700">{formatMarkup(results.additionalPickMarkup)}</span>
               </div>
             </div>
           </div>
@@ -221,7 +246,10 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, onOpenPricingSi
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Margen carrier objetivo:</span>
-                <span className="font-mono font-semibold text-blue-600">{formatPct(results.shippingMargin)}</span>
+                <div className="text-right">
+                  <span className="font-mono font-semibold text-blue-600 block">{formatPct(results.shippingMargin)}</span>
+                  <span className="text-[10px] text-gray-500 font-mono">Markup: {formatMarkup(results.shippingMarkup)}</span>
+                </div>
               </div>
               <div className="flex justify-between pt-2 border-t border-gray-100 items-baseline">
                 <span className="font-bold text-gray-900">Precio Venta Envío:</span>

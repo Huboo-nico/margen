@@ -103,6 +103,7 @@ export interface MonthlyLine {
   costes: number;
   beneficio: number;
   margen: number | null;
+  markup: number | null;
   unitPrice: number;
   unitCost: number;
 }
@@ -197,6 +198,18 @@ export interface CalculationResults {
   marginTotal: number | null;
   marginExShipping: number | null;
   marginShipping: number | null;
+
+  // Markups (% incremento sobre coste)
+  packMarkup: number | null;
+  firstPickMarkup: number | null;
+  prepPlusFirstPickMarkup: number | null;
+  additionalPickMarkup: number | null;
+  marginPickMarkup: number | null;
+  shippingMarkup: number | null;
+  markupOrderExShipping: number | null;
+  markupTotal: number | null;
+  markupExShipping: number | null;
+  markupShipping: number | null;
 
   alerts: string[];
   lines: MonthlyLine[];

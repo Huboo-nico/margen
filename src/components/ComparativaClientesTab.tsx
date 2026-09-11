@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ClientProfile } from '../types';
-import { calculateAll, formatEur, formatPct } from '../utils/calculations';
+import { calculateAll, formatEur, formatPct, formatMarkup } from '../utils/calculations';
 import { ArrowRight, Plus, Edit2, Check, Trash2, Tag } from 'lucide-react';
 
 interface ComparativaClientesTabProps {
@@ -89,7 +89,8 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
                 <th className="px-3 py-3 text-right">Pick adicional</th>
                 <th className="px-3 py-3 text-right">Envío</th>
                 <th className="px-3 py-3 text-right">Ingresos / mes</th>
-                <th className="px-3 py-3 text-right">Margen Total</th>
+                <th className="px-3 py-3 text-right">Margen</th>
+                <th className="px-3 py-3 text-right text-blue-700">Markup</th>
                 <th className="px-3 py-3 text-right font-bold text-emerald-800">
                   Beneficio / mes
                 </th>
@@ -231,6 +232,10 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
                       >
                         {formatPct(res.marginTotal)}
                       </span>
+                    </td>
+
+                    <td className="px-3 py-3 text-right font-mono font-semibold text-blue-700">
+                      {formatMarkup(res.markupTotal)}
                     </td>
 
                     <td className="px-3 py-3 text-right font-mono font-bold text-emerald-700">

@@ -14,16 +14,33 @@ export const AyudaTab: React.FC = () => {
 
         <div className="space-y-3 text-sm">
           <div>
-            <p className="font-semibold text-gray-700 mb-1">Margen:</p>
+            <p className="font-semibold text-gray-700 mb-1">Margen comercial (% sobre venta):</p>
             <pre className="bg-gray-100 p-3 rounded text-xs font-mono text-gray-800 border border-gray-200">
-              Margen = (Ingreso - Coste) / Ingreso
+              Margen = (Precio - Coste) / Precio
             </pre>
+          </div>
+
+          <div>
+            <p className="font-semibold text-gray-700 mb-1">Markup (% de incremento sobre coste):</p>
+            <pre className="bg-blue-50 p-3 rounded text-xs font-mono text-blue-900 border border-blue-200">
+              Markup = (Precio - Coste) / Coste
+            </pre>
+            <p className="text-xs text-gray-500 mt-1">
+              Ejemplo: Un servicio con coste de 4,00 € vendido a 5,00 € tiene un <strong>Margen del 20%</strong> y un <strong>Markup del 25%</strong>.
+            </p>
           </div>
 
           <div>
             <p className="font-semibold text-gray-700 mb-1">Precio objetivo por margen:</p>
             <pre className="bg-gray-100 p-3 rounded text-xs font-mono text-gray-800 border border-gray-200">
               Precio = Coste / (1 - Margen objetivo)
+            </pre>
+          </div>
+
+          <div>
+            <p className="font-semibold text-gray-700 mb-1">Preparación + 1er Pick:</p>
+            <pre className="bg-gray-100 p-3 rounded text-xs font-mono text-gray-800 border border-gray-200">
+              {`Precio Preparación + 1er Pick = Precio Pack + Precio Primer Pick\nCoste = Coste Pack + Coste Primer Pick`}
             </pre>
           </div>
 
@@ -35,7 +52,7 @@ export const AyudaTab: React.FC = () => {
           </div>
 
           <div>
-            <p className="font-semibold text-gray-700 mb-1">Envío:</p>
+            <p className="font-semibold text-gray-700 mb-1">Envío (Carrier + Margen):</p>
             <pre className="bg-gray-100 p-3 rounded text-xs font-mono text-gray-800 border border-gray-200">
               Precio envío = Carrier cost / (1 - Margen envío objetivo)
             </pre>

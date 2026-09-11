@@ -46,6 +46,15 @@ export function marginFromPrice(price: number, cost: number): number | null {
   return (p - c) / p;
 }
 
+export function markupFromPrice(price: number, cost: number): number | null {
+  const p = Number(price);
+  const c = Number(cost);
+  if (isNaN(p) || isNaN(c) || c <= 0) {
+    return null;
+  }
+  return (p - c) / c;
+}
+
 export function formatEur(value: number | null | undefined): string {
   if (value === null || value === undefined || isNaN(value)) {
     return 'n/a';
@@ -61,6 +70,14 @@ export function formatPct(value: number | null | undefined): string {
     return 'n/a';
   }
   return `${(value * 100).toFixed(1)}%`;
+}
+
+export function formatMarkup(value: number | null | undefined): string {
+  if (value === null || value === undefined || isNaN(value)) {
+    return 'n/a';
+  }
+  const prefix = value >= 0 ? '+' : '';
+  return `${prefix}${(value * 100).toFixed(1)}%`;
 }
 
 export function calculateAll(inputs: CalculatorInputs): CalculationResults {
@@ -339,6 +356,7 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
       costes: packCost * Number(ordersMonth),
       beneficio: (packPrice - packCost) * Number(ordersMonth),
       margen: marginFromPrice(packPrice * Number(ordersMonth), packCost * Number(ordersMonth)),
+      markup: markupFromPrice(packPrice, packCost),
     },
     {
       linea: '1er Pick',
@@ -349,6 +367,7 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
       costes: firstPickCost * Number(ordersMonth),
       beneficio: (firstPickPrice - firstPickCost) * Number(ordersMonth),
       margen: marginFromPrice(firstPickPrice * Number(ordersMonth), firstPickCost * Number(ordersMonth)),
+      markup: markupFromPrice(firstPickPrice, firstPickCost),
     },
     {
       linea: 'Picks adicionales (>1 unidad)',
@@ -362,6 +381,7 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
         additionalPicksPriceTotal * Number(ordersMonth),
         additionalPicksCostTotal * Number(ordersMonth)
       ),
+      markup: markupFromPrice(additionalPicksPriceTotal, additionalPicksCostTotal),
     },
     {
       linea: 'Inserts publicitarios',
@@ -375,6 +395,7 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
         insertRevenuePerOrder * Number(ordersMonth),
         insertCostPerOrder * Number(ordersMonth)
       ),
+      markup: markupFromPrice(insertRevenuePerOrder, insertCostPerOrder),
     },
     {
       linea: 'Packaging base',
@@ -388,6 +409,7 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
         packagingPricePerOrder * Number(ordersMonth),
         packagingCostPerOrder * Number(ordersMonth)
       ),
+      markup: markupFromPrice(packagingPricePerOrder, packagingCostPerOrder),
     },
     {
       linea: 'Incidencias / Fragilidad',
@@ -401,6 +423,7 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
         surchargePricePerOrder * Number(ordersMonth),
         surchargeCostPerOrder * Number(ordersMonth)
       ),
+      markup: markupFromPrice(surchargePricePerOrder, surchargeCostPerOrder),
     },
     {
       linea: 'Devoluciones (Returns)',
@@ -414,6 +437,7 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
         returnRevenuePerOrder * Number(ordersMonth),
         returnCostPerOrder * Number(ordersMonth)
       ),
+      markup: markupFromPrice(returnRevenuePerOrder, returnCostPerOrder),
     },
     {
       linea: 'Goods-in (Recepción)',
@@ -424,6 +448,7 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
       costes: goodsInCostMonth,
       beneficio: goodsInRevenueMonth - goodsInCostMonth,
       margen: marginFromPrice(goodsInRevenueMonth, goodsInCostMonth),
+      markup: markupFromPrice(goodsInRevenueMonth, goodsInCostMonth),
     },
     {
       linea: 'Almacenaje (Storage)',
@@ -434,6 +459,7 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
       costes: storageCostMonth,
       beneficio: storageRevenueMonth - storageCostMonth,
       margen: marginFromPrice(storageRevenueMonth, storageCostMonth),
+      markup: markupFromPrice(storageRevenueMonth, storageCostMonth),
     },
     {
       linea: 'Envío (Carrier)',
@@ -444,31 +470,43 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
       costes: shippingCostMonth,
       beneficio: shippingRevenueMonth - shippingCostMonth,
       margen: marginFromPrice(shippingRevenueMonth, shippingCostMonth),
+      markup: markupFromPrice(shippingRevenueMonth, shippingCostMonth),
     },
   ];
+
+  const packMarkup = markupFromPrice(packPrice, packCost);
+  const firstPickMarkup = markupFromPrice(firstPickPrice, firstPickCost);
+  const prepPlusFirstPickMarkup = markupFromPrice(prepPlusFirstPickPrice, prepPlusFirstPickCost);
+  const additionalPickMarkup = markupFromPrice(additionalPickPrice, additionalPickCost);
+  const marginPickMarkup = markupFromPrice(totalPickPricePerOrder, totalPickCostPerOrder);
+  const shippingMarkup = markupFromPrice(shippingPrice, Number(carrierCost));
+  const markupOrderExShipping = markupFromPrice(orderRevenueExShipping, orderCostExShipping);
+  const markupTotal = markupFromPrice(totalRevenueMonth, totalCostMonth);
+  const markupExShipping = markupFromPrice(fulfilmentRevenueMonthExShipping, fulfilmentCostMonthExShipping);
+  const markupShipping = markupFromPrice(shippingRevenueMonth, shippingCostMonth);
 
   const orderSummary: OrderSummaryItem[] = [
     {
       concepto: 'Preparación base (Pack)',
       valor: formatEur(packPrice),
-      detalle: `Coste: ${formatEur(packCost)} | Margen: ${formatPct(packMargin)}`,
+      detalle: `Coste: ${formatEur(packCost)} | Margen: ${formatPct(packMargin)} | Markup: ${formatMarkup(packMarkup)}`,
     },
     {
       concepto: '1er Pick',
       valor: formatEur(firstPickPrice),
-      detalle: `Coste: ${formatEur(firstPickCost)} | Margen: ${formatPct(firstPickMargin)}`,
+      detalle: `Coste: ${formatEur(firstPickCost)} | Margen: ${formatPct(firstPickMargin)} | Markup: ${formatMarkup(firstPickMarkup)}`,
     },
     {
       concepto: 'Total Preparación + 1er Pick (Base Pedido)',
       valor: formatEur(prepPlusFirstPickPrice),
-      detalle: `Coste total: ${formatEur(prepPlusFirstPickCost)} | Margen: ${formatPct(
+      detalle: `Coste: ${formatEur(prepPlusFirstPickCost)} | Margen: ${formatPct(
         prepPlusFirstPickMargin
-      )} | Beneficio: ${formatEur(prepPlusFirstPickProfit)}`,
+      )} | Markup: ${formatMarkup(prepPlusFirstPickMarkup)} | Beneficio: ${formatEur(prepPlusFirstPickProfit)}`,
     },
     {
       concepto: 'Picks adicionales (por unidad extra)',
       valor: formatEur(additionalPickPrice),
-      detalle: `Coste: ${formatEur(additionalPickCost)} | Margen: ${formatPct(additionalPickMargin)}`,
+      detalle: `Coste: ${formatEur(additionalPickCost)} | Margen: ${formatPct(additionalPickMargin)} | Markup: ${formatMarkup(additionalPickMarkup)}`,
     },
     {
       concepto: 'Ingreso operativo por pedido (sin envío)',
@@ -476,13 +514,13 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
       detalle: `Coste: ${formatEur(orderCostExShipping)} | Beneficio: ${formatEur(orderProfitExShipping)}`,
     },
     {
-      concepto: 'Margen operativo por pedido (sin envío)',
-      valor: formatPct(marginOrderExShipping),
+      concepto: 'Margen / Markup por pedido (sin envío)',
+      valor: `${formatPct(marginOrderExShipping)} (Margen) / ${formatMarkup(markupOrderExShipping)} (Markup)`,
     },
     {
       concepto: 'Precio de venta Carrier (Envío)',
       valor: formatEur(shippingPrice),
-      detalle: `Coste carrier: ${formatEur(carrierCost)} | Margen: ${formatPct(shippingMargin)}`,
+      detalle: `Coste carrier: ${formatEur(carrierCost)} | Margen: ${formatPct(shippingMargin)} | Markup: ${formatMarkup(shippingMarkup)}`,
     },
     {
       concepto: 'Beneficio total estimado por pedido',
@@ -564,6 +602,17 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
     marginTotal,
     marginExShipping,
     marginShipping,
+
+    packMarkup,
+    firstPickMarkup,
+    prepPlusFirstPickMarkup,
+    additionalPickMarkup,
+    marginPickMarkup,
+    shippingMarkup,
+    markupOrderExShipping,
+    markupTotal,
+    markupExShipping,
+    markupShipping,
 
     alerts,
     lines,

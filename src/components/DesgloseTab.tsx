@@ -1,6 +1,6 @@
 import React from 'react';
 import { CalculationResults } from '../types';
-import { formatEur, formatPct } from '../utils/calculations';
+import { formatEur, formatPct, formatMarkup } from '../utils/calculations';
 import {
   ResponsiveContainer,
   BarChart,
@@ -45,6 +45,7 @@ export const DesgloseTab: React.FC<DesgloseTabProps> = ({ results }) => {
                 <th className="px-5 py-3 text-right">Costes</th>
                 <th className="px-5 py-3 text-right">Beneficio</th>
                 <th className="px-5 py-3 text-right">Margen</th>
+                <th className="px-5 py-3 text-right text-blue-700">Markup</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -67,6 +68,9 @@ export const DesgloseTab: React.FC<DesgloseTabProps> = ({ results }) => {
                   <td className="px-5 py-3 text-right font-mono text-gray-700">
                     {formatPct(line.margen)}
                   </td>
+                  <td className="px-5 py-3 text-right font-mono font-semibold text-blue-700">
+                    {formatMarkup(line.markup)}
+                  </td>
                 </tr>
               ))}
               {/* TOTAL Row */}
@@ -88,9 +92,17 @@ export const DesgloseTab: React.FC<DesgloseTabProps> = ({ results }) => {
                 <td className="px-5 py-3.5 text-right font-mono text-gray-900">
                   {formatPct(results.marginTotal)}
                 </td>
+                <td className="px-5 py-3.5 text-right font-mono font-bold text-blue-800">
+                  {formatMarkup(results.markupTotal)}
+                </td>
               </tr>
             </tbody>
           </table>
+        </div>
+        <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+          <span><strong className="text-gray-700 font-medium">Margen (%):</strong> Beneficio sobre precio venta = (Ingreso - Coste) / Ingreso</span>
+          <span className="hidden sm:inline text-gray-300">•</span>
+          <span><strong className="text-blue-700 font-medium">Markup (%):</strong> Incremento sobre coste = (Ingreso - Coste) / Coste</span>
         </div>
       </div>
 
