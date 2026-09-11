@@ -509,23 +509,19 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
       detalle: `Coste: ${formatEur(additionalPickCost)} | Margen: ${formatPct(additionalPickMargin)} | Markup: ${formatMarkup(additionalPickMarkup)}`,
     },
     {
-      concepto: 'Ingreso operativo por pedido (sin envío)',
-      valor: formatEur(orderRevenueExShipping),
-      detalle: `Coste: ${formatEur(orderCostExShipping)} | Beneficio: ${formatEur(orderProfitExShipping)}`,
-    },
-    {
-      concepto: 'Margen / Markup por pedido (sin envío)',
-      valor: `${formatPct(marginOrderExShipping)} (Margen) / ${formatMarkup(markupOrderExShipping)} (Markup)`,
-    },
-    {
       concepto: 'Precio de venta Carrier (Envío)',
       valor: formatEur(shippingPrice),
       detalle: `Coste carrier: ${formatEur(carrierCost)} | Margen: ${formatPct(shippingMargin)} | Markup: ${formatMarkup(shippingMarkup)}`,
     },
     {
-      concepto: 'Beneficio total estimado por pedido',
+      concepto: 'Total facturado estimado por pedido (con envío)',
+      valor: formatEur(orderRevenueExShipping + shippingPrice),
+      detalle: `Coste total medio: ${formatEur(orderCostExShipping + carrierCost)} | Margen: ${formatPct(marginTotal)} | Markup: ${formatMarkup(markupTotal)}`,
+    },
+    {
+      concepto: 'Beneficio neto estimado por pedido',
       valor: formatEur(profitPerOrder),
-      detalle: `Total factura con envío: ${formatEur(orderRevenueExShipping + shippingPrice)}`,
+      detalle: `Beneficio operativo mensual estimado: ${formatEur(totalProfitMonth)}`,
     },
   ];
 
