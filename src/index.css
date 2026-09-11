@@ -8,8 +8,8 @@
     print-color-adjust: exact !important;
   }
 
-  /* Hide unnecessary background navigation and controls during printing */
-  nav, aside, .no-print, .print\:hidden {
+  /* Hide unnecessary background navigation, sidebar, and controls during printing */
+  nav, aside, header, .no-print, .print\:hidden {
     display: none !important;
   }
 
@@ -20,7 +20,7 @@
   }
 
   @page {
-    margin: 12mm 10mm;
+    margin: 8mm 8mm;
     size: A4 portrait;
   }
 }

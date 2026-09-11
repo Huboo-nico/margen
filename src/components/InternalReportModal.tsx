@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { CalculationResults, CalculatorInputs } from '../types';
 import { formatEur, formatPct, formatMarkup } from '../utils/calculations';
-import { Printer, X, FileText, Package, Layers, Building2, Calendar } from 'lucide-react';
+import { Printer, X, FileText, Package, Layers, Building2, Calendar, SlidersHorizontal } from 'lucide-react';
 
 interface InternalReportModalProps {
   isOpen: boolean;
@@ -16,6 +16,14 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
   results,
   inputs,
 }) => {
+  // Section toggle state (defaulted for 1-page A4 printing)
+  const [showKpis, setShowKpis] = useState(true);
+  const [showOrderBreakdown, setShowOrderBreakdown] = useState(true);
+  const [showMonthlyPL, setShowMonthlyPL] = useState(false); // Off by default to guarantee 1 single page!
+  const [showParams, setShowParams] = useState(true);
+  const [showNotes, setShowNotes] = useState(Boolean(inputs.clientNotes));
+  const [compactMode, setCompactMode] = useState(true);
+
   if (!isOpen) return null;
 
   const handlePrint = () => {
@@ -28,63 +36,222 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
     year: 'numeric',
   });
 
+  const applyPresetOnePage = () => {
+    setShowKpis(true);
+    setShowOrderBreakdown(true);
+    setShowMonthlyPL(false);
+    setShowParams(true);
+    setShowNotes(Boolean(inputs.clientNotes));
+    setCompactMode(true);
+  };
+
+  const applyPresetFull = () => {
+    setShowKpis(true);
+    setShowOrderBreakdown(true);
+    setShowMonthlyPL(true);
+    setShowParams(true);
+    setShowNotes(true);
+    setCompactMode(false);
+  };
+
+  const applyPresetRatesOnly = () => {
+    setShowKpis(false);
+    setShowOrderBreakdown(true);
+    setShowMonthlyPL(false);
+    setShowParams(true);
+    setShowNotes(false);
+    setCompactMode(true);
+  };
+
+  const isOnePageEstimated = !showMonthlyPL || (!showKpis && !showParams);
+
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 print:p-0 print:bg-white print:static">
-      <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden print:max-h-none print:max-w-none print:border-none print:shadow-none print:rounded-none">
-        {/* Modal Toolbar (hidden on print) */}
-        <div className="px-6 py-4 bg-gray-900 text-white flex items-center justify-between shrink-0 print:hidden">
-          <div className="flex items-center gap-2.5">
-            <FileText className="w-5 h-5 text-red-400" />
-            <div>
-              <h2 className="text-sm font-bold text-white">Informe Interno de Rentabilidad & Operativa</h2>
-              <p className="text-[11px] text-gray-400">
-                Documento ejecutivo con desglose operativo completo para presentación interna
-              </p>
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 print:p-0 print:bg-white print:static">
+      <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-4xl max-h-[94vh] flex flex-col overflow-hidden print:max-h-none print:max-w-none print:border-none print:shadow-none print:rounded-none">
+        
+        {/* Modal Header & Interactive Config Toolbar (Hidden on Print) */}
+        <div className="bg-gray-900 text-white shrink-0 print:hidden border-b border-gray-800">
+          <div className="px-5 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-800">
+            <div className="flex items-center gap-2.5">
+              <FileText className="w-5 h-5 text-red-400 shrink-0" />
+              <div>
+                <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                  <span>Informe PDF de Rentabilidad & Operativa</span>
+                  <span
+                    className={`text-[10px] px-2 py-0.5 rounded font-semibold ${
+                      isOnePageEstimated
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                    }`}
+                  >
+                    {isOnePageEstimated ? 'Ajustado a 1 Hoja A4' : 'Formato Extendido (2 Hojas)'}
+                  </span>
+                </h2>
+                <p className="text-[11px] text-gray-400">
+                  Selecciona la información que deseas incluir en el documento antes de imprimir o exportar a PDF.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <button
+                type="button"
+                onClick={handlePrint}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg shadow-sm transition cursor-pointer"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Imprimir / Guardar PDF</span>
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition cursor-pointer"
+                title="Cerrar modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg shadow-sm transition cursor-pointer"
-            >
-              <Printer className="w-4 h-4" />
-              <span>Imprimir / Guardar PDF</span>
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition cursor-pointer"
-              title="Cerrar"
-            >
-              <X className="w-5 h-5" />
-            </button>
+
+          {/* Section Selection Bar & Presets */}
+          <div className="px-5 py-3 bg-gray-950/70 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+            {/* Presets */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-gray-400 text-[11px] font-medium flex items-center gap-1">
+                <SlidersHorizontal className="w-3 h-3 text-gray-400" />
+                Presets rápidos:
+              </span>
+              <button
+                type="button"
+                onClick={applyPresetOnePage}
+                className={`px-2.5 py-1 rounded text-[11px] font-semibold transition cursor-pointer ${
+                  !showMonthlyPL && compactMode
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                📄 1 Hoja A4 (Recomendado)
+              </button>
+              <button
+                type="button"
+                onClick={applyPresetFull}
+                className={`px-2.5 py-1 rounded text-[11px] font-semibold transition cursor-pointer ${
+                  showMonthlyPL
+                    ? 'bg-red-600 text-white shadow-xs'
+                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                📑 Informe Completo (2 Hojas)
+              </button>
+              <button
+                type="button"
+                onClick={applyPresetRatesOnly}
+                className="px-2.5 py-1 rounded text-[11px] font-semibold bg-gray-800 text-gray-300 hover:bg-gray-700 transition cursor-pointer"
+              >
+                🎯 Solo Tarifas Pedido
+              </button>
+            </div>
+
+            {/* Checkbox Toggles */}
+            <div className="flex items-center gap-2.5 flex-wrap text-[11px]">
+              <span className="text-gray-400 font-medium">Incluir:</span>
+              
+              <label className="flex items-center gap-1 text-gray-300 hover:text-white cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={showKpis}
+                  onChange={(e) => setShowKpis(e.target.checked)}
+                  className="rounded text-red-600 focus:ring-0 w-3.5 h-3.5 accent-red-600 cursor-pointer"
+                />
+                <span>KPIs Mensuales</span>
+              </label>
+
+              <label className="flex items-center gap-1 text-gray-300 hover:text-white cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={showOrderBreakdown}
+                  onChange={(e) => setShowOrderBreakdown(e.target.checked)}
+                  className="rounded text-red-600 focus:ring-0 w-3.5 h-3.5 accent-red-600 cursor-pointer"
+                />
+                <span>Tarifas por Pedido</span>
+              </label>
+
+              <label className="flex items-center gap-1 text-gray-300 hover:text-white cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={showMonthlyPL}
+                  onChange={(e) => setShowMonthlyPL(e.target.checked)}
+                  className="rounded text-red-600 focus:ring-0 w-3.5 h-3.5 accent-red-600 cursor-pointer"
+                />
+                <span>Cuenta P&L Líneas</span>
+              </label>
+
+              <label className="flex items-center gap-1 text-gray-300 hover:text-white cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={showParams}
+                  onChange={(e) => setShowParams(e.target.checked)}
+                  className="rounded text-red-600 focus:ring-0 w-3.5 h-3.5 accent-red-600 cursor-pointer"
+                />
+                <span>Parámetros</span>
+              </label>
+
+              {inputs.clientNotes && (
+                <label className="flex items-center gap-1 text-gray-300 hover:text-white cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={showNotes}
+                    onChange={(e) => setShowNotes(e.target.checked)}
+                    className="rounded text-red-600 focus:ring-0 w-3.5 h-3.5 accent-red-600 cursor-pointer"
+                  />
+                  <span>Notas</span>
+                </label>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setCompactMode(!compactMode)}
+                className={`ml-1 px-2 py-0.5 rounded text-[10px] font-semibold border ${
+                  compactMode
+                    ? 'bg-blue-900/40 border-blue-500/50 text-blue-300'
+                    : 'bg-gray-800 border-gray-700 text-gray-400'
+                }`}
+              >
+                {compactMode ? 'Modo Compacto A4: ON' : 'Modo Compacto: OFF'}
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Printable Document Body */}
-        <div className="p-6 sm:p-8 overflow-y-auto space-y-6 text-gray-900 print:p-6 print:overflow-visible print:text-black">
+        <div
+          className={`p-5 sm:p-7 overflow-y-auto text-gray-900 print:p-4 print:overflow-visible print:text-black ${
+            compactMode ? 'space-y-3.5 print:space-y-2.5' : 'space-y-5 print:space-y-4'
+          }`}
+        >
           {/* Document Header */}
-          <div className="border-b-2 border-red-600 pb-5">
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div className="border-b-2 border-red-600 pb-3">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-black uppercase tracking-widest text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-200">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-red-600 bg-red-50 px-2 py-0.2 rounded border border-red-200">
                     Confidencial · Uso Interno
                   </span>
-                  <span className="text-xs text-gray-500 font-mono">ID: {results.clientName ? results.clientName.replace(/\s+/g, '-').toLowerCase() : 'cliente'}</span>
-                </div>
-                <h1 className="text-2xl font-black text-gray-900 tracking-tight">
-                  Informe de Rentabilidad & Desglose Operativo
-                </h1>
-                <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs text-gray-600 mt-1.5">
-                  <span className="flex items-center gap-1 font-semibold text-gray-800">
-                    <Building2 className="w-3.5 h-3.5 text-gray-500" />
-                    Cliente: {results.clientName || 'Cliente sin nombre'}
+                  <span className="text-[10px] text-gray-500 font-mono">
+                    ID: {results.clientName ? results.clientName.replace(/\s+/g, '-').toLowerCase() : 'cliente'}
                   </span>
-                  <span className="flex items-center gap-1">
+                </div>
+                <h1 className="text-xl font-black text-gray-900 tracking-tight print:text-lg">
+                  Propuesta Operativa & Desglose de Rentabilidad
+                </h1>
+                <div className="flex flex-wrap items-center gap-y-0.5 gap-x-3 text-xs text-gray-600 mt-1 print:text-[11px]">
+                  <span className="flex items-center gap-1 font-bold text-gray-900">
+                    <Building2 className="w-3.5 h-3.5 text-gray-500" />
+                    {results.clientName || 'Cliente sin nombre'}
+                  </span>
+                  <span className="flex items-center gap-1 text-gray-500">
                     <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                    Fecha: {currentDate}
+                    {currentDate}
                   </span>
                   <span>
                     Sector: <strong>{inputs.productType}</strong> ({inputs.skuCount} SKUs, Tier {results.tierName})
@@ -92,361 +259,363 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                 </div>
               </div>
 
-              <div className="text-right sm:text-right bg-gray-50 p-3 rounded-lg border border-gray-200 shrink-0">
-                <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider block">
+              <div className="text-left sm:text-right bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 shrink-0">
+                <span className="text-[9px] uppercase font-bold text-gray-500 tracking-wider block">
                   Volumen Estimado
                 </span>
-                <span className="text-base font-black font-mono text-gray-900 block">
+                <span className="text-sm font-black font-mono text-gray-900 block">
                   {results.ordersMonth.toLocaleString('es-ES', { maximumFractionDigits: 0 })} pedidos/mes
                 </span>
-                <span className="text-[11px] text-gray-500 block">
-                  {results.ordersPerDay.toFixed(1)} pedidos/día · {results.unitsPerOrder.toFixed(1)} units/pedido
+                <span className="text-[10px] text-gray-500 block">
+                  {results.ordersPerDay.toFixed(1)} ped/día · {results.unitsPerOrder.toFixed(1)} units/ped
                 </span>
               </div>
             </div>
 
-            {inputs.clientNotes && (
-              <div className="mt-3 bg-amber-50/70 border border-amber-200/80 rounded-md p-2.5 text-xs text-amber-900">
+            {showNotes && inputs.clientNotes && (
+              <div className="mt-2 bg-amber-50/70 border border-amber-200/80 rounded-md p-2 text-xs text-amber-950 print:text-[10.5px]">
                 <strong className="font-semibold">Notas del cliente / Operativa:</strong> {inputs.clientNotes}
               </div>
             )}
           </div>
 
-          {/* 1. Resumen Ejecutivo Mensual */}
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3 flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-red-600" />
-              1. Resumen Ejecutivo Mensual
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="bg-gray-50 p-3.5 rounded-lg border border-gray-200">
-                <span className="text-[11px] font-medium text-gray-500 block">Facturación / mes</span>
-                <span className="text-xl font-black font-mono text-gray-900 block mt-0.5">
-                  {formatEur(results.totalRevenueMonth)}
-                </span>
-                <span className="text-[10px] text-gray-400">Total con transporte</span>
-              </div>
+          {/* 1. Resumen Ejecutivo Mensual (KPIs) */}
+          {showKpis && (
+            <div className="break-inside-avoid">
+              <h3 className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1.5 flex items-center gap-1">
+                <Layers className="w-3 h-3 text-red-600" />
+                1. Resumen Financiero Mensual
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-200 print:bg-white">
+                  <span className="text-[10px] font-medium text-gray-500 block">Facturación / mes</span>
+                  <span className="text-base font-black font-mono text-gray-900 block mt-0.5 print:text-sm">
+                    {formatEur(results.totalRevenueMonth)}
+                  </span>
+                  <span className="text-[9px] text-gray-400">Total con transporte</span>
+                </div>
 
-              <div className="bg-gray-50 p-3.5 rounded-lg border border-gray-200">
-                <span className="text-[11px] font-medium text-gray-500 block">Costes operativos / mes</span>
-                <span className="text-xl font-black font-mono text-gray-700 block mt-0.5">
-                  {formatEur(results.totalCostMonth)}
-                </span>
-                <span className="text-[10px] text-gray-400">Almacén + carrier</span>
-              </div>
+                <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-200 print:bg-white">
+                  <span className="text-[10px] font-medium text-gray-500 block">Costes operativos / mes</span>
+                  <span className="text-base font-black font-mono text-gray-700 block mt-0.5 print:text-sm">
+                    {formatEur(results.totalCostMonth)}
+                  </span>
+                  <span className="text-[9px] text-gray-400">Almacén + carrier</span>
+                </div>
 
-              <div className="bg-emerald-50/70 p-3.5 rounded-lg border border-emerald-200">
-                <span className="text-[11px] font-bold text-emerald-800 block">Beneficio neto / mes</span>
-                <span className="text-xl font-black font-mono text-emerald-700 block mt-0.5">
-                  {formatEur(results.totalProfitMonth)}
-                </span>
-                <span className="text-[10px] text-emerald-600 font-medium">
-                  {formatEur(results.profitPerOrder)} por pedido
-                </span>
-              </div>
+                <div className="bg-emerald-50/70 p-2.5 rounded-lg border border-emerald-200 print:bg-white">
+                  <span className="text-[10px] font-bold text-emerald-800 block">Beneficio neto / mes</span>
+                  <span className="text-base font-black font-mono text-emerald-700 block mt-0.5 print:text-sm">
+                    {formatEur(results.totalProfitMonth)}
+                  </span>
+                  <span className="text-[9px] text-emerald-600 font-medium">
+                    {formatEur(results.profitPerOrder)} por pedido
+                  </span>
+                </div>
 
-              <div className="bg-blue-50/70 p-3.5 rounded-lg border border-blue-200">
-                <span className="text-[11px] font-bold text-blue-800 block">Margen & Markup Global</span>
-                <span className="text-xl font-black font-mono text-blue-950 block mt-0.5">
-                  {formatPct(results.marginTotal)}
-                </span>
-                <span className="text-[10px] font-semibold text-blue-700 font-mono">
-                  Markup: {formatMarkup(results.markupTotal)}
-                </span>
-              </div>
-            </div>
-
-            {/* Split Sin Envío vs Con Envío */}
-            <div className="mt-2.5 grid grid-cols-2 gap-3 text-xs">
-              <div className="bg-gray-50/80 p-2.5 rounded-md border border-gray-200 flex justify-between items-center">
-                <span className="text-gray-600">Margen Operativa Almacén (Sin Envío):</span>
-                <div className="text-right">
-                  <span className="font-bold text-gray-900 font-mono">{formatPct(results.marginExShipping)}</span>
-                  <span className="text-[10px] text-blue-700 font-mono ml-1 font-semibold">
-                    (Markup {formatMarkup(results.markupExShipping)})
+                <div className="bg-blue-50/70 p-2.5 rounded-lg border border-blue-200 print:bg-white">
+                  <span className="text-[10px] font-bold text-blue-800 block">Margen & Markup Global</span>
+                  <span className="text-base font-black font-mono text-blue-950 block mt-0.5 print:text-sm">
+                    {formatPct(results.marginTotal)}
+                  </span>
+                  <span className="text-[9px] font-semibold text-blue-700 font-mono">
+                    Markup: {formatMarkup(results.markupTotal)}
                   </span>
                 </div>
               </div>
-              <div className="bg-gray-50/80 p-2.5 rounded-md border border-gray-200 flex justify-between items-center">
-                <span className="text-gray-600">Margen Transporte (Carrier):</span>
-                <div className="text-right">
-                  <span className="font-bold text-gray-900 font-mono">{formatPct(results.marginShipping)}</span>
-                  <span className="text-[10px] text-blue-700 font-mono ml-1 font-semibold">
-                    (Markup {formatMarkup(results.shippingMarkup)})
+
+              {/* Split Almacén vs Carrier */}
+              <div className="mt-1.5 grid grid-cols-2 gap-2 text-[10.5px]">
+                <div className="bg-gray-50/80 px-2 py-1 rounded border border-gray-200 flex justify-between items-center print:bg-white">
+                  <span className="text-gray-600">Margen Operativa Almacén (Sin Envío):</span>
+                  <span className="font-bold text-gray-900 font-mono">
+                    {formatPct(results.marginExShipping)}{' '}
+                    <span className="text-[9px] text-blue-700 font-normal">
+                      (Markup {formatMarkup(results.markupExShipping)})
+                    </span>
+                  </span>
+                </div>
+                <div className="bg-gray-50/80 px-2 py-1 rounded border border-gray-200 flex justify-between items-center print:bg-white">
+                  <span className="text-gray-600">Margen Transporte (Carrier):</span>
+                  <span className="font-bold text-gray-900 font-mono">
+                    {formatPct(results.marginShipping)}{' '}
+                    <span className="text-[9px] text-blue-700 font-normal">
+                      (Markup {formatMarkup(results.shippingMarkup)})
+                    </span>
                   </span>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* 2. Desglose Detallado por Pedido (Coste de pack + Margen + Precio) */}
-          <div>
-            <div className="flex justify-between items-center mb-2.5">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
-                <Package className="w-3.5 h-3.5 text-red-600" />
-                2. Desglose Detallado por Pedido (Tarifas Unitarias & Márgenes)
-              </h3>
-              <span className="text-[11px] text-gray-500 font-mono">
-                Total pedido medio: {formatEur(results.orderRevenueExShipping + results.shippingPrice)}
-              </span>
-            </div>
+          {showOrderBreakdown && (
+            <div className="break-inside-avoid">
+              <div className="flex justify-between items-center mb-1.5">
+                <h3 className="text-[10px] font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1">
+                  <Package className="w-3 h-3 text-red-600" />
+                  2. Desglose Detallado por Pedido (Coste, Margen, Markup y Tarifa)
+                </h3>
+                <span className="text-[10px] text-gray-500 font-mono">
+                  Facturación media: {formatEur(results.orderRevenueExShipping + results.shippingPrice)} / ped
+                </span>
+              </div>
 
-            <div className="border border-gray-200 rounded-lg overflow-hidden shadow-2xs">
-              <table className="w-full text-xs text-left">
-                <thead className="bg-gray-100 text-gray-700 font-semibold uppercase text-[10px] border-b border-gray-200">
-                  <tr>
-                    <th className="px-3.5 py-2.5">Concepto Operativo</th>
-                    <th className="px-3.5 py-2.5 text-right">Coste Base</th>
-                    <th className="px-3.5 py-2.5 text-right">Margen %</th>
-                    <th className="px-3.5 py-2.5 text-right text-blue-700">Markup %</th>
-                    <th className="px-3.5 py-2.5 text-right font-bold text-gray-900">Precio Venta</th>
-                    <th className="px-3.5 py-2.5 text-right text-emerald-800">Margen Unit. €</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {/* Preparación base Pack */}
-                  <tr className="bg-white">
-                    <td className="px-3.5 py-2.5 font-semibold text-gray-900">
-                      <div>Preparación base (Pack)</div>
-                      <div className="text-[10px] text-gray-400">
-                        Caja/sobre, manipulado base y precinto (Fuente: Calculadora)
-                      </div>
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono text-gray-700">
-                      {formatEur(results.packCost)}
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono font-medium text-emerald-700">
-                      {formatPct(results.packMargin)}
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono font-semibold text-blue-700">
-                      {formatMarkup(results.packMarkup)}
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono font-bold text-gray-900">
-                      {formatEur(results.packPrice)}
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono font-semibold text-emerald-700">
-                      +{formatEur(results.packPrice - results.packCost)}
-                    </td>
-                  </tr>
-
-                  {/* 1er Pick */}
-                  <tr className="bg-white">
-                    <td className="px-3.5 py-2.5 font-semibold text-gray-900">
-                      <div>1er Pick (1ª unidad)</div>
-                      <div className="text-[10px] text-gray-400">
-                        Picking primera unidad del pedido en estantería
-                      </div>
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono text-gray-700">
-                      {formatEur(results.firstPickCost)}
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono font-medium text-emerald-700">
-                      {formatPct(results.firstPickMargin)}
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono font-semibold text-blue-700">
-                      {formatMarkup(results.firstPickMarkup)}
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono font-bold text-gray-900">
-                      {formatEur(results.firstPickPrice)}
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono font-semibold text-emerald-700">
-                      +{formatEur(results.firstPickPrice - results.firstPickCost)}
-                    </td>
-                  </tr>
-
-                  {/* Subtotal Prep + 1er Pick */}
-                  <tr className="bg-red-50/40 border-y border-red-100 font-semibold">
-                    <td className="px-3.5 py-2.5 text-red-950 font-bold">
-                      <div>Total Preparación + 1er Pick (Base Pedido)</div>
-                      <div className="text-[10px] text-red-700 font-normal">
-                        Tarifa fija mínima aplicada por procesar el paquete
-                      </div>
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono text-red-950">
-                      {formatEur(results.prepPlusFirstPickCost)}
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono font-bold text-red-700">
-                      {formatPct(results.prepPlusFirstPickMargin)}
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono font-bold text-blue-800">
-                      {formatMarkup(results.prepPlusFirstPickMarkup)}
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono font-black text-red-700 text-sm">
-                      {formatEur(results.prepPlusFirstPickPrice)}
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono font-bold text-emerald-800">
-                      +{formatEur(results.prepPlusFirstPickProfit)}
-                    </td>
-                  </tr>
-
-                  {/* Picks adicionales */}
-                  <tr className="bg-white">
-                    <td className="px-3.5 py-2.5 font-semibold text-gray-900">
-                      <div>Picks adicionales (&gt; 1 unidad)</div>
-                      <div className="text-[10px] text-gray-400">
-                        Por cada unidad adicional (media actual: {(results.unitsPerOrder - 1).toFixed(1)} uds extras)
-                      </div>
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono text-gray-700">
-                      {formatEur(results.additionalPickCost)}
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono font-medium text-emerald-700">
-                      {formatPct(results.additionalPickMargin)}
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono font-semibold text-blue-700">
-                      {formatMarkup(results.additionalPickMarkup)}
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono font-bold text-gray-900">
-                      {formatEur(results.additionalPickPrice)}
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono font-semibold text-emerald-700">
-                      +{formatEur(results.additionalPickPrice - results.additionalPickCost)}
-                    </td>
-                  </tr>
-
-                  {/* Envío Carrier */}
-                  <tr className="bg-white">
-                    <td className="px-3.5 py-2.5 font-semibold text-gray-900">
-                      <div>Envío Transporte (Carrier)</div>
-                      <div className="text-[10px] text-gray-400">
-                        Entrega 24-48h peninsular estándar
-                      </div>
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono text-gray-700">
-                      {formatEur(results.carrierCost)}
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono font-medium text-emerald-700">
-                      {formatPct(results.shippingMargin)}
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono font-semibold text-blue-700">
-                      {formatMarkup(results.shippingMarkup)}
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono font-bold text-blue-700">
-                      {formatEur(results.shippingPrice)}
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono font-semibold text-emerald-700">
-                      +{formatEur(results.shippingProfitPerOrder)}
-                    </td>
-                  </tr>
-
-                  {/* TOTAL MEDIO POR PEDIDO */}
-                  <tr className="bg-gray-900 text-white font-bold">
-                    <td className="px-3.5 py-3 text-white">
-                      TOTAL MEDIO ESTIMADO POR PEDIDO (CON ENVÍO)
-                    </td>
-                    <td className="px-3.5 py-3 text-right font-mono text-gray-300">
-                      {formatEur(results.orderCostExShipping + results.carrierCost)}
-                    </td>
-                    <td className="px-3.5 py-3 text-right font-mono text-emerald-400">
-                      {formatPct(results.marginTotal)}
-                    </td>
-                    <td className="px-3.5 py-3 text-right font-mono text-blue-300">
-                      {formatMarkup(results.markupTotal)}
-                    </td>
-                    <td className="px-3.5 py-3 text-right font-mono font-black text-white text-sm">
-                      {formatEur(results.orderRevenueExShipping + results.shippingPrice)}
-                    </td>
-                    <td className="px-3.5 py-3 text-right font-mono font-black text-emerald-400 text-sm">
-                      +{formatEur(results.profitPerOrder)}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* 3. Desglose Operativo Mensual Completo */}
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2.5 flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-red-600" />
-              3. Desglose Operativo Completo Mensual (Cuenta de Explotación por Línea)
-            </h3>
-
-            <div className="border border-gray-200 rounded-lg overflow-hidden shadow-2xs">
-              <table className="w-full text-xs text-left">
-                <thead className="bg-gray-100 text-gray-700 font-semibold uppercase text-[10px] border-b border-gray-200">
-                  <tr>
-                    <th className="px-3.5 py-2">Línea de Servicio</th>
-                    <th className="px-3.5 py-2">Categoría</th>
-                    <th className="px-3.5 py-2 text-right">Facturación / mes</th>
-                    <th className="px-3.5 py-2 text-right">Costes / mes</th>
-                    <th className="px-3.5 py-2 text-right text-emerald-800">Beneficio / mes</th>
-                    <th className="px-3.5 py-2 text-right">Margen</th>
-                    <th className="px-3.5 py-2 text-right text-blue-700">Markup</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {results.lines.map((line, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50/80">
-                      <td className="px-3.5 py-2 font-medium text-gray-800">{line.linea}</td>
-                      <td className="px-3.5 py-2 text-[11px] text-gray-400">{line.categoria}</td>
-                      <td className="px-3.5 py-2 text-right font-mono text-gray-900">
-                        {formatEur(line.ingresos)}
+              <div className="border border-gray-200 rounded-lg overflow-hidden shadow-2xs">
+                <table className="w-full text-xs text-left print:text-[10.5px]">
+                  <thead className="bg-gray-100 text-gray-700 font-semibold uppercase text-[9px] border-b border-gray-200">
+                    <tr>
+                      <th className="px-3 py-1.5">Concepto Operativo</th>
+                      <th className="px-2 py-1.5 text-right">Coste Base</th>
+                      <th className="px-2 py-1.5 text-right">Margen %</th>
+                      <th className="px-2 py-1.5 text-right text-blue-700">Markup %</th>
+                      <th className="px-3 py-1.5 text-right font-bold text-gray-900">Tarifa Venta</th>
+                      <th className="px-2.5 py-1.5 text-right text-emerald-800">Beneficio</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {/* Preparación base Pack */}
+                    <tr className="bg-white">
+                      <td className="px-3 py-1.5 font-medium text-gray-900">
+                        <div>Preparación base (Pack)</div>
+                        <div className="text-[9px] text-gray-400">Embalaje y manipulado base (Calculadora)</div>
                       </td>
-                      <td className="px-3.5 py-2 text-right font-mono text-gray-600">
-                        {formatEur(line.costes)}
+                      <td className="px-2 py-1.5 text-right font-mono text-gray-700">
+                        {formatEur(results.packCost)}
                       </td>
-                      <td className="px-3.5 py-2 text-right font-mono font-bold text-emerald-700">
-                        {formatEur(line.beneficio)}
+                      <td className="px-2 py-1.5 text-right font-mono font-medium text-emerald-700">
+                        {formatPct(results.packMargin)}
                       </td>
-                      <td className="px-3.5 py-2 text-right font-mono text-gray-800">
-                        {formatPct(line.margen)}
+                      <td className="px-2 py-1.5 text-right font-mono font-semibold text-blue-700">
+                        {formatMarkup(results.packMarkup)}
                       </td>
-                      <td className="px-3.5 py-2 text-right font-mono font-semibold text-blue-700">
-                        {formatMarkup(line.markup)}
+                      <td className="px-3 py-1.5 text-right font-mono font-bold text-gray-900">
+                        {formatEur(results.packPrice)}
+                      </td>
+                      <td className="px-2.5 py-1.5 text-right font-mono font-semibold text-emerald-700">
+                        +{formatEur(results.packPrice - results.packCost)}
                       </td>
                     </tr>
-                  ))}
-                  <tr className="bg-gray-100 font-bold border-t-2 border-gray-300">
-                    <td className="px-3.5 py-2.5 text-gray-900" colSpan={2}>
-                      TOTAL GLOBAL MENSUAL
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono text-gray-900 font-black">
-                      {formatEur(results.totalRevenueMonth)}
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono text-gray-700">
-                      {formatEur(results.totalCostMonth)}
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono text-emerald-700 font-black">
-                      {formatEur(results.totalProfitMonth)}
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono font-black text-gray-900">
-                      {formatPct(results.marginTotal)}
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right font-mono font-black text-blue-700">
-                      {formatMarkup(results.markupTotal)}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+
+                    {/* 1er Pick */}
+                    <tr className="bg-white">
+                      <td className="px-3 py-1.5 font-medium text-gray-900">
+                        <div>1er Pick (1ª unidad)</div>
+                        <div className="text-[9px] text-gray-400">Picking primera unidad en estantería</div>
+                      </td>
+                      <td className="px-2 py-1.5 text-right font-mono text-gray-700">
+                        {formatEur(results.firstPickCost)}
+                      </td>
+                      <td className="px-2 py-1.5 text-right font-mono font-medium text-emerald-700">
+                        {formatPct(results.firstPickMargin)}
+                      </td>
+                      <td className="px-2 py-1.5 text-right font-mono font-semibold text-blue-700">
+                        {formatMarkup(results.firstPickMarkup)}
+                      </td>
+                      <td className="px-3 py-1.5 text-right font-mono font-bold text-gray-900">
+                        {formatEur(results.firstPickPrice)}
+                      </td>
+                      <td className="px-2.5 py-1.5 text-right font-mono font-semibold text-emerald-700">
+                        +{formatEur(results.firstPickPrice - results.firstPickCost)}
+                      </td>
+                    </tr>
+
+                    {/* Subtotal Prep + 1er Pick */}
+                    <tr className="bg-red-50/40 border-y border-red-100 font-semibold print:bg-gray-50">
+                      <td className="px-3 py-1.5 text-red-950 font-bold">
+                        <div>Total Preparación + 1er Pick (Base Pedido)</div>
+                        <div className="text-[9px] text-red-700 font-normal">
+                          Fee mínimo garantizado por paquete procesado
+                        </div>
+                      </td>
+                      <td className="px-2 py-1.5 text-right font-mono text-red-950">
+                        {formatEur(results.prepPlusFirstPickCost)}
+                      </td>
+                      <td className="px-2 py-1.5 text-right font-mono font-bold text-red-700">
+                        {formatPct(results.prepPlusFirstPickMargin)}
+                      </td>
+                      <td className="px-2 py-1.5 text-right font-mono font-bold text-blue-800">
+                        {formatMarkup(results.prepPlusFirstPickMarkup)}
+                      </td>
+                      <td className="px-3 py-1.5 text-right font-mono font-black text-red-700 text-xs sm:text-sm">
+                        {formatEur(results.prepPlusFirstPickPrice)}
+                      </td>
+                      <td className="px-2.5 py-1.5 text-right font-mono font-bold text-emerald-800">
+                        +{formatEur(results.prepPlusFirstPickProfit)}
+                      </td>
+                    </tr>
+
+                    {/* Picks adicionales */}
+                    <tr className="bg-white">
+                      <td className="px-3 py-1.5 font-medium text-gray-900">
+                        <div>Picks adicionales (&gt; 1 unidad)</div>
+                        <div className="text-[9px] text-gray-400">
+                          Por unidad adicional (media actual: {(results.unitsPerOrder - 1).toFixed(1)} uds extras)
+                        </div>
+                      </td>
+                      <td className="px-2 py-1.5 text-right font-mono text-gray-700">
+                        {formatEur(results.additionalPickCost)}
+                      </td>
+                      <td className="px-2 py-1.5 text-right font-mono font-medium text-emerald-700">
+                        {formatPct(results.additionalPickMargin)}
+                      </td>
+                      <td className="px-2 py-1.5 text-right font-mono font-semibold text-blue-700">
+                        {formatMarkup(results.additionalPickMarkup)}
+                      </td>
+                      <td className="px-3 py-1.5 text-right font-mono font-bold text-gray-900">
+                        {formatEur(results.additionalPickPrice)}
+                      </td>
+                      <td className="px-2.5 py-1.5 text-right font-mono font-semibold text-emerald-700">
+                        +{formatEur(results.additionalPickPrice - results.additionalPickCost)}
+                      </td>
+                    </tr>
+
+                    {/* Envío Carrier */}
+                    <tr className="bg-white">
+                      <td className="px-3 py-1.5 font-medium text-gray-900">
+                        <div>Envío Transporte (Carrier)</div>
+                        <div className="text-[9px] text-gray-400">Tarifa peninsular estándar</div>
+                      </td>
+                      <td className="px-2 py-1.5 text-right font-mono text-gray-700">
+                        {formatEur(results.carrierCost)}
+                      </td>
+                      <td className="px-2 py-1.5 text-right font-mono font-medium text-emerald-700">
+                        {formatPct(results.shippingMargin)}
+                      </td>
+                      <td className="px-2 py-1.5 text-right font-mono font-semibold text-blue-700">
+                        {formatMarkup(results.shippingMarkup)}
+                      </td>
+                      <td className="px-3 py-1.5 text-right font-mono font-bold text-blue-700">
+                        {formatEur(results.shippingPrice)}
+                      </td>
+                      <td className="px-2.5 py-1.5 text-right font-mono font-semibold text-emerald-700">
+                        +{formatEur(results.shippingProfitPerOrder)}
+                      </td>
+                    </tr>
+
+                    {/* TOTAL MEDIO POR PEDIDO */}
+                    <tr className="bg-gray-900 text-white font-bold print:bg-gray-200 print:text-black">
+                      <td className="px-3 py-2 text-white print:text-black">
+                        TOTAL MEDIO ESTIMADO POR PEDIDO (CON ENVÍO)
+                      </td>
+                      <td className="px-2 py-2 text-right font-mono text-gray-300 print:text-black">
+                        {formatEur(results.orderCostExShipping + results.carrierCost)}
+                      </td>
+                      <td className="px-2 py-2 text-right font-mono text-emerald-400 print:text-black">
+                        {formatPct(results.marginTotal)}
+                      </td>
+                      <td className="px-2 py-2 text-right font-mono text-blue-300 print:text-black">
+                        {formatMarkup(results.markupTotal)}
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono font-black text-white text-xs sm:text-sm print:text-black">
+                        {formatEur(results.orderRevenueExShipping + results.shippingPrice)}
+                      </td>
+                      <td className="px-2.5 py-2 text-right font-mono font-black text-emerald-400 text-xs sm:text-sm print:text-black">
+                        +{formatEur(results.profitPerOrder)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* 3. Desglose Operativo Mensual Completo (P&L por Línea) */}
+          {showMonthlyPL && (
+            <div className="break-inside-avoid">
+              <h3 className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1.5 flex items-center gap-1">
+                <Layers className="w-3 h-3 text-red-600" />
+                3. Cuenta de Explotación Mensual por Líneas de Servicio
+              </h3>
+
+              <div className="border border-gray-200 rounded-lg overflow-hidden shadow-2xs">
+                <table className="w-full text-xs text-left print:text-[10px]">
+                  <thead className="bg-gray-100 text-gray-700 font-semibold uppercase text-[9px] border-b border-gray-200">
+                    <tr>
+                      <th className="px-3 py-1.5">Línea de Servicio</th>
+                      <th className="px-2 py-1.5">Categoría</th>
+                      <th className="px-2 py-1.5 text-right">Facturación</th>
+                      <th className="px-2 py-1.5 text-right">Costes</th>
+                      <th className="px-2.5 py-1.5 text-right text-emerald-800">Beneficio</th>
+                      <th className="px-2 py-1.5 text-right">Margen</th>
+                      <th className="px-2 py-1.5 text-right text-blue-700">Markup</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {results.lines.map((line, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50/80">
+                        <td className="px-3 py-1.5 font-medium text-gray-800">{line.linea}</td>
+                        <td className="px-2 py-1.5 text-[10px] text-gray-400">{line.categoria}</td>
+                        <td className="px-2 py-1.5 text-right font-mono text-gray-900">
+                          {formatEur(line.ingresos)}
+                        </td>
+                        <td className="px-2 py-1.5 text-right font-mono text-gray-600">
+                          {formatEur(line.costes)}
+                        </td>
+                        <td className="px-2.5 py-1.5 text-right font-mono font-bold text-emerald-700">
+                          {formatEur(line.beneficio)}
+                        </td>
+                        <td className="px-2 py-1.5 text-right font-mono text-gray-800">
+                          {formatPct(line.margen)}
+                        </td>
+                        <td className="px-2 py-1.5 text-right font-mono font-semibold text-blue-700">
+                          {formatMarkup(line.markup)}
+                        </td>
+                      </tr>
+                    ))}
+                    <tr className="bg-gray-100 font-bold border-t-2 border-gray-300">
+                      <td className="px-3 py-2 text-gray-900" colSpan={2}>
+                        TOTAL MENSUAL
+                      </td>
+                      <td className="px-2 py-2 text-right font-mono text-gray-900 font-black">
+                        {formatEur(results.totalRevenueMonth)}
+                      </td>
+                      <td className="px-2 py-2 text-right font-mono text-gray-700">
+                        {formatEur(results.totalCostMonth)}
+                      </td>
+                      <td className="px-2.5 py-2 text-right font-mono text-emerald-700 font-black">
+                        {formatEur(results.totalProfitMonth)}
+                      </td>
+                      <td className="px-2 py-2 text-right font-mono font-black text-gray-900">
+                        {formatPct(results.marginTotal)}
+                      </td>
+                      <td className="px-2 py-2 text-right font-mono font-black text-blue-700">
+                        {formatMarkup(results.markupTotal)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {/* 4. Parámetros Operativos & Packaging */}
-          <div className="bg-gray-50 rounded-lg p-3.5 border border-gray-200 text-xs">
-            <h4 className="font-bold text-gray-800 mb-2 uppercase text-[10px] tracking-wider">
-              Parámetros de Configuración del Cliente
-            </h4>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-1.5 gap-x-4 text-[11px] text-gray-600">
-              <div>
-                Fuente coste pack: <strong>Calculadora (negociado)</strong>
-              </div>
-              <div>
-                Días laborables: <strong>{inputs.workingDays} días/mes</strong>
-              </div>
-              <div>
-                Mix de pack: <strong>SPK {inputs.mixSpk}%, SPL {inputs.mixSpl}%, MPL {inputs.mixMpl}%, LPL {inputs.mixLpl}%</strong>
-              </div>
-              <div>
-                Coste carrier base: <strong>{formatEur(results.carrierCost)}</strong>
+          {showParams && (
+            <div className="bg-gray-50 rounded-lg p-2.5 border border-gray-200 text-xs break-inside-avoid print:bg-white print:p-2">
+              <h4 className="font-bold text-gray-800 mb-1 uppercase text-[9px] tracking-wider">
+                Parámetros Operativos de la Oferta
+              </h4>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-1 gap-x-3 text-[10.5px] text-gray-600 print:text-[10px]">
+                <div>
+                  Fuente coste pack: <strong>Calculadora (negociado)</strong>
+                </div>
+                <div>
+                  Días laborables: <strong>{inputs.workingDays} días/mes</strong>
+                </div>
+                <div>
+                  Mix de pack: <strong>SPK {inputs.mixSpk}%, SPL {inputs.mixSpl}%, MPL {inputs.mixMpl}%, LPL {inputs.mixLpl}%</strong>
+                </div>
+                <div>
+                  Coste carrier base: <strong>{formatEur(results.carrierCost)}</strong>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Footer */}
-          <div className="border-t border-gray-200 pt-3 flex items-center justify-between text-[10px] text-gray-400">
+          <div className="border-t border-gray-200 pt-2 flex items-center justify-between text-[9px] text-gray-400 print:text-[8.5px]">
             <span>HUBOO FULFILMENT · CALCULADORA OPERATIVA DE RENTABILIDAD</span>
-            <span>Documento interno confidencial · Página 1 de 1</span>
+            <span>Documento interno confidencial · Página {showMonthlyPL ? '1 de 2' : '1 de 1'}</span>
           </div>
         </div>
       </div>
