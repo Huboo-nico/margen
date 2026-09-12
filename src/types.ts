@@ -32,6 +32,7 @@ export interface CalculatorInputs {
   // 1. Cliente
   clientName: string;
   clientNotes: string;
+  technologies?: string[];
   skuCount: number;
   productType: ProductType;
   packCostSource: PackCostSource;
@@ -125,6 +126,7 @@ export interface OrderSummaryItem {
 export interface CalculationResults {
   // Client & metadata
   clientName: string;
+  technologies: string[];
   tierName: string;
   skuMultiplier: number;
   targetPickMarginDefault: number;

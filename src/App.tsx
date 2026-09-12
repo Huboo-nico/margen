@@ -184,7 +184,7 @@ export const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900">
       {/* Top Header */}
-      <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3.5 flex items-center justify-between sticky top-0 z-20 shadow-2xs gap-4">
+      <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3.5 flex items-center justify-between sticky top-0 z-20 shadow-2xs gap-4 no-print print:hidden">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-red-600 flex items-center justify-center text-white shadow-2xs shrink-0">
             <PackageCheck className="w-5 h-5" />

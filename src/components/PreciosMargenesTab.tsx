@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { CalculatorInputs, CalculationResults, ProductType } from '../types';
 import { PriceMarginRow } from './PriceMarginRow';
-import { PRODUCT_PROFILES } from '../data/constants';
+import { PRODUCT_PROFILES, AVAILABLE_TECHNOLOGIES } from '../data/constants';
 import { useLanguage } from '../context/LanguageContext';
 import {
   formatEur,
@@ -15,6 +15,10 @@ import {
   Layers,
   Package,
   Truck,
+  Globe,
+  Check,
+  Plus,
+  X,
 } from 'lucide-react';
 
 interface PreciosMargenesTabProps {
@@ -29,6 +33,7 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
   onChange,
 }) => {
   const { language } = useLanguage();
+  const [customTechInput, setCustomTechInput] = useState('');
 
   const handleProductChange = (newProduct: ProductType) => {
     const prof = PRODUCT_PROFILES[newProduct];
@@ -78,6 +83,23 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
     'Perfume': 'Perfume',
     'Vidrio': language === 'en' ? 'Glass' : 'Vidrio',
     'Perfume + vidrio': language === 'en' ? 'Perfume + glass' : 'Perfume + vidrio',
+  };
+
+  const currentTechs = inputs.technologies || [];
+
+  const toggleTechnology = (tech: string) => {
+    if (currentTechs.includes(tech)) {
+      onChange({ technologies: currentTechs.filter((t) => t !== tech) });
+    } else {
+      onChange({ technologies: [...currentTechs, tech] });
+    }
+  };
+
+  const addCustomTech = (tech: string) => {
+    const trimmed = tech.trim();
+    if (trimmed && !currentTechs.includes(trimmed)) {
+      onChange({ technologies: [...currentTechs, trimmed] });
+    }
   };
 
   return (
@@ -253,6 +275,111 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
                 ? `Adjusts picking cost based on warehouse walking distance (${results.tierName}).`
                 : `Ajusta el coste de picking por dispersión en nave (${results.tierName}).`}
             </p>
+          </div>
+        </div>
+
+        {/* Tecnología / Plataformas de Venta (Shopify, TikTok Shop, PrestaShop, WooCommerce, Temu, etc.) */}
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+            <div className="flex items-center gap-2">
+              <Globe className="w-4 h-4 text-red-600" />
+              <label className="text-xs font-bold text-gray-900">
+                {language === 'en' ? 'Technology / E-commerce Platforms' : 'Tecnología / Plataformas de Venta'}
+              </label>
+              <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                {language === 'en' ? 'No price impact · For client sheet & operations' : 'No varía el precio · Informativo para la ficha'}
+              </span>
+            </div>
+            <span className="text-[11px] text-gray-500 font-medium">
+              {currentTechs.length}{' '}
+              {language === 'en'
+                ? currentTechs.length === 1 ? 'platform selected' : 'platforms selected'
+                : currentTechs.length === 1 ? 'canal seleccionado' : 'canales seleccionados'}
+            </span>
+          </div>
+
+          <p className="text-[11px] text-gray-500 mb-2.5">
+            {language === 'en'
+              ? 'Select all the platforms or marketplaces the client sells through to include in the client sheet, quote, and report.'
+              : 'Selecciona todas las plataformas o marketplaces con los que opera el cliente para incluirlos en su ficha, cotización e informe.'}
+          </p>
+
+          {/* Chips list */}
+          <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
+            {AVAILABLE_TECHNOLOGIES.map((tech) => {
+              const isSelected = currentTechs.includes(tech);
+              return (
+                <button
+                  key={tech}
+                  type="button"
+                  onClick={() => toggleTechnology(tech)}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs transition cursor-pointer border ${
+                    isSelected
+                      ? 'bg-red-600 text-white border-red-600 font-bold shadow-2xs'
+                      : 'bg-gray-50 hover:bg-white text-gray-700 border-gray-300 hover:border-gray-400 font-medium'
+                  }`}
+                >
+                  {isSelected ? (
+                    <Check className="w-3 h-3 text-white stroke-[3]" />
+                  ) : (
+                    <Plus className="w-3 h-3 text-gray-400" />
+                  )}
+                  <span>{tech}</span>
+                </button>
+              );
+            })}
+
+            {/* Custom tags that aren't in AVAILABLE_TECHNOLOGIES */}
+            {currentTechs
+              .filter((t) => !AVAILABLE_TECHNOLOGIES.includes(t))
+              .map((customTech) => (
+                <button
+                  key={customTech}
+                  type="button"
+                  onClick={() => toggleTechnology(customTech)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-gray-900 text-white border border-gray-900 shadow-2xs transition cursor-pointer"
+                >
+                  <Check className="w-3 h-3 text-white stroke-[3]" />
+                  <span>{customTech}</span>
+                  <X className="w-3 h-3 text-gray-300 hover:text-white" />
+                </button>
+              ))}
+          </div>
+
+          {/* Custom tech input */}
+          <div className="flex items-center gap-2 max-w-md">
+            <input
+              type="text"
+              value={customTechInput}
+              onChange={(e) => setCustomTechInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (customTechInput.trim()) {
+                    addCustomTech(customTechInput);
+                    setCustomTechInput('');
+                  }
+                }
+              }}
+              placeholder={
+                language === 'en'
+                  ? 'Add other technology (e.g. Mirakl, Odoo, Custom ERP...)'
+                  : 'Añadir otra tecnología (ej: Mirakl, Odoo, ERP Propio...)'
+              }
+              className="flex-1 bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 focus:ring-2 focus:ring-red-500 focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                if (customTechInput.trim()) {
+                  addCustomTech(customTechInput);
+                  setCustomTechInput('');
+                }
+              }}
+              className="px-3 py-1.5 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-lg transition cursor-pointer shrink-0"
+            >
+              {language === 'en' ? '+ Add' : '+ Añadir'}
+            </button>
           </div>
         </div>
 

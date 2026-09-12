@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CalculationResults, CalculatorInputs } from '../types';
 import { formatEur, formatPct, formatMarkup } from '../utils/calculations';
-import { Printer, X, FileText, Package, Layers, Building2, Calendar, SlidersHorizontal } from 'lucide-react';
+import { Printer, X, FileText, Package, Layers, Building2, Calendar, SlidersHorizontal, Globe } from 'lucide-react';
 
 interface InternalReportModalProps {
   isOpen: boolean;
@@ -17,12 +17,26 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
   inputs,
 }) => {
   // Section toggle state (defaulted for 1-page A4 printing)
+  const [showVolume, setShowVolume] = useState(true);
+  const [showTech, setShowTech] = useState(true);
   const [showKpis, setShowKpis] = useState(true);
   const [showOrderBreakdown, setShowOrderBreakdown] = useState(true);
   const [showMonthlyPL, setShowMonthlyPL] = useState(false); // Off by default to guarantee 1 single page!
   const [showParams, setShowParams] = useState(true);
   const [showNotes, setShowNotes] = useState(Boolean(inputs.clientNotes));
   const [compactMode, setCompactMode] = useState(true);
+
+  // Isolate body in print when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('report-modal-open');
+    } else {
+      document.body.classList.remove('report-modal-open');
+    }
+    return () => {
+      document.body.classList.remove('report-modal-open');
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -37,6 +51,8 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
   });
 
   const applyPresetOnePage = () => {
+    setShowVolume(true);
+    setShowTech(true);
     setShowKpis(true);
     setShowOrderBreakdown(true);
     setShowMonthlyPL(false);
@@ -46,6 +62,8 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
   };
 
   const applyPresetFull = () => {
+    setShowVolume(true);
+    setShowTech(true);
     setShowKpis(true);
     setShowOrderBreakdown(true);
     setShowMonthlyPL(true);
@@ -55,10 +73,12 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
   };
 
   const applyPresetRatesOnly = () => {
+    setShowVolume(true);
+    setShowTech(true);
     setShowKpis(false);
     setShowOrderBreakdown(true);
     setShowMonthlyPL(false);
-    setShowParams(true);
+    setShowParams(false);
     setShowNotes(false);
     setCompactMode(true);
   };
@@ -156,6 +176,28 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
             <div className="flex items-center gap-2.5 flex-wrap text-[11px]">
               <span className="text-gray-400 font-medium">Incluir:</span>
               
+              <label className="flex items-center gap-1 text-gray-300 hover:text-white cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={showVolume}
+                  onChange={(e) => setShowVolume(e.target.checked)}
+                  className="rounded text-red-600 focus:ring-0 w-3.5 h-3.5 accent-red-600 cursor-pointer"
+                />
+                <span>Volumen</span>
+              </label>
+
+              {inputs.technologies && inputs.technologies.length > 0 && (
+                <label className="flex items-center gap-1 text-gray-300 hover:text-white cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={showTech}
+                    onChange={(e) => setShowTech(e.target.checked)}
+                    className="rounded text-red-600 focus:ring-0 w-3.5 h-3.5 accent-red-600 cursor-pointer"
+                  />
+                  <span>Tecnología</span>
+                </label>
+              )}
+
               <label className="flex items-center gap-1 text-gray-300 hover:text-white cursor-pointer select-none">
                 <input
                   type="checkbox"
@@ -257,19 +299,39 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                     Sector: <strong>{inputs.productType}</strong> ({inputs.skuCount} SKUs, Tier {results.tierName})
                   </span>
                 </div>
+
+                {/* Technology Badges */}
+                {showTech && inputs.technologies && inputs.technologies.length > 0 && (
+                  <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+                    <span className="text-[10px] text-gray-500 font-semibold flex items-center gap-1">
+                      <Globe className="w-3 h-3 text-gray-400" />
+                      Tecnología / Plataformas:
+                    </span>
+                    {inputs.technologies.map((t) => (
+                      <span
+                        key={t}
+                        className="text-[10px] font-bold bg-gray-100 text-gray-800 border border-gray-300 px-2 py-0.5 rounded-md"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              <div className="text-left sm:text-right bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 shrink-0">
-                <span className="text-[9px] uppercase font-bold text-gray-500 tracking-wider block">
-                  Volumen Estimado
-                </span>
-                <span className="text-sm font-black font-mono text-gray-900 block">
-                  {results.ordersMonth.toLocaleString('es-ES', { maximumFractionDigits: 0 })} pedidos/mes
-                </span>
-                <span className="text-[10px] text-gray-500 block">
-                  {results.ordersPerDay.toFixed(1)} ped/día · {results.unitsPerOrder.toFixed(1)} units/ped
-                </span>
-              </div>
+              {showVolume && (
+                <div className="text-left sm:text-right bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 shrink-0 print:bg-white">
+                  <span className="text-[9px] uppercase font-bold text-gray-500 tracking-wider block">
+                    Volumen Estimado
+                  </span>
+                  <span className="text-sm font-black font-mono text-gray-900 block">
+                    {results.ordersMonth.toLocaleString('es-ES', { maximumFractionDigits: 0 })} pedidos/mes
+                  </span>
+                  <span className="text-[10px] text-gray-500 block">
+                    {results.ordersPerDay.toFixed(1)} ped/día · {results.unitsPerOrder.toFixed(1)} units/ped
+                  </span>
+                </div>
+              )}
             </div>
 
             {showNotes && inputs.clientNotes && (

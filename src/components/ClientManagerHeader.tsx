@@ -39,7 +39,7 @@ export const ClientManagerHeader: React.FC<ClientManagerHeaderProps> = ({
 
     const text = language === 'en'
       ? `FULFILMENT QUOTATION - ${currentInputs.clientName}
-Estimated volume: ${currentInputs.ordersMonth} orders/month (${currentInputs.unitsPerOrder} units/order)
+${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Channels/Tech: ${currentInputs.technologies.join(', ')}\n` : ''}Estimated volume: ${currentInputs.ordersMonth} orders/month (${currentInputs.unitsPerOrder} units/order)
 
 1. OPERATING RATES:
 - Preparation + 1st Pick: ${prepPlus1stPick.toFixed(2)} € / order
@@ -50,7 +50,7 @@ Estimated volume: ${currentInputs.ordersMonth} orders/month (${currentInputs.uni
 - Storage: ${currentInputs.storagePrice.toFixed(2)} € / pallet / week
 - Goods-in intake: ${currentInputs.goodsInPrice.toFixed(2)} € / pallet`
       : `COTIZACIÓN FULFILMENT - ${currentInputs.clientName}
-Volumen estimado: ${currentInputs.ordersMonth} pedidos/mes (${currentInputs.unitsPerOrder} units/pedido)
+${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Canales/Tecnología: ${currentInputs.technologies.join(', ')}\n` : ''}Volumen estimado: ${currentInputs.ordersMonth} pedidos/mes (${currentInputs.unitsPerOrder} units/pedido)
 
 1. TARIFAS OPERATIVAS:
 - Preparación + 1er Pick: ${prepPlus1stPick.toFixed(2)} € / pedido
@@ -77,7 +77,7 @@ Volumen estimado: ${currentInputs.ordersMonth} pedidos/mes (${currentInputs.unit
   };
 
   return (
-    <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+    <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs no-print print:hidden">
       {/* Left section: Client switcher & DIRECT NAME EDITOR */}
       <div className="flex items-center gap-3 flex-wrap">
         {/* Selector */}
@@ -112,6 +112,25 @@ Volumen estimado: ${currentInputs.ordersMonth} pedidos/mes (${currentInputs.unit
             className="bg-white border border-red-300 rounded px-2 py-0.5 text-xs font-bold text-gray-900 focus:ring-2 focus:ring-red-500 focus:outline-none w-36 sm:w-52 md:w-64 transition shadow-inner"
           />
         </div>
+
+        {/* Selected Technologies quick badges */}
+        {currentInputs.technologies && currentInputs.technologies.length > 0 && (
+          <div className="hidden md:flex items-center gap-1">
+            {currentInputs.technologies.slice(0, 3).map((tech) => (
+              <span
+                key={tech}
+                className="text-[10px] font-bold bg-gray-100 text-gray-700 border border-gray-200 px-1.5 py-0.5 rounded-md"
+              >
+                {tech}
+              </span>
+            ))}
+            {currentInputs.technologies.length > 3 && (
+              <span className="text-[10px] font-semibold text-gray-500 bg-gray-50 border border-gray-200 px-1 py-0.5 rounded">
+                +{currentInputs.technologies.length - 3}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Optional Notes / Tag */}
         <div className="flex items-center gap-1">

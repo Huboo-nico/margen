@@ -95,6 +95,9 @@ export const PropuestaClienteTab: React.FC<PropuestaClienteTabProps> = ({
     lines.push(`${isEn ? 'Client' : 'Cliente'}: ${results.clientName || (isEn ? 'Client' : 'Cliente')}`);
     lines.push(`${isEn ? 'Date' : 'Fecha'}: ${new Date().toLocaleDateString(isEn ? 'en-US' : 'es-ES')}`);
     lines.push(`Ref: COT-${new Date().getFullYear()}-${inputs.skuCount}S`);
+    if (inputs.technologies && inputs.technologies.length > 0) {
+      lines.push(`${isEn ? 'Channels / Platforms' : 'Canales / Plataformas'}: ${inputs.technologies.join(', ')}`);
+    }
     lines.push('================================================\n');
 
     if (includeVolume) {
@@ -368,10 +371,25 @@ export const PropuestaClienteTab: React.FC<PropuestaClienteTabProps> = ({
             <h1 className={`${compactMode ? 'text-xl' : 'text-2xl'} font-black text-gray-900 tracking-tight`}>
               {results.clientName || (language === 'en' ? 'Unnamed Client' : 'Cliente sin nombre')}
             </h1>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {language === 'en'
-                ? `Profile: ${currentProductType} · ${inputs.skuCount} active SKUs`
-                : `Perfil: ${currentProductType} · ${inputs.skuCount} SKUs activos`}
+            <p className="text-xs text-gray-500 mt-0.5 flex flex-wrap items-center gap-1.5">
+              <span>
+                {language === 'en'
+                  ? `Profile: ${currentProductType} · ${inputs.skuCount} active SKUs`
+                  : `Perfil: ${currentProductType} · ${inputs.skuCount} SKUs activos`}
+              </span>
+              {inputs.technologies && inputs.technologies.length > 0 && (
+                <span className="inline-flex items-center gap-1">
+                  · <span className="font-semibold text-gray-700">{language === 'en' ? 'Channels:' : 'Canales:'}</span>
+                  {inputs.technologies.map((t) => (
+                    <span
+                      key={t}
+                      className="text-[10px] font-bold bg-gray-100 text-gray-800 border border-gray-200 px-1.5 py-0.2 rounded"
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </span>
+              )}
             </p>
           </div>
 

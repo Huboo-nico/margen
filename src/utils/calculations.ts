@@ -532,6 +532,7 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
 
   return {
     clientName,
+    technologies: inputs.technologies || [],
     tierName,
     skuMultiplier,
     targetPickMarginDefault,

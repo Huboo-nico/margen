@@ -90,10 +90,28 @@ export const PRODUCT_PROFILES: Record<ProductType, ProductProfile> = {
   },
 };
 
+// Tecnologías y plataformas e-commerce soportadas para la ficha del cliente
+export const AVAILABLE_TECHNOLOGIES = [
+  'Shopify',
+  'TikTok Shop',
+  'PrestaShop',
+  'WooCommerce',
+  'Temu',
+  'Amazon',
+  'Mirakl',
+  'Magento',
+  'eBay',
+  'BigCommerce',
+  'Shein',
+  'AliExpress',
+  'Custom API / ERP',
+];
+
 export const DEFAULT_INPUTS: CalculatorInputs = {
   // 1. Cliente
   clientName: 'Cliente Ejemplo A',
   clientNotes: 'Propuesta estándar e-commerce',
+  technologies: ['Shopify'],
   skuCount: 15,
   productType: 'Suplementos',
   packCostSource: 'Calculadora (negociado)',
@@ -172,7 +190,11 @@ export const INITIAL_CLIENT_PROFILES: ClientProfile[] = [
     name: 'NutriLife (Suplementos)',
     notes: 'Volumen medio, mix MPL/LPL estándar',
     updatedAt: new Date().toISOString(),
-    inputs: { ...DEFAULT_INPUTS, clientName: 'NutriLife (Suplementos)' },
+    inputs: {
+      ...DEFAULT_INPUTS,
+      clientName: 'NutriLife (Suplementos)',
+      technologies: ['Shopify', 'TikTok Shop'],
+    },
   },
   {
     id: 'client-2',
@@ -182,6 +204,7 @@ export const INITIAL_CLIENT_PROFILES: ClientProfile[] = [
     inputs: {
       ...DEFAULT_INPUTS,
       clientName: 'Aura Glow (Cosmética & Perfume)',
+      technologies: ['WooCommerce', 'PrestaShop', 'Temu'],
       productType: 'Perfume + vidrio',
       skuCount: 45,
       ordersPerDay: 50,

@@ -30,4 +30,10 @@
     page-break-inside: avoid !important;
     max-height: 100vh !important;
   }
+
+  /* When internal report modal is active, isolate and hide all background dashboard content */
+  body.report-modal-open #main-dashboard-content,
+  body.report-modal-open .hide-on-modal-print {
+    display: none !important;
+  }
 }

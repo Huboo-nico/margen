@@ -87,25 +87,39 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenP
 
   return (
     <div className="space-y-6">
-      {/* Client Headline Banner */}
-      <div className="bg-white p-4 rounded-xl border border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-2xs">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 text-xs font-bold uppercase rounded bg-red-100 text-red-700 tracking-wide">
-              {language === 'en' ? 'Client' : 'Cliente'}
-            </span>
-            <h2 className="text-lg font-bold text-gray-900">
-              {results.clientName || (language === 'en' ? 'Unnamed Client' : 'Cliente sin nombre')}
-            </h2>
+      {/* Dashboard View (Hidden when internal report modal is open during print) */}
+      <div id="main-dashboard-content" className={`space-y-6 ${showPdfModal ? 'print:hidden' : ''}`}>
+        {/* Client Headline Banner */}
+        <div className="bg-white p-4 rounded-xl border border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-2xs">
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="px-2 py-0.5 text-xs font-bold uppercase rounded bg-red-100 text-red-700 tracking-wide">
+                {language === 'en' ? 'Client' : 'Cliente'}
+              </span>
+              <h2 className="text-lg font-bold text-gray-900">
+                {results.clientName || (language === 'en' ? 'Unnamed Client' : 'Cliente sin nombre')}
+              </h2>
+              {results.technologies && results.technologies.length > 0 && (
+                <div className="flex items-center gap-1">
+                  {results.technologies.map((t) => (
+                    <span
+                      key={t}
+                      className="text-[10px] font-bold bg-gray-100 text-gray-700 border border-gray-200 px-1.5 py-0.5 rounded"
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {results.ordersMonth.toLocaleString(language === 'en' ? 'en-US' : 'es-ES', { maximumFractionDigits: 0 })}{' '}
+              {language === 'en' ? 'orders/month' : 'pedidos/mes'} (
+              {results.ordersPerDay.toFixed(1)} {language === 'en' ? 'orders/day' : 'pedidos/día'}) ·{' '}
+              {results.unitsPerOrder.toFixed(1)} {language === 'en' ? 'units/order' : 'units/pedido'} · Tier SKU:{' '}
+              <span className="font-semibold text-gray-700">{results.tierName}</span>
+            </p>
           </div>
-          <p className="text-xs text-gray-500 mt-0.5">
-            {results.ordersMonth.toLocaleString(language === 'en' ? 'en-US' : 'es-ES', { maximumFractionDigits: 0 })}{' '}
-            {language === 'en' ? 'orders/month' : 'pedidos/mes'} (
-            {results.ordersPerDay.toFixed(1)} {language === 'en' ? 'orders/day' : 'pedidos/día'}) ·{' '}
-            {results.unitsPerOrder.toFixed(1)} {language === 'en' ? 'units/order' : 'units/pedido'} · Tier SKU:{' '}
-            <span className="font-semibold text-gray-700">{results.tierName}</span>
-          </p>
-        </div>
 
         <div className="flex flex-wrap items-center gap-2.5 self-start md:self-auto">
           {/* Internal PDF Presentation Button */}
@@ -543,6 +557,7 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenP
             )}
           </div>
         </div>
+      </div>
       </div>
 
       {/* Modal for Internal PDF Presentation */}
