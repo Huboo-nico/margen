@@ -6,7 +6,7 @@ import {
 } from '../types';
 import { PRODUCT_PROFILES } from '../data/constants';
 import { ChevronDown, ChevronRight, AlertCircle, Package, Truck, Layers, User } from 'lucide-react';
-import { formatEur, formatPct } from '../utils/calculations';
+import { formatEur } from '../utils/calculations';
 
 interface SidebarProps {
   inputs: CalculatorInputs;
@@ -285,144 +285,126 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
         </div>
       </section>
 
-      {/* 4. PREPARACIÓN (PACK + 1ER PICK) */}
-      <section className="mb-6 bg-red-50/40 p-3 rounded-lg border border-red-100">
+      {/* 4. PREPARACIÓN BASE (PACK) */}
+      <section className="mb-6 bg-red-50/30 p-3 rounded-lg border border-red-100">
         <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-red-200/60">
           <div className="flex items-center gap-1.5">
             <Package className="w-4 h-4 text-red-600" />
-            <h2 className="text-sm font-bold text-gray-900">4. Preparación (Pack + 1er Pick)</h2>
+            <h2 className="text-sm font-bold text-gray-900">4. Preparación Base (Pack)</h2>
           </div>
+          <span className="text-[10px] font-mono text-gray-500">Coste: {formatEur(results.packCost)}</span>
         </div>
 
-        {/* Highlight Combined Prep Box */}
-        <div className="bg-white p-2.5 rounded border border-red-200 shadow-2xs mb-3">
-          <div className="flex justify-between items-center text-xs">
-            <span className="font-bold text-gray-900">Fee Preparación + 1er Pick:</span>
-            <span className="font-mono font-extrabold text-sm text-red-600">
-              {formatEur(results.prepPlusFirstPickPrice)}
-            </span>
-          </div>
-          <div className="flex justify-between items-center text-[10px] text-gray-500 mt-1 pt-1 border-t border-gray-100">
-            <span>Coste: {formatEur(results.prepPlusFirstPickCost)}</span>
-            <span className="font-medium text-emerald-700">
-              Margen: {formatPct(results.prepPlusFirstPickMargin)} (+{formatEur(results.prepPlusFirstPickProfit)})
-            </span>
-          </div>
-        </div>
-
-        {/* 4.A Preparación Base (Pack) */}
-        <div className="space-y-3 mb-3">
-          <div className="bg-white p-2.5 rounded border border-gray-200">
-            <div className="flex justify-between items-center mb-1.5">
-              <span className="text-xs font-semibold text-gray-800">Pack Base (Preparación)</span>
-              <span className="text-[10px] font-mono text-gray-500">Coste: {formatEur(results.packCost)}</span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 mb-1.5">
-              <div>
-                <label className="block text-[10px] text-gray-500 mb-0.5">Margen %</label>
-                <div className="flex items-center gap-1">
-                  <input
-                    type="range"
-                    min="0"
-                    max="0.8"
-                    step="0.01"
-                    value={inputs.packMarginTarget}
-                    onChange={(e) => {
-                      const m = Number(e.target.value);
-                      onChange({
-                        packMarginTarget: m,
-                        packPriceMode: 'margin',
-                      });
-                    }}
-                    className="w-full accent-red-600 h-1 bg-gray-200 rounded"
-                  />
-                  <span className="text-[10px] font-mono text-gray-700 w-8">
-                    {Math.round(inputs.packMarginTarget * 100)}%
-                  </span>
-                </div>
-              </div>
-              <div>
-                <label className="block text-[10px] text-gray-500 mb-0.5">Precio Pack (€)</label>
+        <div className="bg-white p-2.5 rounded border border-gray-200">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-[10px] text-gray-500 mb-0.5">Margen %</label>
+              <div className="flex items-center gap-1">
                 <input
-                  type="number"
-                  step="0.01"
+                  type="range"
                   min="0"
-                  value={Number(results.packPrice.toFixed(2))}
+                  max="0.8"
+                  step="0.01"
+                  value={inputs.packMarginTarget}
                   onChange={(e) => {
-                    const p = Math.max(0, Number(e.target.value));
-                    const m = results.packCost > 0 && p > 0 ? (p - results.packCost) / p : 0;
+                    const m = Number(e.target.value);
                     onChange({
-                      packPriceManual: p,
-                      packMarginTarget: Math.max(0, Math.min(0.95, m)),
-                      packPriceMode: 'price',
+                      packMarginTarget: m,
+                      packPriceMode: 'margin',
                     });
                   }}
-                  className="w-full border border-gray-300 rounded px-2 py-1 text-xs font-mono font-bold text-gray-900 bg-amber-50/50"
+                  className="w-full accent-red-600 h-1 bg-gray-200 rounded"
                 />
+                <span className="text-[10px] font-mono text-gray-700 w-8">
+                  {Math.round(inputs.packMarginTarget * 100)}%
+                </span>
               </div>
             </div>
-          </div>
-
-          {/* 4.B 1er Pick */}
-          <div className="bg-white p-2.5 rounded border border-gray-200">
-            <div className="flex justify-between items-center mb-1.5">
-              <span className="text-xs font-semibold text-gray-800">1er Pick de Pedido</span>
-              <span className="text-[10px] font-mono text-gray-500">Coste: {formatEur(results.firstPickCost)}</span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 mb-1.5">
-              <div>
-                <label className="block text-[10px] text-gray-500 mb-0.5">Margen %</label>
-                <div className="flex items-center gap-1">
-                  <input
-                    type="range"
-                    min="0"
-                    max="0.8"
-                    step="0.01"
-                    value={inputs.firstPickMarginTarget}
-                    onChange={(e) => {
-                      const m = Number(e.target.value);
-                      onChange({
-                        firstPickMarginTarget: m,
-                        firstPickPriceMode: 'margin',
-                      });
-                    }}
-                    className="w-full accent-red-600 h-1 bg-gray-200 rounded"
-                  />
-                  <span className="text-[10px] font-mono text-gray-700 w-8">
-                    {Math.round(inputs.firstPickMarginTarget * 100)}%
-                  </span>
-                </div>
-              </div>
-              <div>
-                <label className="block text-[10px] text-gray-500 mb-0.5">Precio 1er Pick (€)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={Number(results.firstPickPrice.toFixed(2))}
-                  onChange={(e) => {
-                    const p = Math.max(0, Number(e.target.value));
-                    const m = results.firstPickCost > 0 && p > 0 ? (p - results.firstPickCost) / p : 0;
-                    onChange({
-                      firstPickPriceManual: p,
-                      firstPickMarginTarget: Math.max(0, Math.min(0.95, m)),
-                      firstPickPriceMode: 'price',
-                    });
-                  }}
-                  className="w-full border border-gray-300 rounded px-2 py-1 text-xs font-mono font-bold text-gray-900 bg-amber-50/50"
-                />
-              </div>
+            <div>
+              <label className="block text-[10px] text-gray-500 mb-0.5">Precio Pack (€)</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={Number(results.packPrice.toFixed(2))}
+                onChange={(e) => {
+                  const p = Math.max(0, Number(e.target.value));
+                  const m = results.packCost > 0 && p > 0 ? (p - results.packCost) / p : 0;
+                  onChange({
+                    packPriceManual: p,
+                    packMarginTarget: Math.max(0, Math.min(0.95, m)),
+                    packPriceMode: 'price',
+                  });
+                }}
+                className="w-full border border-gray-300 rounded px-2 py-1 text-xs font-mono font-bold text-gray-900 bg-amber-50/50"
+              />
             </div>
           </div>
         </div>
       </section>
 
-      {/* 5. Picks Adicionales */}
+      {/* 5. 1ER PICK DE PEDIDO */}
+      <section className="mb-6 bg-red-50/30 p-3 rounded-lg border border-red-100">
+        <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-red-200/60">
+          <div className="flex items-center gap-1.5">
+            <Layers className="w-4 h-4 text-red-600" />
+            <h2 className="text-sm font-bold text-gray-900">5. 1er Pick de Pedido</h2>
+          </div>
+          <span className="text-[10px] font-mono text-gray-500">Coste: {formatEur(results.firstPickCost)}</span>
+        </div>
+
+        <div className="bg-white p-2.5 rounded border border-gray-200">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-[10px] text-gray-500 mb-0.5">Margen %</label>
+              <div className="flex items-center gap-1">
+                <input
+                  type="range"
+                  min="0"
+                  max="0.8"
+                  step="0.01"
+                  value={inputs.firstPickMarginTarget}
+                  onChange={(e) => {
+                    const m = Number(e.target.value);
+                    onChange({
+                      firstPickMarginTarget: m,
+                      firstPickPriceMode: 'margin',
+                    });
+                  }}
+                  className="w-full accent-red-600 h-1 bg-gray-200 rounded"
+                />
+                <span className="text-[10px] font-mono text-gray-700 w-8">
+                  {Math.round(inputs.firstPickMarginTarget * 100)}%
+                </span>
+              </div>
+            </div>
+            <div>
+              <label className="block text-[10px] text-gray-500 mb-0.5">Precio 1er Pick (€)</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={Number(results.firstPickPrice.toFixed(2))}
+                onChange={(e) => {
+                  const p = Math.max(0, Number(e.target.value));
+                  const m = results.firstPickCost > 0 && p > 0 ? (p - results.firstPickCost) / p : 0;
+                  onChange({
+                    firstPickPriceManual: p,
+                    firstPickMarginTarget: Math.max(0, Math.min(0.95, m)),
+                    firstPickPriceMode: 'price',
+                  });
+                }}
+                className="w-full border border-gray-300 rounded px-2 py-1 text-xs font-mono font-bold text-gray-900 bg-amber-50/50"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. Picks Adicionales */}
       <section className="mb-6">
         <h2 className="text-sm font-bold text-gray-900 border-b border-gray-100 pb-1.5 mb-3">
-          5. Picks Adicionales (desde 2ª unidad)
+          6. Picks Adicionales (desde 2ª unidad)
         </h2>
 
         <div className="bg-gray-50 p-2.5 rounded border border-gray-200 space-y-2">
@@ -475,11 +457,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
         </div>
       </section>
 
-      {/* 6. Envío (Carrier) - Coste + Margen Modificable */}
+      {/* 7. Envío (Carrier) - Coste + Margen Modificable */}
       <section className="mb-6 bg-blue-50/40 p-3 rounded-lg border border-blue-100">
         <h2 className="text-sm font-bold text-gray-900 border-b border-blue-200/60 pb-1.5 mb-2.5 flex items-center gap-1.5">
           <Truck className="w-4 h-4 text-blue-600" />
-          <span>6. Envío (Carrier: Coste + Margen)</span>
+          <span>7. Envío (Carrier: Coste + Margen)</span>
         </h2>
 
         <div className="space-y-2.5">
@@ -547,14 +529,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
         </div>
       </section>
 
-      {/* 7. Servicios Avanzados (Inserts, Packaging, Surcharge, Almacén) */}
+      {/* 8. Servicios Avanzados (Inserts, Packaging, Surcharge, Almacén) */}
       <div className="border border-gray-200 rounded-lg overflow-hidden">
         <button
           type="button"
           onClick={() => setAdvancedOpen(!advancedOpen)}
           className="w-full flex items-center justify-between px-3 py-2.5 bg-gray-50 hover:bg-gray-100 text-xs font-semibold text-gray-700 transition"
         >
-          <span>7. Servicios Adicionales & Almacén</span>
+          <span>8. Servicios Adicionales & Almacén</span>
           {advancedOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </button>
 

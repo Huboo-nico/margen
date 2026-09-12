@@ -109,9 +109,13 @@ export const PropuestaClienteTab: React.FC<PropuestaClienteTabProps> = ({
 
     if (includePrepPick) {
       lines.push(isEn ? '1. PREPARATION & PICKING RATES:' : '1. TARIFAS DE PREPARACIÓN & PICKING:');
-      lines.push(`- ${isEn ? 'Order Prep (Pack + 1st Pick)' : 'Preparación + 1er Pick'}: ${formatEur(results.prepPlusFirstPickPrice)} ${isEn ? 'per order' : 'por pedido'}`);
-      lines.push(`- ${isEn ? 'Additional pick (> 1st unit)' : 'Pick adicional (> 1ª unidad)'}: ${formatEur(results.additionalPickPrice)} ${isEn ? 'per extra unit' : 'por unidad extra'}`);
-      lines.push(`- ${isEn ? 'Base packaging' : 'Packaging base'}: ${formatEur(inputs.packagingPrice)} ${isEn ? 'per order' : 'por pedido'}\n`);
+      lines.push(`- ${isEn ? 'Base Preparation (Pack)' : 'Preparación base (Pack)'}: ${formatEur(results.packPrice)} ${isEn ? 'per order' : 'por pedido'}`);
+      lines.push(`- ${isEn ? '1st Unit Pick' : '1er Pick del pedido (1ª ud)'}: ${formatEur(results.firstPickPrice)} ${isEn ? 'per order' : 'por pedido'}`);
+      lines.push(`- ${isEn ? 'Additional Pick (> 1st unit)' : 'Pick adicional (> 1ª unidad)'}: ${formatEur(results.additionalPickPrice)} ${isEn ? 'per extra unit' : 'por unidad extra'}`);
+      if (inputs.packagingPrice > 0) {
+        lines.push(`- ${isEn ? 'Base packaging' : 'Packaging base'}: ${formatEur(inputs.packagingPrice)} ${isEn ? 'per order' : 'por pedido'}`);
+      }
+      lines.push('');
     }
 
     if (includeShipping) {
@@ -467,19 +471,34 @@ export const PropuestaClienteTab: React.FC<PropuestaClienteTabProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    <tr className="bg-red-50/20">
+                    <tr>
                       <td className={`font-bold text-gray-900 ${compactMode ? 'px-3 py-2 text-xs' : 'px-4 py-3'}`}>
                         {language === 'en'
-                          ? 'Order Preparation (Pack + 1st Pick)'
-                          : 'Preparación de Pedido (Pack + 1er Pick)'}
+                          ? 'Base Preparation (Pack)'
+                          : 'Preparación Base (Pack)'}
                       </td>
                       <td className={`text-gray-600 ${compactMode ? 'px-3 py-2 text-[11px]' : 'px-4 py-3'}`}>
                         {language === 'en'
-                          ? 'Base order fee: box/mailer packaging material + 1st unit picking'
-                          : 'Fee base por pedido: empaque certificado + picking de la 1ª unidad'}
+                          ? 'Certified packaging material (box, mailer, label, tape)'
+                          : 'Preparación de embalaje homologado (caja o sobre certificado)'}
                       </td>
-                      <td className={`text-right font-mono font-extrabold text-red-600 ${compactMode ? 'px-3 py-2 text-xs sm:text-sm' : 'px-4 py-3 text-sm'}`}>
-                        {formatEur(results.prepPlusFirstPickPrice)}
+                      <td className={`text-right font-mono font-bold text-gray-900 ${compactMode ? 'px-3 py-2 text-xs sm:text-sm' : 'px-4 py-3 text-sm'}`}>
+                        {formatEur(results.packPrice)}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className={`font-bold text-gray-900 ${compactMode ? 'px-3 py-2 text-xs' : 'px-4 py-3'}`}>
+                        {language === 'en'
+                          ? 'First Pick (1st unit included)'
+                          : 'Primer Pick de Pedido (1ª unidad)'}
+                      </td>
+                      <td className={`text-gray-600 ${compactMode ? 'px-3 py-2 text-[11px]' : 'px-4 py-3'}`}>
+                        {language === 'en'
+                          ? 'Picking and verification of the initial unit of the order'
+                          : 'Picking y verificación de la 1ª unidad incluida en el pedido'}
+                      </td>
+                      <td className={`text-right font-mono font-bold text-gray-900 ${compactMode ? 'px-3 py-2 text-xs sm:text-sm' : 'px-4 py-3 text-sm'}`}>
+                        {formatEur(results.firstPickPrice)}
                       </td>
                     </tr>
                     <tr>

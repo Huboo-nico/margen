@@ -706,106 +706,83 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
         </div>
       </section>
 
-      {/* 4. PREPARACIÓN DE PEDIDO (PACK + 1ER PICK) */}
+      {/* 4. PREPARACIÓN BASE (PACK) */}
       <section className="space-y-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <Package className="w-5 h-5 text-red-600" />
             <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
-              {language === 'en' ? '4. Order Preparation (Base Pack + 1st Pick)' : '4. Preparación de Pedido (Pack Base + 1er Pick)'}
+              {language === 'en' ? '4. Base Preparation (Pack)' : '4. Preparación Base (Pack)'}
             </h3>
           </div>
-          <span className="text-xs font-bold text-red-600 bg-red-50 px-2.5 py-1 rounded-lg border border-red-200">
-            {language === 'en' ? 'Total Preparation + 1st Pick: ' : 'Total Preparación + 1er Pick: '}
-            {formatEur(results.prepPlusFirstPickPrice)} ({language === 'en' ? 'Margin: ' : 'Margen: '}
-            {formatPct(results.prepPlusFirstPickMargin)} | Markup:{' '}
-            {formatMarkup(results.prepPlusFirstPickMarkup)})
+          <span className="text-xs text-gray-500 font-mono">
+            {language === 'en' ? 'Pack material mix cost: ' : 'Coste mix material packaging: '}
+            <strong className="text-gray-900">{formatEur(results.packCost)}</strong>
           </span>
         </div>
 
-        {/* Master combined row */}
-        <div className="border border-red-200/80 rounded-xl p-2 bg-red-50/15 shadow-2xs space-y-3">
-          <PriceMarginRow
-            label={language === 'en' ? 'Order Preparation (Base Pack + 1st Pick)' : 'Preparación de Pedido (Pack Base + 1er Pick)'}
-            subLabel={
-              language === 'en'
-                ? 'Master commercial rate for order preparation and initial pick. Direct cost & price editing with instant margin recalculation.'
-                : 'Tarifa comercial combinada de preparación de pedido y primer pick. Edición directa de coste y precio con recálculo automático de margen.'
-            }
-            cost={results.prepPlusFirstPickCost}
-            defaultCost={results.prepPlusFirstPickDefaultCost}
-            mode={inputs.prepPlusFirstPickPriceMode || 'margin'}
-            marginTarget={inputs.prepPlusFirstPickMarginTarget ?? (results.prepPlusFirstPickMargin || 0.35)}
-            manualPrice={results.prepPlusFirstPickPrice}
-            allowCostEdit={true}
-            badge={
-              <span className="text-[10px] font-bold text-red-700 bg-red-100 border border-red-200 px-2 py-0.5 rounded-full">
-                {language === 'en' ? 'Combined Master Line' : 'Línea Maestra Combinada'}
-              </span>
-            }
-            onCostChange={(c) => onChange({ prepPlusFirstPickCostOverride: c })}
-            onResetCost={() => onChange({ prepPlusFirstPickCostOverride: null })}
-            onModeChange={(m) => onChange({ prepPlusFirstPickPriceMode: m })}
-            onMarginChange={(mg) => onChange({ prepPlusFirstPickMarginTarget: mg })}
-            onPriceChange={(p) => onChange({ prepPlusFirstPickPriceManual: p })}
-          />
-
-          {/* Sub-components breakdown */}
-          <div className="pt-2 border-t border-red-100/90 px-1 space-y-2.5">
-            <div className="flex items-center justify-between flex-wrap gap-1">
-              <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5 text-red-600" />
-                {language === 'en' ? 'Sub-components Breakdown (Pack & 1st Pick)' : 'Desglose de Componentes (Pack Base y 1er Pick)'}
-              </span>
-              <span className="text-[11px] text-gray-500 font-mono">
-                {formatEur(results.packPrice)} (Pack) + {formatEur(results.firstPickPrice)} (1st Pick) = {formatEur(results.packPrice + results.firstPickPrice)}
-              </span>
-            </div>
-
-            <PriceMarginRow
-              label={language === 'en' ? 'Base preparation (Pack)' : 'Preparación base (Pack)'}
-              subLabel={language === 'en' ? 'Packaging material cost according to weighted mix or custom negotiated cost' : 'Coste del material de embalaje según mix ponderado o coste directo'}
-              cost={results.packCost}
-              defaultCost={results.packDefaultCost}
-              mode={inputs.packPriceMode}
-              marginTarget={inputs.packMarginTarget}
-              manualPrice={results.packPrice}
-              allowCostEdit={true}
-              onCostChange={(c) => onChange({ packCostOverride: c, prepPlusFirstPickCostOverride: null })}
-              onResetCost={() => onChange({ packCostOverride: null, prepPlusFirstPickCostOverride: null })}
-              onModeChange={(m) => onChange({ packPriceMode: m, prepPlusFirstPickPriceManual: null })}
-              onMarginChange={(mg) => onChange({ packMarginTarget: mg, prepPlusFirstPickPriceManual: null })}
-              onPriceChange={(p) => onChange({ packPriceManual: p, prepPlusFirstPickPriceManual: null })}
-            />
-
-            <PriceMarginRow
-              label={language === 'en' ? 'First Pick of order (1st unit included)' : 'Primer Pick del pedido (1ª unidad)'}
-              subLabel={
-                language === 'en'
-                  ? `Cost adjusted by SKU tier (×${results.skuMultiplier.toFixed(2)}) and product profile (×${results.productPickMultiplier.toFixed(2)})`
-                  : `Coste ajustado por SKU (×${results.skuMultiplier.toFixed(2)}) y perfil de producto (×${results.productPickMultiplier.toFixed(2)})`
-              }
-              cost={results.firstPickCost}
-              defaultCost={results.firstPickDefaultCost}
-              mode={inputs.firstPickPriceMode}
-              marginTarget={inputs.firstPickMarginTarget}
-              manualPrice={results.firstPickPrice}
-              allowCostEdit={true}
-              onCostChange={(c) => onChange({ firstPickCostOverride: c, prepPlusFirstPickCostOverride: null })}
-              onResetCost={() => onChange({ firstPickCostOverride: null, prepPlusFirstPickCostOverride: null })}
-              onModeChange={(m) => onChange({ firstPickPriceMode: m, prepPlusFirstPickPriceManual: null })}
-              onMarginChange={(mg) => onChange({ firstPickMarginTarget: mg, prepPlusFirstPickPriceManual: null })}
-              onPriceChange={(p) => onChange({ firstPickPriceManual: p, prepPlusFirstPickPriceManual: null })}
-            />
-          </div>
-        </div>
+        <PriceMarginRow
+          label={language === 'en' ? 'Base preparation (Pack)' : 'Preparación base (Pack)'}
+          subLabel={
+            language === 'en'
+              ? 'Packaging material cost according to weighted mix or custom negotiated cost'
+              : 'Coste del material de embalaje según mix ponderado o coste directo'
+          }
+          cost={results.packCost}
+          defaultCost={results.packDefaultCost}
+          mode={inputs.packPriceMode}
+          marginTarget={inputs.packMarginTarget}
+          manualPrice={results.packPrice}
+          allowCostEdit={true}
+          onCostChange={(c) => onChange({ packCostOverride: c })}
+          onResetCost={() => onChange({ packCostOverride: null })}
+          onModeChange={(m) => onChange({ packPriceMode: m })}
+          onMarginChange={(mg) => onChange({ packMarginTarget: mg })}
+          onPriceChange={(p) => onChange({ packPriceManual: p })}
+        />
       </section>
 
-      {/* 5. PICKS ADICIONALES */}
+      {/* 5. PRIMER PICK DEL PEDIDO */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <Layers className="w-5 h-5 text-red-600" />
+            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+              {language === 'en' ? '5. First Pick of Order (1st Unit)' : '5. Primer Pick del Pedido (1ª Unidad)'}
+            </h3>
+          </div>
+          <span className="text-xs text-gray-500 font-mono">
+            {language === 'en' ? 'Adjusted pick cost: ' : 'Coste ajustado pick: '}
+            <strong className="text-gray-900">{formatEur(results.firstPickCost)}</strong>
+          </span>
+        </div>
+
+        <PriceMarginRow
+          label={language === 'en' ? 'First Pick of order (1st unit included)' : 'Primer Pick del pedido (1ª unidad)'}
+          subLabel={
+            language === 'en'
+              ? `Cost adjusted by SKU tier (×${results.skuMultiplier.toFixed(2)}) and product profile (×${results.productPickMultiplier.toFixed(2)})`
+              : `Coste ajustado por SKU (×${results.skuMultiplier.toFixed(2)}) y perfil de producto (×${results.productPickMultiplier.toFixed(2)})`
+          }
+          cost={results.firstPickCost}
+          defaultCost={results.firstPickDefaultCost}
+          mode={inputs.firstPickPriceMode}
+          marginTarget={inputs.firstPickMarginTarget}
+          manualPrice={results.firstPickPrice}
+          allowCostEdit={true}
+          onCostChange={(c) => onChange({ firstPickCostOverride: c })}
+          onResetCost={() => onChange({ firstPickCostOverride: null })}
+          onModeChange={(m) => onChange({ firstPickPriceMode: m })}
+          onMarginChange={(mg) => onChange({ firstPickMarginTarget: mg })}
+          onPriceChange={(p) => onChange({ firstPickPriceManual: p })}
+        />
+      </section>
+
+      {/* 6. PICKS ADICIONALES */}
       <section className="space-y-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
-            {language === 'en' ? '5. Additional Picks (Extra units > 1)' : '5. Picks Adicionales (Unidades extra > 1)'}
+            {language === 'en' ? '6. Additional Picks (Extra units > 1)' : '6. Picks Adicionales (Unidades extra > 1)'}
           </h3>
           <span className="text-xs text-gray-500 font-mono">
             {language === 'en'
@@ -835,13 +812,13 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
         />
       </section>
 
-      {/* 6. ENVÍO (CARRIER) */}
+      {/* 7. ENVÍO (CARRIER) */}
       <section className="space-y-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <Truck className="w-5 h-5 text-blue-600" />
             <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
-              {language === 'en' ? '6. Shipping (Carrier Cost + Transport Margin)' : '6. Envío (Carrier Cost + Margen de Transporte)'}
+              {language === 'en' ? '7. Shipping (Carrier Cost + Transport Margin)' : '7. Envío (Carrier Cost + Margen de Transporte)'}
             </h3>
           </div>
           <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
@@ -866,10 +843,10 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
         />
       </section>
 
-      {/* 7. SERVICIOS ADICIONALES & ALMACENAJE */}
+      {/* 8. SERVICIOS ADICIONALES & ALMACENAJE */}
       <section className="space-y-3">
         <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
-          {language === 'en' ? '7. Additional Services & Storage' : '7. Servicios Adicionales & Almacenaje'}
+          {language === 'en' ? '8. Additional Services & Storage' : '8. Servicios Adicionales & Almacenaje'}
         </h3>
 
         <PriceMarginRow
