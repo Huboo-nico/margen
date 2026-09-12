@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CalculationResults, CalculatorInputs } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 import { formatEur, formatPct, formatMarkup } from '../utils/calculations';
 import { AlertTriangle, CheckCircle, Package, Truck, Info, ArrowUpRight, FileText } from 'lucide-react';
 import { InternalReportModal } from './InternalReportModal';
@@ -12,6 +13,30 @@ interface ResumenTabProps {
 
 export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenPricingSimulator }) => {
   const [showPdfModal, setShowPdfModal] = useState(false);
+  const { language } = useLanguage();
+
+  const translateAlert = (alert: string) => {
+    if (language !== 'en') return alert;
+    if (alert.includes('El margen total mensual está por debajo')) {
+      return 'Total monthly margin is below 20%. Consider adjusting margins or prices.';
+    }
+    if (alert.includes('El fee de Preparación + 1er Pick está por debajo')) {
+      return 'Warning! Preparation + 1st Pick fee is below its operational cost.';
+    }
+    if (alert.includes('El primer pick se está cobrando por debajo')) {
+      return 'The first pick is priced below its adjusted cost.';
+    }
+    if (alert.includes('Con primer pick subsidiado')) {
+      return alert
+        .replace('Con primer pick subsidiado, el break-even es', 'With subsidized first pick, break-even is')
+        .replace('uds/pedido (actual:', 'units/order (current:')
+        .replace('uds). Margen en riesgo.', 'units). Margin at risk.');
+    }
+    if (alert.includes('El coste de carrier supera al precio de venta del envío')) {
+      return 'Carrier cost exceeds shipping sale price (negative margin on transport).';
+    }
+    return alert;
+  };
 
   // Fallback default inputs if not passed
   const effectiveInputs: CalculatorInputs = inputs || {
@@ -67,13 +92,17 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenP
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 text-xs font-bold uppercase rounded bg-red-100 text-red-700 tracking-wide">
-              Cliente
+              {language === 'en' ? 'Client' : 'Cliente'}
             </span>
-            <h2 className="text-lg font-bold text-gray-900">{results.clientName || 'Cliente sin nombre'}</h2>
+            <h2 className="text-lg font-bold text-gray-900">
+              {results.clientName || (language === 'en' ? 'Unnamed Client' : 'Cliente sin nombre')}
+            </h2>
           </div>
           <p className="text-xs text-gray-500 mt-0.5">
-            {results.ordersMonth.toLocaleString('es-ES', { maximumFractionDigits: 0 })} pedidos/mes (
-            {results.ordersPerDay.toFixed(1)} pedidos/día) · {results.unitsPerOrder.toFixed(1)} units/pedido · Tier SKU:{' '}
+            {results.ordersMonth.toLocaleString(language === 'en' ? 'en-US' : 'es-ES', { maximumFractionDigits: 0 })}{' '}
+            {language === 'en' ? 'orders/month' : 'pedidos/mes'} (
+            {results.ordersPerDay.toFixed(1)} {language === 'en' ? 'orders/day' : 'pedidos/día'}) ·{' '}
+            {results.unitsPerOrder.toFixed(1)} {language === 'en' ? 'units/order' : 'units/pedido'} · Tier SKU:{' '}
             <span className="font-semibold text-gray-700">{results.tierName}</span>
           </p>
         </div>
@@ -84,10 +113,10 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenP
             type="button"
             onClick={() => setShowPdfModal(true)}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 hover:bg-black text-white text-xs font-semibold rounded-lg shadow-xs transition cursor-pointer"
-            title="Generar informe PDF confidencial para presentar internamente con desglose operativo"
+            title={language === 'en' ? 'Generate confidential internal PDF report with operational breakdown' : 'Generar informe PDF confidencial para presentar internamente con desglose operativo'}
           >
             <FileText className="w-3.5 h-3.5 text-red-400" />
-            <span>Crear PDF Interno</span>
+            <span>{language === 'en' ? 'Create Internal PDF' : 'Crear PDF Interno'}</span>
           </button>
 
           {onOpenPricingSimulator && (
@@ -96,7 +125,7 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenP
               onClick={onOpenPricingSimulator}
               className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-700 hover:underline cursor-pointer"
             >
-              <span>Ajustar precios & márgenes</span>
+              <span>{language === 'en' ? 'Adjust prices & margins' : 'Ajustar precios & márgenes'}</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </button>
           )}
@@ -106,17 +135,21 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenP
       {/* Main KPI Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs">
-          <span className="text-xs font-medium text-gray-500 block mb-1">Ingresos / mes</span>
+          <span className="text-xs font-medium text-gray-500 block mb-1">
+            {language === 'en' ? 'Revenue / month' : 'Ingresos / mes'}
+          </span>
           <span className="text-2xl font-extrabold text-gray-900 tracking-tight block">
             {formatEur(results.totalRevenueMonth)}
           </span>
           <span className="text-[11px] text-gray-400 mt-1 block">
-            Costes: {formatEur(results.totalCostMonth)}
+            {language === 'en' ? 'Costs: ' : 'Costes: '}{formatEur(results.totalCostMonth)}
           </span>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs">
-          <span className="text-xs font-medium text-gray-500 block mb-1">Beneficio neto / mes</span>
+          <span className="text-xs font-medium text-gray-500 block mb-1">
+            {language === 'en' ? 'Net profit / month' : 'Beneficio neto / mes'}
+          </span>
           <span
             className={`text-2xl font-extrabold tracking-tight block ${
               results.totalProfitMonth >= 0 ? 'text-emerald-700' : 'text-red-600'
@@ -125,13 +158,15 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenP
             {formatEur(results.totalProfitMonth)}
           </span>
           <span className="text-[11px] text-gray-400 mt-1 block">
-            {formatEur(results.profitPerOrder)} por pedido
+            {formatEur(results.profitPerOrder)} {language === 'en' ? 'per order' : 'por pedido'}
           </span>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-medium text-gray-500">Margen Total</span>
+            <span className="text-xs font-medium text-gray-500">
+              {language === 'en' ? 'Total Margin' : 'Margen Total'}
+            </span>
             <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.2 rounded font-mono border border-blue-200">
               Markup {formatMarkup(results.markupTotal)}
             </span>
@@ -146,13 +181,15 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenP
             {formatPct(results.marginTotal)}
           </span>
           <span className="text-[11px] text-gray-400 mt-1 block">
-            Objetivo general &gt;= 20%
+            {language === 'en' ? 'General target >= 20%' : 'Objetivo general >= 20%'}
           </span>
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-medium text-gray-500">Sin Envío</span>
+            <span className="text-xs font-medium text-gray-500">
+              {language === 'en' ? 'Excl. Shipping' : 'Sin Envío'}
+            </span>
             <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.2 rounded font-mono border border-blue-200">
               Markup {formatMarkup(results.markupExShipping)}
             </span>
@@ -161,7 +198,8 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenP
             {formatPct(results.marginExShipping)}
           </span>
           <span className="text-[11px] text-gray-400 mt-1 block">
-            Margen Envío: {formatPct(results.marginShipping)} (Markup {formatMarkup(results.shippingMarkup)})
+            {language === 'en' ? 'Shipping Margin: ' : 'Margen Envío: '}
+            {formatPct(results.marginShipping)} (Markup {formatMarkup(results.shippingMarkup)})
           </span>
         </div>
       </div>
@@ -173,24 +211,30 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenP
             <div className="flex items-center gap-2">
               <Package className="w-5 h-5 text-red-600" />
               <h3 className="text-base font-bold text-gray-900">
-                Preparación de Pedido: Preparación (Pack) + 1er Pick
+                {language === 'en'
+                  ? 'Order Preparation: Preparation (Pack) + 1st Pick'
+                  : 'Preparación de Pedido: Preparación (Pack) + 1er Pick'}
               </h3>
             </div>
             <p className="text-xs text-gray-600 mt-1 max-w-xl">
-              Estructura estándar de cotización: precio base que cubre el empaquetado inicial y la recogida de la primera unidad del pedido.
+              {language === 'en'
+                ? 'Standard quote structure: base fee covering initial packaging and picking the first unit of the order.'
+                : 'Estructura estándar de cotización: precio base que cubre el empaquetado inicial y la recogida de la primera unidad del pedido.'}
             </p>
           </div>
 
           <div className="bg-white px-5 py-3 rounded-lg border border-red-300 shadow-2xs text-right">
-            <span className="text-xs text-gray-500 block font-medium">Total Preparación + 1er Pick</span>
+            <span className="text-xs text-gray-500 block font-medium">
+              {language === 'en' ? 'Total Preparation + 1st Pick' : 'Total Preparación + 1er Pick'}
+            </span>
             <span className="text-2xl font-black text-red-600 font-mono">
               {formatEur(results.prepPlusFirstPickPrice)}
             </span>
             <span className="text-[11px] font-semibold text-emerald-700 block">
-              Margen: {formatPct(results.prepPlusFirstPickMargin)} · Markup: {formatMarkup(results.prepPlusFirstPickMarkup)}
+              {language === 'en' ? 'Margin: ' : 'Margen: '}{formatPct(results.prepPlusFirstPickMargin)} · Markup: {formatMarkup(results.prepPlusFirstPickMarkup)}
             </span>
             <span className="text-[10px] text-gray-500 block">
-              +{formatEur(results.prepPlusFirstPickProfit)} beneficio/pedido
+              +{formatEur(results.prepPlusFirstPickProfit)} {language === 'en' ? 'profit/order' : 'beneficio/pedido'}
             </span>
           </div>
         </div>
@@ -199,20 +243,22 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenP
           {/* Pack Component */}
           <div className="bg-white p-3.5 rounded-lg border border-gray-200">
             <div className="flex justify-between items-center mb-1">
-              <span className="text-xs font-bold text-gray-700">1. Preparación base (Pack)</span>
+              <span className="text-xs font-bold text-gray-700">
+                {language === 'en' ? '1. Base preparation (Pack)' : '1. Preparación base (Pack)'}
+              </span>
               <span className="text-xs font-mono font-bold text-gray-900">{formatEur(results.packPrice)}</span>
             </div>
             <div className="text-[11px] text-gray-500 space-y-0.5">
               <div className="flex justify-between">
-                <span>Coste operativo:</span>
+                <span>{language === 'en' ? 'Operational cost:' : 'Coste operativo:'}</span>
                 <span className="font-mono text-gray-700">{formatEur(results.packCost)}</span>
               </div>
               <div className="flex justify-between">
-                <span>Margen aplicado:</span>
+                <span>{language === 'en' ? 'Applied margin:' : 'Margen aplicado:'}</span>
                 <span className="font-mono font-medium text-emerald-700">{formatPct(results.packMargin)}</span>
               </div>
               <div className="flex justify-between">
-                <span>Markup s/coste:</span>
+                <span>{language === 'en' ? 'Markup over cost:' : 'Markup s/coste:'}</span>
                 <span className="font-mono font-medium text-blue-700">{formatMarkup(results.packMarkup)}</span>
               </div>
             </div>
@@ -221,20 +267,22 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenP
           {/* 1st Pick Component */}
           <div className="bg-white p-3.5 rounded-lg border border-gray-200">
             <div className="flex justify-between items-center mb-1">
-              <span className="text-xs font-bold text-gray-700">2. Primer Pick (1ª unidad)</span>
+              <span className="text-xs font-bold text-gray-700">
+                {language === 'en' ? '2. First Pick (1st unit)' : '2. Primer Pick (1ª unidad)'}
+              </span>
               <span className="text-xs font-mono font-bold text-gray-900">{formatEur(results.firstPickPrice)}</span>
             </div>
             <div className="text-[11px] text-gray-500 space-y-0.5">
               <div className="flex justify-between">
-                <span>Coste operativo:</span>
+                <span>{language === 'en' ? 'Operational cost:' : 'Coste operativo:'}</span>
                 <span className="font-mono text-gray-700">{formatEur(results.firstPickCost)}</span>
               </div>
               <div className="flex justify-between">
-                <span>Margen aplicado:</span>
+                <span>{language === 'en' ? 'Applied margin:' : 'Margen aplicado:'}</span>
                 <span className="font-mono font-medium text-emerald-700">{formatPct(results.firstPickMargin)}</span>
               </div>
               <div className="flex justify-between">
-                <span>Markup s/coste:</span>
+                <span>{language === 'en' ? 'Markup over cost:' : 'Markup s/coste:'}</span>
                 <span className="font-mono font-medium text-blue-700">{formatMarkup(results.firstPickMarkup)}</span>
               </div>
             </div>
@@ -243,20 +291,22 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenP
           {/* Additional Picks Component */}
           <div className="bg-white p-3.5 rounded-lg border border-gray-200">
             <div className="flex justify-between items-center mb-1">
-              <span className="text-xs font-bold text-gray-700">3. Picks adicionales (&gt; 1 unit)</span>
+              <span className="text-xs font-bold text-gray-700">
+                {language === 'en' ? '3. Additional picks (> 1 unit)' : '3. Picks adicionales (> 1 unit)'}
+              </span>
               <span className="text-xs font-mono font-bold text-gray-900">{formatEur(results.additionalPickPrice)}</span>
             </div>
             <div className="text-[11px] text-gray-500 space-y-0.5">
               <div className="flex justify-between">
-                <span>Coste operativo / pick:</span>
+                <span>{language === 'en' ? 'Operating cost / pick:' : 'Coste operativo / pick:'}</span>
                 <span className="font-mono text-gray-700">{formatEur(results.additionalPickCost)}</span>
               </div>
               <div className="flex justify-between">
-                <span>Margen aplicado:</span>
+                <span>{language === 'en' ? 'Applied margin:' : 'Margen aplicado:'}</span>
                 <span className="font-mono font-medium text-emerald-700">{formatPct(results.additionalPickMargin)}</span>
               </div>
               <div className="flex justify-between">
-                <span>Markup s/coste:</span>
+                <span>{language === 'en' ? 'Markup over cost:' : 'Markup s/coste:'}</span>
                 <span className="font-mono font-medium text-blue-700">{formatMarkup(results.additionalPickMarkup)}</span>
               </div>
             </div>
@@ -268,10 +318,13 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenP
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 Cols: Resumen por Pedido */}
         <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 overflow-hidden shadow-2xs">
-          <div className="px-5 py-3.5 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
-            <h3 className="text-sm font-bold text-gray-900">Desglose Detallado por Pedido</h3>
+          <div className="px-5 py-3.5 bg-gray-50 border-b border-gray-200 flex justify-between items-center flex-wrap gap-2">
+            <h3 className="text-sm font-bold text-gray-900">
+              {language === 'en' ? 'Detailed Breakdown per Order' : 'Desglose Detallado por Pedido'}
+            </h3>
             <span className="text-xs text-gray-500 font-mono">
-              Total factura medio: {formatEur(results.orderRevenueExShipping + results.shippingPrice)}
+              {language === 'en' ? 'Average invoice total: ' : 'Total factura medio: '}
+              {formatEur(results.orderRevenueExShipping + results.shippingPrice)}
             </span>
           </div>
 
@@ -279,20 +332,22 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenP
             <table className="w-full text-xs text-left">
               <thead className="bg-gray-100 text-gray-600 font-semibold uppercase text-[10px] border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-2.5">Concepto Operativo</th>
-                  <th className="px-3 py-2.5 text-right">Coste</th>
-                  <th className="px-3 py-2.5 text-right">Margen</th>
+                  <th className="px-4 py-2.5">{language === 'en' ? 'Operational Item' : 'Concepto Operativo'}</th>
+                  <th className="px-3 py-2.5 text-right">{language === 'en' ? 'Cost' : 'Coste'}</th>
+                  <th className="px-3 py-2.5 text-right">{language === 'en' ? 'Margin' : 'Margen'}</th>
                   <th className="px-3 py-2.5 text-right text-blue-700">Markup</th>
-                  <th className="px-4 py-2.5 text-right font-bold text-gray-900">Precio Venta</th>
+                  <th className="px-4 py-2.5 text-right font-bold text-gray-900">{language === 'en' ? 'Sale Price' : 'Precio Venta'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {/* 1. Preparación base Pack */}
                 <tr className="hover:bg-gray-50/80 transition">
                   <td className="px-4 py-2.5 font-medium text-gray-900">
-                    <div>Preparación base (Pack)</div>
+                    <div>{language === 'en' ? 'Base preparation (Pack)' : 'Preparación base (Pack)'}</div>
                     <div className="text-[11px] text-gray-400">
-                      Caja/sobre, packaging y manipulado base (Calculadora)
+                      {language === 'en'
+                        ? 'Box/envelope, packaging material and base handling (Calculator)'
+                        : 'Caja/sobre, packaging y manipulado base (Calculadora)'}
                     </div>
                   </td>
                   <td className="px-3 py-2.5 text-right font-mono text-gray-700">
@@ -312,9 +367,9 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenP
                 {/* 2. 1er Pick */}
                 <tr className="hover:bg-gray-50/80 transition">
                   <td className="px-4 py-2.5 font-medium text-gray-900">
-                    <div>1er Pick (1ª unidad)</div>
+                    <div>{language === 'en' ? '1st Pick (1st unit)' : '1er Pick (1ª unidad)'}</div>
                     <div className="text-[11px] text-gray-400">
-                      Picking de la primera unidad del pedido
+                      {language === 'en' ? 'Picking of the first unit in the order' : 'Picking de la primera unidad del pedido'}
                     </div>
                   </td>
                   <td className="px-3 py-2.5 text-right font-mono text-gray-700">
@@ -334,9 +389,9 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenP
                 {/* 3. Subtotal Base Pedido */}
                 <tr className="bg-red-50/40 border-y border-red-100 font-semibold">
                   <td className="px-4 py-2.5 text-red-950 font-bold">
-                    <div>Total Preparación + 1er Pick (Base Pedido)</div>
+                    <div>{language === 'en' ? 'Total Preparation + 1st Pick (Order Base)' : 'Total Preparación + 1er Pick (Base Pedido)'}</div>
                     <div className="text-[11px] text-red-700 font-normal">
-                      Fee base mínimo aplicado por pedido
+                      {language === 'en' ? 'Minimum base fee applied per order' : 'Fee base mínimo aplicado por pedido'}
                     </div>
                   </td>
                   <td className="px-3 py-2.5 text-right font-mono text-red-950">
@@ -356,9 +411,11 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenP
                 {/* 4. Picks adicionales */}
                 <tr className="hover:bg-gray-50/80 transition">
                   <td className="px-4 py-2.5 font-medium text-gray-900">
-                    <div>Picks adicionales (&gt; 1 unidad)</div>
+                    <div>{language === 'en' ? 'Additional picks (> 1 unit)' : 'Picks adicionales (> 1 unidad)'}</div>
                     <div className="text-[11px] text-gray-400">
-                      Por unidad extra (media actual: {(results.unitsPerOrder - 1).toFixed(1)} uds extras)
+                      {language === 'en'
+                        ? `Per extra unit (current average: ${(results.unitsPerOrder - 1).toFixed(1)} extra units)`
+                        : `Por unidad extra (media actual: ${(results.unitsPerOrder - 1).toFixed(1)} uds extras)`}
                     </div>
                   </td>
                   <td className="px-3 py-2.5 text-right font-mono text-gray-700">
@@ -378,9 +435,9 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenP
                 {/* 5. Envío Transporte */}
                 <tr className="hover:bg-gray-50/80 transition">
                   <td className="px-4 py-2.5 font-medium text-gray-900">
-                    <div>Envío Transporte (Carrier)</div>
+                    <div>{language === 'en' ? 'Shipping (Carrier)' : 'Envío Transporte (Carrier)'}</div>
                     <div className="text-[11px] text-gray-400">
-                      Tarifa nacional peninsular 24-48h
+                      {language === 'en' ? 'National standard 24-48h parcel delivery' : 'Tarifa nacional peninsular 24-48h'}
                     </div>
                   </td>
                   <td className="px-3 py-2.5 text-right font-mono text-gray-700">
@@ -400,7 +457,7 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenP
                 {/* 6. Total Facturado Pedido */}
                 <tr className="bg-gray-50 font-bold border-t border-gray-200">
                   <td className="px-4 py-3 text-gray-900">
-                    TOTAL ESTIMADO POR PEDIDO (CON ENVÍO)
+                    {language === 'en' ? 'TOTAL ESTIMATED PER ORDER (WITH SHIPPING)' : 'TOTAL ESTIMADO POR PEDIDO (CON ENVÍO)'}
                   </td>
                   <td className="px-3 py-3 text-right font-mono text-gray-700">
                     {formatEur(results.orderCostExShipping + results.carrierCost)}
@@ -427,30 +484,30 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenP
             <div className="flex items-center gap-2 pb-2 mb-3 border-b border-gray-100">
               <Truck className="w-4 h-4 text-blue-600" />
               <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wide">
-                Envío (Carrier Cost + Margen)
+                {language === 'en' ? 'Shipping (Carrier Cost + Margin)' : 'Envío (Carrier Cost + Margen)'}
               </h3>
             </div>
 
             <div className="space-y-2 text-xs">
               <div className="flex justify-between">
-                <span className="text-gray-500">Carrier Coste base:</span>
+                <span className="text-gray-500">{language === 'en' ? 'Carrier base cost:' : 'Carrier Coste base:'}</span>
                 <span className="font-mono text-gray-800">{formatEur(results.carrierCost)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Margen carrier objetivo:</span>
+                <span className="text-gray-500">{language === 'en' ? 'Target carrier margin:' : 'Margen carrier objetivo:'}</span>
                 <div className="text-right">
                   <span className="font-mono font-semibold text-blue-600 block">{formatPct(results.shippingMargin)}</span>
                   <span className="text-[10px] text-gray-500 font-mono">Markup: {formatMarkup(results.shippingMarkup)}</span>
                 </div>
               </div>
               <div className="flex justify-between pt-2 border-t border-gray-100 items-baseline">
-                <span className="font-bold text-gray-900">Precio Venta Envío:</span>
+                <span className="font-bold text-gray-900">{language === 'en' ? 'Shipping Sale Price:' : 'Precio Venta Envío:'}</span>
                 <span className="font-mono font-extrabold text-sm text-blue-700">
                   {formatEur(results.shippingPrice)}
                 </span>
               </div>
               <div className="text-[11px] text-emerald-700 font-medium text-right">
-                Contribución neta: +{formatEur(results.shippingProfitPerOrder)} / envío
+                {language === 'en' ? 'Net contribution: +' : 'Contribución neta: +'}{formatEur(results.shippingProfitPerOrder)} {language === 'en' ? '/ shipment' : '/ envío'}
               </div>
             </div>
           </div>
@@ -459,13 +516,17 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenP
           <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs">
             <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-2.5 flex items-center gap-1.5">
               <Info className="w-3.5 h-3.5 text-gray-500" />
-              <span>Validaciones y Alertas</span>
+              <span>{language === 'en' ? 'Validations & Alerts' : 'Validaciones y Alertas'}</span>
             </h3>
 
             {results.alerts.length === 0 ? (
               <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 p-2.5 rounded-lg border border-emerald-200">
                 <CheckCircle className="w-4 h-4 shrink-0" />
-                <span>Márgenes y precios equilibrados sin alertas operativas detectadas.</span>
+                <span>
+                  {language === 'en'
+                    ? 'Balanced margins and prices with no operational warnings detected.'
+                    : 'Márgenes y precios equilibrados sin alertas operativas detectadas.'}
+                </span>
               </div>
             ) : (
               <div className="space-y-2">
@@ -475,7 +536,7 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenP
                     className="flex items-start gap-2 text-[11px] text-amber-900 bg-amber-50 p-2.5 rounded-lg border border-amber-200"
                   >
                     <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
-                    <span>{alert}</span>
+                    <span>{translateAlert(alert)}</span>
                   </div>
                 ))}
               </div>

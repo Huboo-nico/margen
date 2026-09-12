@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ClientProfile } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 import { calculateAll, formatEur, formatPct, formatMarkup } from '../utils/calculations';
 import { ArrowRight, Plus, Edit2, Check, Trash2, Tag } from 'lucide-react';
 
@@ -13,6 +14,15 @@ interface ComparativaClientesTabProps {
   onDeleteClient: (id: string) => void;
 }
 
+const productTypeLabels: Record<string, { es: string; en: string }> = {
+  'Suplementos': { es: 'Suplementos', en: 'Supplements' },
+  'Moda / Ropa': { es: 'Moda / Ropa', en: 'Fashion / Apparel' },
+  'Cosmética / Belleza': { es: 'Cosmética / Belleza', en: 'Cosmetics / Beauty' },
+  'Electrónica': { es: 'Electrónica', en: 'Electronics' },
+  'Hogar / Voluminoso': { es: 'Hogar / Voluminoso', en: 'Home / Bulky' },
+  'General / Estándar': { es: 'General / Estándar', en: 'General / Standard' },
+};
+
 export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
   clients,
   activeClientId,
@@ -22,6 +32,7 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
   onUpdateNotes,
   onDeleteClient,
 }) => {
+  const { language } = useLanguage();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [tempName, setTempName] = useState<string>('');
   const [editingNotesId, setEditingNotesId] = useState<string | null>(null);
@@ -58,9 +69,13 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">Comparativa de Clientes</h2>
+          <h2 className="text-lg font-bold text-gray-900">
+            {language === 'en' ? 'Client Comparison' : 'Comparativa de Clientes'}
+          </h2>
           <p className="text-xs text-gray-500">
-            Puedes hacer clic en el nombre o notas de cualquier cliente para editarlo directamente.
+            {language === 'en'
+              ? 'Click on any client’s name or notes to edit directly.'
+              : 'Puedes hacer clic en el nombre o notas de cualquier cliente para editarlo directamente.'}
           </p>
         </div>
 
@@ -70,7 +85,7 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-2xs transition cursor-pointer self-start sm:self-auto"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span>Añadir nuevo cliente</span>
+          <span>{language === 'en' ? 'Add new client' : 'Añadir nuevo cliente'}</span>
         </button>
       </div>
 
@@ -79,22 +94,24 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
           <table className="w-full text-xs text-left">
             <thead className="bg-gray-50 border-b border-gray-200 text-[11px] font-bold text-gray-600 uppercase">
               <tr>
-                <th className="px-4 py-3 min-w-[200px]">Cliente (Nombre editable)</th>
-                <th className="px-3 py-3">Perfil</th>
-                <th className="px-3 py-3 text-right">Pedidos / mes</th>
-                <th className="px-3 py-3 text-right">Units / order</th>
-                <th className="px-3 py-3 text-right bg-red-50/50 text-red-900">
-                  Prep. + 1er Pick
+                <th className="px-4 py-3 min-w-[200px]">
+                  {language === 'en' ? 'Client (Click to edit)' : 'Cliente (Nombre editable)'}
                 </th>
-                <th className="px-3 py-3 text-right">Pick adicional</th>
-                <th className="px-3 py-3 text-right">Envío</th>
-                <th className="px-3 py-3 text-right">Ingresos / mes</th>
-                <th className="px-3 py-3 text-right">Margen</th>
+                <th className="px-3 py-3">{language === 'en' ? 'Profile' : 'Perfil'}</th>
+                <th className="px-3 py-3 text-right">{language === 'en' ? 'Orders / mo' : 'Pedidos / mes'}</th>
+                <th className="px-3 py-3 text-right">{language === 'en' ? 'Units / order' : 'Units / order'}</th>
+                <th className="px-3 py-3 text-right bg-red-50/50 text-red-900">
+                  {language === 'en' ? 'Prep. + 1st Pick' : 'Prep. + 1er Pick'}
+                </th>
+                <th className="px-3 py-3 text-right">{language === 'en' ? 'Add. Pick' : 'Pick adicional'}</th>
+                <th className="px-3 py-3 text-right">{language === 'en' ? 'Shipping' : 'Envío'}</th>
+                <th className="px-3 py-3 text-right">{language === 'en' ? 'Revenue / mo' : 'Ingresos / mes'}</th>
+                <th className="px-3 py-3 text-right">{language === 'en' ? 'Margin' : 'Margen'}</th>
                 <th className="px-3 py-3 text-right text-blue-700">Markup</th>
                 <th className="px-3 py-3 text-right font-bold text-emerald-800">
-                  Beneficio / mes
+                  {language === 'en' ? 'Profit / mo' : 'Beneficio / mes'}
                 </th>
-                <th className="px-4 py-3 text-center">Acciones</th>
+                <th className="px-4 py-3 text-center">{language === 'en' ? 'Actions' : 'Acciones'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -102,6 +119,9 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
                 const isActive = profile.id === activeClientId;
                 const isEditingThis = editingId === profile.id;
                 const isEditingNotesThis = editingNotesId === profile.id;
+                const productLabel =
+                  productTypeLabels[profile.inputs.productType]?.[language] ||
+                  profile.inputs.productType;
 
                 return (
                   <tr
@@ -138,7 +158,7 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
                           <span
                             onClick={() => startEditName(profile.id, profile.name)}
                             className="cursor-pointer hover:text-red-600 hover:underline"
-                            title="Haz clic para editar el nombre"
+                            title={language === 'en' ? 'Click to edit name' : 'Haz clic para editar el nombre'}
                           >
                             {profile.name}
                           </span>
@@ -146,13 +166,13 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
                             type="button"
                             onClick={() => startEditName(profile.id, profile.name)}
                             className="opacity-0 group-hover:opacity-100 p-0.5 text-gray-400 hover:text-red-600 transition cursor-pointer"
-                            title="Editar nombre"
+                            title={language === 'en' ? 'Edit name' : 'Editar nombre'}
                           >
                             <Edit2 className="w-3 h-3" />
                           </button>
                           {isActive && (
                             <span className="px-1.5 py-0.2 rounded text-[10px] bg-red-100 text-red-700 font-semibold shrink-0">
-                              Activo
+                              {language === 'en' ? 'Active' : 'Activo'}
                             </span>
                           )}
                         </div>
@@ -170,7 +190,7 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
                               if (e.key === 'Escape') setEditingNotesId(null);
                             }}
                             autoFocus
-                            placeholder="Nota / etiqueta..."
+                            placeholder={language === 'en' ? 'Note / tag...' : 'Nota / etiqueta...'}
                             className="border border-gray-300 rounded px-1.5 py-0.2 text-[10px] text-gray-700 w-full"
                           />
                           <button
@@ -185,21 +205,21 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
                         <div
                           onClick={() => startEditNotes(profile.id, profile.notes || '')}
                           className="text-[10px] text-gray-400 font-normal mt-0.5 cursor-pointer hover:text-gray-600 flex items-center gap-1"
-                          title="Haz clic para editar nota"
+                          title={language === 'en' ? 'Click to edit note' : 'Haz clic para editar nota'}
                         >
                           <Tag className="w-2.5 h-2.5 text-gray-300" />
-                          <span>{profile.notes || '+ Añadir nota'}</span>
+                          <span>{profile.notes || (language === 'en' ? '+ Add note' : '+ Añadir nota')}</span>
                         </div>
                       )}
                     </td>
 
                     <td className="px-3 py-3 text-gray-600">
-                      <div>{profile.inputs.productType}</div>
+                      <div>{productLabel}</div>
                       <div className="text-[10px] text-gray-400">{profile.inputs.skuCount} SKUs</div>
                     </td>
 
                     <td className="px-3 py-3 text-right font-mono text-gray-900">
-                      {res.ordersMonth.toLocaleString('es-ES', { maximumFractionDigits: 0 })}
+                      {res.ordersMonth.toLocaleString(language === 'en' ? 'en-US' : 'es-ES', { maximumFractionDigits: 0 })}
                     </td>
 
                     <td className="px-3 py-3 text-right font-mono text-gray-700">
@@ -254,7 +274,11 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
                               : 'bg-red-50 text-red-700 hover:bg-red-100'
                           }`}
                         >
-                          <span>{isActive ? 'Editando' : 'Calcular'}</span>
+                          <span>
+                            {isActive
+                              ? (language === 'en' ? 'Active' : 'Editando')
+                              : (language === 'en' ? 'Calculate' : 'Calcular')}
+                          </span>
                           {!isActive && <ArrowRight className="w-3 h-3" />}
                         </button>
 
@@ -262,11 +286,15 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
                           <button
                             type="button"
                             onClick={() => {
-                              if (window.confirm(`¿Eliminar cliente "${profile.name}"?`)) {
+                              const confirmMsg =
+                                language === 'en'
+                                  ? `Delete client "${profile.name}"?`
+                                  : `¿Eliminar cliente "${profile.name}"?`;
+                              if (window.confirm(confirmMsg)) {
                                 onDeleteClient(profile.id);
                               }
                             }}
-                            title="Eliminar cliente"
+                            title={language === 'en' ? 'Delete client' : 'Eliminar cliente'}
                             className="p-1 text-gray-300 hover:text-red-600 hover:bg-red-50 rounded transition cursor-pointer"
                           >
                             <Trash2 className="w-3.5 h-3.5" />

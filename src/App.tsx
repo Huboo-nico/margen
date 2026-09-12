@@ -10,6 +10,8 @@ import { PropuestaClienteTab } from './components/PropuestaClienteTab';
 import { ComparativaClientesTab } from './components/ComparativaClientesTab';
 import { RateCardTab } from './components/RateCardTab';
 import { AyudaTab } from './components/AyudaTab';
+import { LanguageSwitcher } from './components/LanguageSwitcher';
+import { useLanguage } from './context/LanguageContext';
 import { PackageCheck } from 'lucide-react';
 
 const STORAGE_KEY = 'fulfilment_calculator_clients_v2';
@@ -167,20 +169,22 @@ export const App: React.FC = () => {
     );
   };
 
+  const { t } = useLanguage();
+
   const tabs = [
-    { id: 'Resumen', label: 'Resumen Cliente' },
-    { id: 'Precios & Margen', label: 'Precios & Margen' },
-    { id: 'Desglose', label: 'Desglose Operativo' },
-    { id: 'Propuesta Cliente', label: 'Propuesta Comercial' },
-    { id: 'Comparativa', label: 'Comparativa Clientes' },
-    { id: 'Rate card', label: 'Rate Card' },
-    { id: 'Ayuda', label: 'Ayuda' },
+    { id: 'Resumen', label: t('tab.resumen') },
+    { id: 'Precios & Margen', label: t('tab.preciosMargen') },
+    { id: 'Desglose', label: t('tab.desglose') },
+    { id: 'Propuesta Cliente', label: t('tab.propuesta') },
+    { id: 'Comparativa', label: t('tab.comparativa') },
+    { id: 'Rate card', label: t('tab.rateCard') },
+    { id: 'Ayuda', label: t('tab.ayuda') },
   ] as const;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900">
       {/* Top Header */}
-      <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3.5 flex items-center justify-between sticky top-0 z-20 shadow-2xs">
+      <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3.5 flex items-center justify-between sticky top-0 z-20 shadow-2xs gap-4">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-red-600 flex items-center justify-center text-white shadow-2xs shrink-0">
             <PackageCheck className="w-5 h-5" />
@@ -188,40 +192,47 @@ export const App: React.FC = () => {
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-lg sm:text-xl font-black text-gray-900 tracking-tight">
-                Calculadora Rentabilidad Fulfilment
+                {t('app.title')}
               </h1>
               <span className="px-2 py-0.5 text-[11px] font-bold rounded bg-amber-100 text-amber-800">
-                Cliente por Cliente
+                {t('app.clientByClient')}
               </span>
             </div>
             <p className="text-xs text-gray-500 hidden sm:block">
-              Preparación (Pack + 1er Pick), picks adicionales, packaging, envío y almacenaje con márgenes modificables.
+              {t('app.subtitle')}
             </p>
           </div>
+        </div>
+
+        {/* Right side: Language Switcher Button (ES / EN) */}
+        <div className="flex items-center shrink-0">
+          <LanguageSwitcher />
         </div>
       </header>
 
       {/* Client Switcher & Name Editor Bar */}
-      <ClientManagerHeader
-        clients={clients}
-        activeClientId={activeClientId}
-        onSelectClient={(id) => {
-          setActiveClientId(id);
-          const c = clients.find((item) => item.id === id);
-          if (c) setInputs(c.inputs);
-        }}
-        onCreateClient={handleCreateClient}
-        onDuplicateClient={handleDuplicateClient}
-        onDeleteClient={handleDeleteClient}
-        onRenameClient={handleRenameActiveClient}
-        onUpdateNotes={(notes) => handleUpdateNotes(activeClientId, notes)}
-        currentInputs={inputs}
-      />
+      <div className="no-print">
+        <ClientManagerHeader
+          clients={clients}
+          activeClientId={activeClientId}
+          onSelectClient={(id) => {
+            setActiveClientId(id);
+            const c = clients.find((item) => item.id === id);
+            if (c) setInputs(c.inputs);
+          }}
+          onCreateClient={handleCreateClient}
+          onDuplicateClient={handleDuplicateClient}
+          onDeleteClient={handleDeleteClient}
+          onRenameClient={handleRenameActiveClient}
+          onUpdateNotes={(notes) => handleUpdateNotes(activeClientId, notes)}
+          currentInputs={inputs}
+        />
+      </div>
 
       {/* Main Responsive Content Area */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 print:p-0 print:m-0 print:max-w-none">
         {/* Navigation Tabs */}
-        <div className="border-b border-gray-200 mb-6 flex gap-1 overflow-x-auto pb-0.5 scrollbar-none">
+        <div className="border-b border-gray-200 mb-6 flex gap-1 overflow-x-auto pb-0.5 scrollbar-none no-print">
           {tabs.map((tab) => (
             <button
               key={tab.id}

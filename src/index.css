@@ -20,7 +20,14 @@
   }
 
   @page {
-    margin: 8mm 8mm;
+    margin: 6mm 6mm;
     size: A4 portrait;
+  }
+
+  /* 1-page fit helper */
+  .fit-one-page {
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+    max-height: 100vh !important;
   }
 }

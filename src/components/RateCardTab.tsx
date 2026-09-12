@@ -19,37 +19,107 @@ import {
   RETURN_HANDLING_COST,
   PRODUCT_PROFILES,
 } from '../data/constants';
+import { useLanguage } from '../context/LanguageContext';
 import { formatEur, formatPct } from '../utils/calculations';
 import { ProductType } from '../types';
 
+const productTypeLabels: Record<string, { es: string; en: string }> = {
+  'Suplementos': { es: 'Suplementos', en: 'Supplements' },
+  'Moda / Ropa': { es: 'Moda / Ropa', en: 'Fashion / Apparel' },
+  'Cosmética / Belleza': { es: 'Cosmética / Belleza', en: 'Cosmetics / Beauty' },
+  'Electrónica': { es: 'Electrónica', en: 'Electronics' },
+  'Hogar / Voluminoso': { es: 'Hogar / Voluminoso', en: 'Home / Bulky' },
+  'General / Estándar': { es: 'General / Estándar', en: 'General / Standard' },
+};
+
+const packTypeEnLabels: Record<string, string> = {
+  S: 'Envelope / Mailer (< 1kg)',
+  M: 'Small Box (1 - 3kg)',
+  L: 'Medium Box (3 - 5kg)',
+  XL: 'Large Box (5 - 10kg)',
+  BULK: 'Bulky / Heavy (> 10kg)',
+};
+
 export const RateCardTab: React.FC = () => {
+  const { language } = useLanguage();
+
   const baseRates = [
-    { concepto: 'Base first pick cost ES', valor: BASE_FIRST_PICK_COST, unidad: 'por pick' },
-    { concepto: 'Base additional pick cost ES', valor: BASE_ADDITIONAL_PICK_COST, unidad: 'por pick' },
-    { concepto: 'Insert price', valor: INSERT_PRICE, unidad: 'por insert' },
-    { concepto: 'Insert cost', valor: INSERT_COST, unidad: 'por insert' },
-    { concepto: 'Packaging base price', valor: PACKAGING_BASE_PRICE, unidad: 'por pedido' },
-    { concepto: 'Packaging base cost', valor: PACKAGING_BASE_COST, unidad: 'por pedido' },
-    { concepto: 'Goods-in pallet price', valor: GOODS_IN_PALLET_PRICE, unidad: 'por pallet' },
-    { concepto: 'Goods-in pallet cost', valor: GOODS_IN_PALLET_COST, unidad: 'por pallet' },
-    { concepto: 'Storage pallet price', valor: STORAGE_PALLET_PRICE, unidad: 'por pallet-week' },
-    { concepto: 'Storage pallet cost', valor: STORAGE_PALLET_COST, unidad: 'por pallet-week' },
-    { concepto: 'Return handling price', valor: RETURN_HANDLING_PRICE, unidad: 'por retorno' },
-    { concepto: 'Return handling cost', valor: RETURN_HANDLING_COST, unidad: 'por retorno' },
+    {
+      concepto: language === 'en' ? 'Base 1st pick cost (ES)' : 'Coste base 1er pick ES',
+      valor: BASE_FIRST_PICK_COST,
+      unidad: language === 'en' ? 'per pick' : 'por pick',
+    },
+    {
+      concepto: language === 'en' ? 'Base additional pick cost (ES)' : 'Coste pick adicional ES',
+      valor: BASE_ADDITIONAL_PICK_COST,
+      unidad: language === 'en' ? 'per pick' : 'por pick',
+    },
+    {
+      concepto: language === 'en' ? 'Promotional insert price' : 'Precio insert publicitario',
+      valor: INSERT_PRICE,
+      unidad: language === 'en' ? 'per insert' : 'por insert',
+    },
+    {
+      concepto: language === 'en' ? 'Promotional insert cost' : 'Coste insert publicitario',
+      valor: INSERT_COST,
+      unidad: language === 'en' ? 'per insert' : 'por insert',
+    },
+    {
+      concepto: language === 'en' ? 'Base packaging price' : 'Precio base packaging',
+      valor: PACKAGING_BASE_PRICE,
+      unidad: language === 'en' ? 'per order' : 'por pedido',
+    },
+    {
+      concepto: language === 'en' ? 'Base packaging cost' : 'Coste base packaging',
+      valor: PACKAGING_BASE_COST,
+      unidad: language === 'en' ? 'per order' : 'por pedido',
+    },
+    {
+      concepto: language === 'en' ? 'Goods-in pallet price' : 'Precio descarga (Goods-in)',
+      valor: GOODS_IN_PALLET_PRICE,
+      unidad: language === 'en' ? 'per pallet' : 'por pallet',
+    },
+    {
+      concepto: language === 'en' ? 'Goods-in pallet cost' : 'Coste descarga (Goods-in)',
+      valor: GOODS_IN_PALLET_COST,
+      unidad: language === 'en' ? 'per pallet' : 'por pallet',
+    },
+    {
+      concepto: language === 'en' ? 'Storage pallet price' : 'Precio almacenaje pallet',
+      valor: STORAGE_PALLET_PRICE,
+      unidad: language === 'en' ? 'per pallet-week' : 'por pallet-semana',
+    },
+    {
+      concepto: language === 'en' ? 'Storage pallet cost' : 'Coste almacenaje pallet',
+      valor: STORAGE_PALLET_COST,
+      unidad: language === 'en' ? 'per pallet-week' : 'por pallet-semana',
+    },
+    {
+      concepto: language === 'en' ? 'Return handling price' : 'Precio gestión devolución',
+      valor: RETURN_HANDLING_PRICE,
+      unidad: language === 'en' ? 'per return' : 'por retorno',
+    },
+    {
+      concepto: language === 'en' ? 'Return handling cost' : 'Coste gestión devolución',
+      valor: RETURN_HANDLING_COST,
+      unidad: language === 'en' ? 'per return' : 'por retorno',
+    },
   ];
 
   return (
     <div className="space-y-8">
       {/* Supuestos base */}
       <div>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Supuestos base</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">
+          {language === 'en' ? 'Base Operational Assumptions' : 'Supuestos base'}
+        </h2>
         <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto shadow-xs">
           <table className="w-full text-sm text-left">
             <thead className="bg-gray-50 text-xs font-semibold text-gray-600 uppercase border-b border-gray-200">
               <tr>
-                <th className="px-5 py-3">Concepto</th>
-                <th className="px-5 py-3 text-right">Valor</th>
-                <th className="px-5 py-3 text-left">Unidad</th>
+                <th className="px-5 py-3">{language === 'en' ? 'Concept' : 'Concepto'}</th>
+                <th className="px-5 py-3 text-right">{language === 'en' ? 'Value' : 'Valor'}</th>
+                <th className="px-5 py-3 text-left">{language === 'en' ? 'Unit' : 'Unidad'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -71,22 +141,26 @@ export const RateCardTab: React.FC = () => {
 
       {/* Precios de pack */}
       <div>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Precios de pack</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">
+          {language === 'en' ? 'Packaging & Box Type Rates' : 'Precios de pack'}
+        </h2>
         <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto shadow-xs">
           <table className="w-full text-sm text-left">
             <thead className="bg-gray-50 text-xs font-semibold text-gray-600 uppercase border-b border-gray-200">
               <tr>
                 <th className="px-5 py-3">Pack</th>
-                <th className="px-5 py-3 text-center">Código</th>
-                <th className="px-5 py-3 text-right">Precio propuesto</th>
-                <th className="px-5 py-3 text-right">Coste calculadora</th>
-                <th className="px-5 py-3 text-right">Coste estándar ES</th>
+                <th className="px-5 py-3 text-center">{language === 'en' ? 'Code' : 'Código'}</th>
+                <th className="px-5 py-3 text-right">{language === 'en' ? 'Proposed Price' : 'Precio propuesto'}</th>
+                <th className="px-5 py-3 text-right">{language === 'en' ? 'Calculator Cost' : 'Coste calculadora'}</th>
+                <th className="px-5 py-3 text-right">{language === 'en' ? 'Standard ES Cost' : 'Coste estándar ES'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {PACK_TYPES.map((type) => (
                 <tr key={type} className="hover:bg-gray-50 transition">
-                  <td className="px-5 py-3 font-medium text-gray-800">{PACK_LABELS[type]}</td>
+                  <td className="px-5 py-3 font-medium text-gray-800">
+                    {language === 'en' ? (packTypeEnLabels[type] || PACK_LABELS[type]) : PACK_LABELS[type]}
+                  </td>
                   <td className="px-5 py-3 text-center font-mono text-xs font-semibold text-gray-600">
                     <span className="bg-gray-100 px-2 py-0.5 rounded">{type}</span>
                   </td>
@@ -110,24 +184,27 @@ export const RateCardTab: React.FC = () => {
 
       {/* Perfiles de producto */}
       <div>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Perfiles de producto</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">
+          {language === 'en' ? 'Product Profiles' : 'Perfiles de producto'}
+        </h2>
         <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto shadow-xs">
           <table className="w-full text-sm text-left">
             <thead className="bg-gray-50 text-xs font-semibold text-gray-600 uppercase border-b border-gray-200">
               <tr>
-                <th className="px-5 py-3">Producto</th>
-                <th className="px-5 py-3 text-right">Multiplicador pick</th>
-                <th className="px-5 py-3 text-right">Tasa de Devolución (Return rate)</th>
+                <th className="px-5 py-3">{language === 'en' ? 'Product Profile' : 'Producto'}</th>
+                <th className="px-5 py-3 text-right">{language === 'en' ? 'Pick Multiplier' : 'Multiplicador pick'}</th>
+                <th className="px-5 py-3 text-right">{language === 'en' ? 'Return Rate' : 'Tasa de Devolución'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {(Object.keys(PRODUCT_PROFILES) as ProductType[]).map((prod) => {
                 const p = PRODUCT_PROFILES[prod];
+                const label = productTypeLabels[prod]?.[language] || prod;
                 return (
                   <tr key={prod} className="hover:bg-gray-50 transition">
-                    <td className="px-5 py-3 font-medium text-gray-800">{prod}</td>
+                    <td className="px-5 py-3 font-medium text-gray-800">{label}</td>
                     <td className="px-5 py-3 text-right font-mono text-gray-900 font-medium">
-                      {p.pickMultiplier.toFixed(2)}
+                      {p.pickMultiplier.toFixed(2)}x
                     </td>
                     <td className="px-5 py-3 text-right font-mono text-gray-700">
                       {formatPct(p.returnRate)}

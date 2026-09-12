@@ -1,5 +1,6 @@
 import React from 'react';
 import { CalculationResults } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 import { formatEur, formatPct, formatMarkup } from '../utils/calculations';
 import {
   ResponsiveContainer,
@@ -17,8 +18,28 @@ interface DesgloseTabProps {
 }
 
 export const DesgloseTab: React.FC<DesgloseTabProps> = ({ results }) => {
+  const { language } = useLanguage();
+
+  const translateLine = (lineName: string) => {
+    if (language !== 'en') return lineName;
+    const map: Record<string, string> = {
+      'Preparación base (Pack)': 'Base preparation (Pack)',
+      '1er Pick': '1st Pick',
+      'Picks adicionales (>1 unidad)': 'Additional picks (>1 unit)',
+      'Inserts publicitarios': 'Promotional inserts',
+      'Packaging personalizado': 'Custom packaging',
+      'Recargo manual pedidos': 'Manual order surcharge',
+      'Gestión de devoluciones': 'Returns management',
+      'Descarga / Recepción': 'Goods In / Receiving',
+      'Almacenaje (pallets)': 'Storage (pallets)',
+      'Envío de pedidos': 'Order shipping',
+      TOTAL: 'TOTAL',
+    };
+    return map[lineName] || lineName;
+  };
+
   const chartData = results.lines.map((l) => ({
-    linea: l.linea,
+    linea: translateLine(l.linea),
     Ingresos: Math.round(l.ingresos * 100) / 100,
     Costes: Math.round(l.costes * 100) / 100,
   }));
@@ -34,24 +55,26 @@ export const DesgloseTab: React.FC<DesgloseTabProps> = ({ results }) => {
     <div className="space-y-8">
       {/* Desglose mensual */}
       <div>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Desglose mensual</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">
+          {language === 'en' ? 'Monthly Breakdown' : 'Desglose mensual'}
+        </h2>
 
         <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto shadow-xs">
           <table className="w-full text-sm text-left">
             <thead className="bg-gray-50 text-xs font-semibold text-gray-600 uppercase border-b border-gray-200">
               <tr>
-                <th className="px-5 py-3">Línea</th>
-                <th className="px-5 py-3 text-right">Ingresos</th>
-                <th className="px-5 py-3 text-right">Costes</th>
-                <th className="px-5 py-3 text-right">Beneficio</th>
-                <th className="px-5 py-3 text-right">Margen</th>
+                <th className="px-5 py-3">{language === 'en' ? 'Line' : 'Línea'}</th>
+                <th className="px-5 py-3 text-right">{language === 'en' ? 'Revenue' : 'Ingresos'}</th>
+                <th className="px-5 py-3 text-right">{language === 'en' ? 'Costs' : 'Costes'}</th>
+                <th className="px-5 py-3 text-right">{language === 'en' ? 'Profit' : 'Beneficio'}</th>
+                <th className="px-5 py-3 text-right">{language === 'en' ? 'Margin' : 'Margen'}</th>
                 <th className="px-5 py-3 text-right text-blue-700">Markup</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {results.lines.map((line, idx) => (
                 <tr key={idx} className="hover:bg-gray-50 transition">
-                  <td className="px-5 py-3 font-medium text-gray-800">{line.linea}</td>
+                  <td className="px-5 py-3 font-medium text-gray-800">{translateLine(line.linea)}</td>
                   <td className="px-5 py-3 text-right font-mono text-gray-700">
                     {formatEur(line.ingresos)}
                   </td>
@@ -100,9 +123,19 @@ export const DesgloseTab: React.FC<DesgloseTabProps> = ({ results }) => {
           </table>
         </div>
         <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
-          <span><strong className="text-gray-700 font-medium">Margen (%):</strong> Beneficio sobre precio venta = (Ingreso - Coste) / Ingreso</span>
-          <span className="hidden sm:inline text-gray-300">•</span>
-          <span><strong className="text-blue-700 font-medium">Markup (%):</strong> Incremento sobre coste = (Ingreso - Coste) / Coste</span>
+          {language === 'en' ? (
+            <>
+              <span><strong className="text-gray-700 font-medium">Margin (%):</strong> Profit over selling price = (Revenue - Cost) / Revenue</span>
+              <span className="hidden sm:inline text-gray-300">•</span>
+              <span><strong className="text-blue-700 font-medium">Markup (%):</strong> Markup over cost = (Revenue - Cost) / Cost</span>
+            </>
+          ) : (
+            <>
+              <span><strong className="text-gray-700 font-medium">Margen (%):</strong> Beneficio sobre precio venta = (Ingreso - Coste) / Ingreso</span>
+              <span className="hidden sm:inline text-gray-300">•</span>
+              <span><strong className="text-blue-700 font-medium">Markup (%):</strong> Incremento sobre coste = (Ingreso - Coste) / Coste</span>
+            </>
+          )}
         </div>
       </div>
 
@@ -110,7 +143,9 @@ export const DesgloseTab: React.FC<DesgloseTabProps> = ({ results }) => {
 
       {/* Ingresos vs costes por línea */}
       <div>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Ingresos vs costes por línea</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">
+          {language === 'en' ? 'Revenue vs Costs by Line' : 'Ingresos vs costes por línea'}
+        </h2>
         <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-xs">
           <div className="h-80 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -128,12 +163,16 @@ export const DesgloseTab: React.FC<DesgloseTabProps> = ({ results }) => {
                 />
                 <YAxis
                   tick={{ fontSize: 12, fill: '#4b5563' }}
-                  tickFormatter={(v) => `${v.toLocaleString('es-ES')} €`}
+                  tickFormatter={(v) => `${v.toLocaleString(language === 'en' ? 'en-US' : 'es-ES')} €`}
                 />
                 <Tooltip
-                  formatter={(value) => [
+                  formatter={(value, name) => [
                     formatEur(Number(value) || 0),
-                    '',
+                    name === 'Ingresos' && language === 'en'
+                      ? 'Revenue'
+                      : name === 'Costes' && language === 'en'
+                      ? 'Costs'
+                      : String(name),
                   ]}
                   contentStyle={{
                     backgroundColor: '#ffffff',
@@ -142,9 +181,29 @@ export const DesgloseTab: React.FC<DesgloseTabProps> = ({ results }) => {
                     fontSize: '13px',
                   }}
                 />
-                <Legend verticalAlign="top" wrapperStyle={{ paddingBottom: '10px' }} />
-                <Bar dataKey="Ingresos" fill="#3b82f6" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="Costes" fill="#ef4444" radius={[3, 3, 0, 0]} />
+                <Legend
+                  verticalAlign="top"
+                  wrapperStyle={{ paddingBottom: '10px' }}
+                  formatter={(value) =>
+                    value === 'Ingresos' && language === 'en'
+                      ? 'Revenue'
+                      : value === 'Costes' && language === 'en'
+                      ? 'Costs'
+                      : value
+                  }
+                />
+                <Bar
+                  dataKey="Ingresos"
+                  name={language === 'en' ? 'Revenue' : 'Ingresos'}
+                  fill="#3b82f6"
+                  radius={[3, 3, 0, 0]}
+                />
+                <Bar
+                  dataKey="Costes"
+                  name={language === 'en' ? 'Costs' : 'Costes'}
+                  fill="#ef4444"
+                  radius={[3, 3, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
