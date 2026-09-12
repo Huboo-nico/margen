@@ -596,33 +596,82 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
           </span>
         </div>
 
-        <PriceMarginRow
-          label={language === 'en' ? 'Base preparation (Pack)' : 'Preparación base (Pack)'}
-          subLabel={language === 'en' ? 'Packaging material cost according to weighted mix or custom cost' : 'Coste del material de embalaje según mix ponderado o coste directo'}
-          cost={results.packCost}
-          mode={inputs.packPriceMode}
-          marginTarget={inputs.packMarginTarget}
-          manualPrice={results.packPrice}
-          allowCostEdit={true}
-          onCostChange={(c) => onChange({ packCostOverride: c })}
-          onModeChange={(m) => onChange({ packPriceMode: m })}
-          onMarginChange={(mg) => onChange({ packMarginTarget: mg })}
-          onPriceChange={(p) => onChange({ packPriceManual: p })}
-        />
+        {/* Master combined row */}
+        <div className="border border-red-200/80 rounded-xl p-2 bg-red-50/15 shadow-2xs space-y-3">
+          <PriceMarginRow
+            label={language === 'en' ? 'Order Preparation (Base Pack + 1st Pick)' : 'Preparación de Pedido (Pack Base + 1er Pick)'}
+            subLabel={
+              language === 'en'
+                ? 'Master commercial rate for order preparation and initial pick. Direct cost & price editing with instant margin recalculation.'
+                : 'Tarifa comercial combinada de preparación de pedido y primer pick. Edición directa de coste y precio con recálculo automático de margen.'
+            }
+            cost={results.prepPlusFirstPickCost}
+            defaultCost={results.prepPlusFirstPickDefaultCost}
+            mode={inputs.prepPlusFirstPickPriceMode || 'margin'}
+            marginTarget={inputs.prepPlusFirstPickMarginTarget ?? (results.prepPlusFirstPickMargin || 0.35)}
+            manualPrice={results.prepPlusFirstPickPrice}
+            allowCostEdit={true}
+            badge={
+              <span className="text-[10px] font-bold text-red-700 bg-red-100 border border-red-200 px-2 py-0.5 rounded-full">
+                {language === 'en' ? 'Combined Master Line' : 'Línea Maestra Combinada'}
+              </span>
+            }
+            onCostChange={(c) => onChange({ prepPlusFirstPickCostOverride: c })}
+            onResetCost={() => onChange({ prepPlusFirstPickCostOverride: null })}
+            onModeChange={(m) => onChange({ prepPlusFirstPickPriceMode: m })}
+            onMarginChange={(mg) => onChange({ prepPlusFirstPickMarginTarget: mg })}
+            onPriceChange={(p) => onChange({ prepPlusFirstPickPriceManual: p })}
+          />
 
-        <PriceMarginRow
-          label={language === 'en' ? 'First Pick of order (1st unit included)' : 'Primer Pick del pedido (1ª unidad)'}
-          subLabel={language === 'en'
-            ? `Cost adjusted by SKU tier (×${results.skuMultiplier.toFixed(2)}) and product profile (×${results.productPickMultiplier.toFixed(2)})`
-            : `Coste ajustado por SKU (×${results.skuMultiplier.toFixed(2)}) y producto (×${results.productPickMultiplier.toFixed(2)})`}
-          cost={results.firstPickCost}
-          mode={inputs.firstPickPriceMode}
-          marginTarget={inputs.firstPickMarginTarget}
-          manualPrice={results.firstPickPrice}
-          onModeChange={(m) => onChange({ firstPickPriceMode: m })}
-          onMarginChange={(mg) => onChange({ firstPickMarginTarget: mg })}
-          onPriceChange={(p) => onChange({ firstPickPriceManual: p })}
-        />
+          {/* Sub-components breakdown */}
+          <div className="pt-2 border-t border-red-100/90 px-1 space-y-2.5">
+            <div className="flex items-center justify-between flex-wrap gap-1">
+              <span className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5 text-red-600" />
+                {language === 'en' ? 'Sub-components Breakdown (Pack & 1st Pick)' : 'Desglose de Componentes (Pack Base y 1er Pick)'}
+              </span>
+              <span className="text-[11px] text-gray-500 font-mono">
+                {formatEur(results.packPrice)} (Pack) + {formatEur(results.firstPickPrice)} (1st Pick) = {formatEur(results.packPrice + results.firstPickPrice)}
+              </span>
+            </div>
+
+            <PriceMarginRow
+              label={language === 'en' ? 'Base preparation (Pack)' : 'Preparación base (Pack)'}
+              subLabel={language === 'en' ? 'Packaging material cost according to weighted mix or custom negotiated cost' : 'Coste del material de embalaje según mix ponderado o coste directo'}
+              cost={results.packCost}
+              defaultCost={results.packDefaultCost}
+              mode={inputs.packPriceMode}
+              marginTarget={inputs.packMarginTarget}
+              manualPrice={results.packPrice}
+              allowCostEdit={true}
+              onCostChange={(c) => onChange({ packCostOverride: c, prepPlusFirstPickCostOverride: null })}
+              onResetCost={() => onChange({ packCostOverride: null, prepPlusFirstPickCostOverride: null })}
+              onModeChange={(m) => onChange({ packPriceMode: m, prepPlusFirstPickPriceManual: null })}
+              onMarginChange={(mg) => onChange({ packMarginTarget: mg, prepPlusFirstPickPriceManual: null })}
+              onPriceChange={(p) => onChange({ packPriceManual: p, prepPlusFirstPickPriceManual: null })}
+            />
+
+            <PriceMarginRow
+              label={language === 'en' ? 'First Pick of order (1st unit included)' : 'Primer Pick del pedido (1ª unidad)'}
+              subLabel={
+                language === 'en'
+                  ? `Cost adjusted by SKU tier (×${results.skuMultiplier.toFixed(2)}) and product profile (×${results.productPickMultiplier.toFixed(2)})`
+                  : `Coste ajustado por SKU (×${results.skuMultiplier.toFixed(2)}) y perfil de producto (×${results.productPickMultiplier.toFixed(2)})`
+              }
+              cost={results.firstPickCost}
+              defaultCost={results.firstPickDefaultCost}
+              mode={inputs.firstPickPriceMode}
+              marginTarget={inputs.firstPickMarginTarget}
+              manualPrice={results.firstPickPrice}
+              allowCostEdit={true}
+              onCostChange={(c) => onChange({ firstPickCostOverride: c, prepPlusFirstPickCostOverride: null })}
+              onResetCost={() => onChange({ firstPickCostOverride: null, prepPlusFirstPickCostOverride: null })}
+              onModeChange={(m) => onChange({ firstPickPriceMode: m, prepPlusFirstPickPriceManual: null })}
+              onMarginChange={(mg) => onChange({ firstPickMarginTarget: mg, prepPlusFirstPickPriceManual: null })}
+              onPriceChange={(p) => onChange({ firstPickPriceManual: p, prepPlusFirstPickPriceManual: null })}
+            />
+          </div>
+        </div>
       </section>
 
       {/* 5. PICKS ADICIONALES */}
@@ -640,11 +689,19 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
 
         <PriceMarginRow
           label={language === 'en' ? 'Additional pick per unit' : 'Pick adicional por unidad'}
-          subLabel={language === 'en' ? 'Applies starting from 2nd unit in the customer shopping basket' : 'Aplica a partir de la 2ª unidad en la cesta de compra'}
+          subLabel={
+            language === 'en'
+              ? `Applies starting from 2nd unit in basket (Standard cost: ${formatEur(results.additionalPickDefaultCost)})`
+              : `Aplica a partir de la 2ª unidad en la cesta de compra (Coste estándar: ${formatEur(results.additionalPickDefaultCost)})`
+          }
           cost={results.additionalPickCost}
+          defaultCost={results.additionalPickDefaultCost}
           mode={inputs.additionalPickPriceMode}
           marginTarget={inputs.additionalPickMarginTarget}
           manualPrice={results.additionalPickPrice}
+          allowCostEdit={true}
+          onCostChange={(c) => onChange({ additionalPickCostOverride: c })}
+          onResetCost={() => onChange({ additionalPickCostOverride: null })}
           onModeChange={(m) => onChange({ additionalPickPriceMode: m })}
           onMarginChange={(mg) => onChange({ additionalPickMarginTarget: mg })}
           onPriceChange={(p) => onChange({ additionalPickPriceManual: p })}

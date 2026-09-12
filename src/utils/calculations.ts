@@ -98,9 +98,15 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
     firstPickPriceMode,
     firstPickMarginTarget,
     firstPickPriceManual,
+    firstPickCostOverride,
     additionalPickPriceMode,
     additionalPickMarginTarget,
     additionalPickPriceManual,
+    additionalPickCostOverride,
+    prepPlusFirstPickPriceManual,
+    prepPlusFirstPickCostOverride,
+    prepPlusFirstPickPriceMode,
+    prepPlusFirstPickMarginTarget,
     shippingPriceMode,
     carrierCost,
     shippingMarginTarget,
@@ -164,10 +170,11 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
   }
 
   // 1. Preparación (Pack base)
+  const defaultPackCost = defaultPackCostFromMix;
   const packCost =
     packCostOverride !== undefined && packCostOverride !== null && packCostOverride > 0
       ? Number(packCostOverride)
-      : defaultPackCostFromMix;
+      : defaultPackCost;
 
   let packPrice = 0;
   if (packPriceMode === 'margin') {
@@ -178,7 +185,12 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
   const packMargin = marginFromPrice(packPrice, packCost);
 
   // 2. 1er Pick
-  const firstPickCost = BASE_FIRST_PICK_COST * skuMultiplier * productPickMultiplier;
+  const defaultFirstPickCost = BASE_FIRST_PICK_COST * skuMultiplier * productPickMultiplier;
+  const firstPickCost =
+    firstPickCostOverride !== undefined && firstPickCostOverride !== null && firstPickCostOverride > 0
+      ? Number(firstPickCostOverride)
+      : defaultFirstPickCost;
+
   let firstPickPrice = 0;
   if (firstPickPriceMode === 'margin') {
     firstPickPrice = priceFromCostMargin(firstPickCost, firstPickMarginTarget);
@@ -188,13 +200,38 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
   const firstPickMargin = marginFromPrice(firstPickPrice, firstPickCost);
 
   // 3. COMBINADO: Preparación (Pack) + 1er Pick
-  const prepPlusFirstPickCost = packCost + firstPickCost;
-  const prepPlusFirstPickPrice = packPrice + firstPickPrice;
+  const defaultPrepPlusFirstPickCost = packCost + firstPickCost;
+  const prepPlusFirstPickCost =
+    prepPlusFirstPickCostOverride !== undefined && prepPlusFirstPickCostOverride !== null && prepPlusFirstPickCostOverride > 0
+      ? Number(prepPlusFirstPickCostOverride)
+      : defaultPrepPlusFirstPickCost;
+
+  let prepPlusFirstPickPrice = packPrice + firstPickPrice;
+  if (
+    prepPlusFirstPickPriceMode === 'margin' &&
+    prepPlusFirstPickMarginTarget !== undefined &&
+    prepPlusFirstPickMarginTarget !== null
+  ) {
+    prepPlusFirstPickPrice = priceFromCostMargin(prepPlusFirstPickCost, prepPlusFirstPickMarginTarget);
+  } else if (
+    prepPlusFirstPickPriceManual !== undefined &&
+    prepPlusFirstPickPriceManual !== null &&
+    prepPlusFirstPickPriceManual > 0
+  ) {
+    prepPlusFirstPickPrice = Number(prepPlusFirstPickPriceManual);
+  } else {
+    prepPlusFirstPickPrice = packPrice + firstPickPrice;
+  }
   const prepPlusFirstPickMargin = marginFromPrice(prepPlusFirstPickPrice, prepPlusFirstPickCost);
   const prepPlusFirstPickProfit = prepPlusFirstPickPrice - prepPlusFirstPickCost;
 
   // 4. Picks Adicionales (>1 unidad)
-  const additionalPickCost = BASE_ADDITIONAL_PICK_COST * skuMultiplier * productPickMultiplier;
+  const defaultAdditionalPickCost = BASE_ADDITIONAL_PICK_COST * skuMultiplier * productPickMultiplier;
+  const additionalPickCost =
+    additionalPickCostOverride !== undefined && additionalPickCostOverride !== null && additionalPickCostOverride > 0
+      ? Number(additionalPickCostOverride)
+      : defaultAdditionalPickCost;
+
   let additionalPickPrice = 0;
   if (additionalPickPriceMode === 'margin') {
     additionalPickPrice = priceFromCostMargin(additionalPickCost, additionalPickMarginTarget);
@@ -238,15 +275,15 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
 
   // Pedido sin envío (Preparación + Picking + Servicios)
   const orderRevenueExShipping =
-    packPrice +
-    totalPickPricePerOrder +
+    prepPlusFirstPickPrice +
+    additionalPicksPriceTotal +
     insertRevenuePerOrder +
     packagingPricePerOrder +
     returnRevenuePerOrder;
 
   const orderCostExShipping =
-    packCost +
-    totalPickCostPerOrder +
+    prepPlusFirstPickCost +
+    additionalPicksCostTotal +
     insertCostPerOrder +
     packagingCostPerOrder +
     returnCostPerOrder;
@@ -504,19 +541,23 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
     unitsPerOrder: Number(unitsPerOrder),
 
     packCost,
+    packDefaultCost: defaultPackCost,
     packPrice,
     packMargin,
 
     firstPickCost,
+    firstPickDefaultCost: defaultFirstPickCost,
     firstPickPrice,
     firstPickMargin,
 
     prepPlusFirstPickCost,
+    prepPlusFirstPickDefaultCost: defaultPrepPlusFirstPickCost,
     prepPlusFirstPickPrice,
     prepPlusFirstPickMargin,
     prepPlusFirstPickProfit,
 
     additionalPickCost,
+    additionalPickDefaultCost: defaultAdditionalPickCost,
     additionalPickPrice,
     additionalPickMargin,
     additionalPicksPerOrder,

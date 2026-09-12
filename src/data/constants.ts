@@ -121,11 +121,19 @@ export const DEFAULT_INPUTS: CalculatorInputs = {
   firstPickPriceMode: 'margin',
   firstPickMarginTarget: 0.28,
   firstPickPriceManual: 0.56,
+  firstPickCostOverride: null,
 
   // 6. Pick Adicional
   additionalPickPriceMode: 'margin',
   additionalPickMarginTarget: 0.28,
   additionalPickPriceManual: 0.39,
+  additionalPickCostOverride: null,
+
+  // Preparación + 1er Pick Combinado
+  prepPlusFirstPickPriceManual: null,
+  prepPlusFirstPickCostOverride: null,
+  prepPlusFirstPickPriceMode: 'margin',
+  prepPlusFirstPickMarginTarget: 0.35,
 
   // 7. Envío (Carrier)
   shippingPriceMode: 'margin',

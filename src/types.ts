@@ -59,11 +59,19 @@ export interface CalculatorInputs {
   firstPickPriceMode: PricingControlMode;
   firstPickMarginTarget: number;
   firstPickPriceManual: number;
+  firstPickCostOverride?: number | null;
 
   // 6. Pick Adicional
   additionalPickPriceMode: PricingControlMode;
   additionalPickMarginTarget: number;
   additionalPickPriceManual: number;
+  additionalPickCostOverride?: number | null;
+
+  // Preparación + 1er Pick (Total Combinado)
+  prepPlusFirstPickPriceManual?: number | null;
+  prepPlusFirstPickCostOverride?: number | null;
+  prepPlusFirstPickPriceMode?: PricingControlMode;
+  prepPlusFirstPickMarginTarget?: number;
 
   // 7. Envío (Carrier)
   shippingPriceMode: PricingControlMode;
@@ -127,22 +135,26 @@ export interface CalculationResults {
 
   // Preparación (Pack base)
   packCost: number;
+  packDefaultCost: number;
   packPrice: number;
   packMargin: number | null;
 
   // 1er Pick
   firstPickCost: number;
+  firstPickDefaultCost: number;
   firstPickPrice: number;
   firstPickMargin: number | null;
 
   // PREPARACIÓN + 1ER PICK (Total Base Pedido)
   prepPlusFirstPickCost: number;
+  prepPlusFirstPickDefaultCost: number;
   prepPlusFirstPickPrice: number;
   prepPlusFirstPickMargin: number | null;
   prepPlusFirstPickProfit: number;
 
   // Picks Adicionales
   additionalPickCost: number;
+  additionalPickDefaultCost: number;
   additionalPickPrice: number;
   additionalPickMargin: number | null;
   additionalPicksPerOrder: number;
