@@ -4,6 +4,7 @@ import {
   MonthlyLine,
   OrderSummaryItem,
   PackType,
+  Currency,
 } from '../types';
 import {
   PACK_TYPES,
@@ -54,14 +55,61 @@ export function markupFromPrice(price: number, cost: number): number | null {
   return (p - c) / c;
 }
 
-export function formatEur(value: number | null | undefined): string {
+let currentCurrency: Currency = 'EUR';
+
+export function setActiveCurrency(curr: Currency): void {
+  currentCurrency = curr;
+}
+
+export function getActiveCurrency(): Currency {
+  return currentCurrency;
+}
+
+export function getCurrencySymbol(curr: Currency = currentCurrency): string {
+  switch (curr) {
+    case 'GBP':
+      return '£';
+    case 'USD':
+      return '$';
+    case 'EUR':
+    default:
+      return '€';
+  }
+}
+
+export function formatCurrency(
+  value: number | null | undefined,
+  curr: Currency = currentCurrency
+): string {
   if (value === null || value === undefined || isNaN(value)) {
     return 'n/a';
   }
-  return `${value.toLocaleString('es-ES', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })} €`;
+  const num = Number(value);
+  switch (curr) {
+    case 'GBP':
+      return `£${num.toLocaleString('en-GB', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`;
+    case 'USD':
+      return `$${num.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`;
+    case 'EUR':
+    default:
+      return `${num.toLocaleString('es-ES', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })} €`;
+  }
+}
+
+export function formatEur(
+  value: number | null | undefined,
+  curr?: Currency
+): string {
+  return formatCurrency(value, curr || currentCurrency);
 }
 
 export function formatPct(value: number | null | undefined): string {

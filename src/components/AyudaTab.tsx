@@ -1,5 +1,6 @@
 import React from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { formatEur } from '../utils/calculations';
 
 export const AyudaTab: React.FC = () => {
   const { language } = useLanguage();
@@ -44,8 +45,8 @@ export const AyudaTab: React.FC = () => {
             </pre>
             <p className="text-xs text-gray-500 mt-1">
               {language === 'en'
-                ? 'Example: A service with a cost of 4.00 € sold at 5.00 € has a 20% Margin and a 25% Markup.'
-                : 'Ejemplo: Un servicio con coste de 4,00 € vendido a 5,00 € tiene un Margen del 20% y un Markup del 25%.'}
+                ? `Example: A service with a cost of ${formatEur(4)} sold at ${formatEur(5)} has a 20% Margin and a 25% Markup.`
+                : `Ejemplo: Un servicio con coste de ${formatEur(4)} vendido a ${formatEur(5)} tiene un Margen del 20% y un Markup del 25%.`}
             </p>
           </div>
 

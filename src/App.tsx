@@ -11,6 +11,7 @@ import { ComparativaClientesTab } from './components/ComparativaClientesTab';
 import { RateCardTab } from './components/RateCardTab';
 import { AyudaTab } from './components/AyudaTab';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
+import { CurrencySwitcher } from './components/CurrencySwitcher';
 import { useLanguage } from './context/LanguageContext';
 import { PackageCheck } from 'lucide-react';
 
@@ -204,8 +205,9 @@ export const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Right side: Language Switcher Button (ES / EN) */}
-        <div className="flex items-center shrink-0">
+        {/* Right side: Currency & Language Switcher Controls */}
+        <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+          <CurrencySwitcher />
           <LanguageSwitcher />
         </div>
       </header>

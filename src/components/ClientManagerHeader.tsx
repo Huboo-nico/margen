@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { ClientProfile, CalculatorInputs } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { Plus, Copy, Trash2, Check, Download, Users, Edit3, Tag } from 'lucide-react';
+import { formatEur } from '../utils/calculations';
 
 interface ClientManagerHeaderProps {
   clients: ClientProfile[];
@@ -36,29 +37,36 @@ export const ClientManagerHeader: React.FC<ClientManagerHeaderProps> = ({
   const handleCopyQuote = () => {
     const shippingPrice = currentInputs.carrierCost / (1 - currentInputs.shippingMarginTarget);
 
+    const packPrice = currentInputs.packPriceManual || 1.62;
+    const firstPickPrice = currentInputs.firstPickPriceManual || 0.56;
+    const addPickPrice = currentInputs.additionalPickPriceManual || 0.39;
+    const packagingPriceFormatted = currentInputs.customPackaging
+      ? `${formatEur(0)} (${language === 'en' ? 'Client custom packaging' : 'Packaging propio'})`
+      : `${formatEur(currentInputs.packagingPrice)} / ${language === 'en' ? 'order' : 'pedido'}`;
+
     const text = language === 'en'
       ? `FULFILMENT QUOTATION - ${currentInputs.clientName}
 ${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Channels/Tech: ${currentInputs.technologies.join(', ')}\n` : ''}Estimated volume: ${currentInputs.ordersMonth} orders/month (${currentInputs.unitsPerOrder} units/order)
 
 1. OPERATING RATES:
-- Base Preparation (Pack): ${(currentInputs.packPriceManual || 1.62).toFixed(2)} € / order
-- 1st Pick of order: ${(currentInputs.firstPickPriceManual || 0.56).toFixed(2)} € / order
-- Additional Pick (from 2nd unit): ${(currentInputs.additionalPickPriceManual || 0.39).toFixed(2)} € / unit
-- Shipping (Carrier): ${shippingPrice.toFixed(2)} € / shipment
-- Base packaging: ${currentInputs.packagingPrice.toFixed(2)} € / order
-- Storage: ${currentInputs.storagePrice.toFixed(2)} € / pallet / week
-- Goods-in intake: ${currentInputs.goodsInPrice.toFixed(2)} € / pallet`
+- Base Preparation (Pack): ${formatEur(packPrice)} / order
+- 1st Pick of order: ${formatEur(firstPickPrice)} / order
+- Additional Pick (from 2nd unit): ${formatEur(addPickPrice)} / unit
+- Shipping (Carrier): ${formatEur(shippingPrice)} / shipment
+- Base packaging: ${packagingPriceFormatted}
+- Storage: ${formatEur(currentInputs.storagePrice)} / pallet / week
+- Goods-in intake: ${formatEur(currentInputs.goodsInPrice)} / pallet`
       : `COTIZACIÓN FULFILMENT - ${currentInputs.clientName}
 ${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Canales/Tecnología: ${currentInputs.technologies.join(', ')}\n` : ''}Volumen estimado: ${currentInputs.ordersMonth} pedidos/mes (${currentInputs.unitsPerOrder} units/pedido)
 
 1. TARIFAS OPERATIVAS:
-- Preparación Base (Pack): ${(currentInputs.packPriceManual || 1.62).toFixed(2)} € / pedido
-- 1er Pick de pedido: ${(currentInputs.firstPickPriceManual || 0.56).toFixed(2)} € / pedido
-- Pick adicional (desde 2ª unidad): ${(currentInputs.additionalPickPriceManual || 0.39).toFixed(2)} € / unidad
-- Envío (Carrier): ${shippingPrice.toFixed(2)} € / envío
-- Packaging base: ${currentInputs.packagingPrice.toFixed(2)} € / pedido
-- Almacenaje: ${currentInputs.storagePrice.toFixed(2)} € / pallet / semana
-- Recepción goods-in: ${currentInputs.goodsInPrice.toFixed(2)} € / pallet`;
+- Preparación Base (Pack): ${formatEur(packPrice)} / pedido
+- 1er Pick de pedido: ${formatEur(firstPickPrice)} / pedido
+- Pick adicional (desde 2ª unidad): ${formatEur(addPickPrice)} / unidad
+- Envío (Carrier): ${formatEur(shippingPrice)} / envío
+- Packaging base: ${packagingPriceFormatted}
+- Almacenaje: ${formatEur(currentInputs.storagePrice)} / pallet / semana
+- Recepción goods-in: ${formatEur(currentInputs.goodsInPrice)} / pallet`;
 
     navigator.clipboard.writeText(text);
     setCopiedNotification(true);

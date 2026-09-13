@@ -1,11 +1,22 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { Currency } from '../types';
+import {
+  setActiveCurrency,
+  getCurrencySymbol,
+  formatCurrency,
+} from '../utils/calculations';
 
 export type Language = 'es' | 'en';
+export type { Currency };
 
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
   toggleLanguage: () => void;
+  currency: Currency;
+  setCurrency: (curr: Currency) => void;
+  currencySymbol: string;
+  formatMoney: (value: number | null | undefined) => string;
   t: (key: string, fallback?: string) => string;
 }
 
@@ -16,6 +27,10 @@ const translations: Record<Language, Record<string, string>> = {
     'app.subtitle': 'Preparación (Pack + 1er Pick), picks adicionales, packaging, envío y almacenaje con márgenes modificables.',
     'app.clientByClient': 'Cliente por Cliente',
     'app.language': 'Idioma',
+    'app.currency': 'Moneda',
+    'curr.eur': 'EUR (€)',
+    'curr.gbp': 'Libra (£)',
+    'curr.usd': 'USD ($)',
     'lang.es': 'Español',
     'lang.en': 'English',
 
@@ -119,7 +134,7 @@ const translations: Record<Language, Record<string, string>> = {
     'th.salePrice': 'PRECIO VENTA',
     'th.mode': 'MODO',
     'th.autoMargin': 'Auto (Margen)',
-    'th.manualPrice': 'Manual (€)',
+    'th.manualPrice': 'Manual (Precio)',
 
     // Rate Line Names
     'line.pack': 'Preparación Pack (Base)',
@@ -218,6 +233,10 @@ const translations: Record<Language, Record<string, string>> = {
     'app.subtitle': 'Preparation (Pack + 1st Pick), additional picks, packaging, shipping and storage with customizable margins.',
     'app.clientByClient': 'Client by Client',
     'app.language': 'Language',
+    'app.currency': 'Currency',
+    'curr.eur': 'EUR (€)',
+    'curr.gbp': 'Pound (£)',
+    'curr.usd': 'USD ($)',
     'lang.es': 'Español',
     'lang.en': 'English',
 
@@ -321,7 +340,7 @@ const translations: Record<Language, Record<string, string>> = {
     'th.salePrice': 'SALE PRICE',
     'th.mode': 'MODE',
     'th.autoMargin': 'Auto (Margin)',
-    'th.manualPrice': 'Manual (€)',
+    'th.manualPrice': 'Manual (Price)',
 
     // Rate Line Names
     'line.pack': 'Pack Preparation (Base)',
@@ -431,14 +450,33 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     return 'es';
   });
 
+  const [currency, setCurrencyState] = useState<Currency>(() => {
+    const saved = localStorage.getItem('fulfilment_calc_currency');
+    if (saved === 'GBP' || saved === 'USD' || saved === 'EUR') {
+      setActiveCurrency(saved);
+      return saved;
+    }
+    setActiveCurrency('EUR');
+    return 'EUR';
+  });
+
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
     localStorage.setItem('fulfilment_calc_lang', lang);
   };
 
+  const setCurrency = (curr: Currency) => {
+    setCurrencyState(curr);
+    setActiveCurrency(curr);
+    localStorage.setItem('fulfilment_calc_currency', curr);
+  };
+
   const toggleLanguage = () => {
     setLanguage(language === 'es' ? 'en' : 'es');
   };
+
+  const currencySymbol = getCurrencySymbol(currency);
+  const formatMoney = (val: number | null | undefined) => formatCurrency(val, currency);
 
   const t = (key: string, fallback?: string): string => {
     const dict = translations[language];
@@ -453,7 +491,18 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
   };
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, toggleLanguage, t }}>
+    <LanguageContext.Provider
+      value={{
+        language,
+        setLanguage,
+        toggleLanguage,
+        currency,
+        setCurrency,
+        currencySymbol,
+        formatMoney,
+        t,
+      }}
+    >
       {children}
     </LanguageContext.Provider>
   );

@@ -1,5 +1,7 @@
 export type PackType = 'SPK' | 'SPL' | 'MPL' | 'LPL';
 
+export type Currency = 'EUR' | 'GBP' | 'USD';
+
 export type ProductType = 
   | 'Suplementos'
   | 'Cosmética'

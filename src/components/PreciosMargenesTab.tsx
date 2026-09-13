@@ -400,8 +400,8 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
               <p className="text-[10px] mt-1.5 leading-tight text-gray-600">
                 {inputs.customPackaging
                   ? (language === 'en'
-                      ? '✓ Own custom packaging. Base packaging per order is cancelled (0.00 €).'
-                      : '✓ Embalaje propio. El packaging base por pedido se cancela (0,00 €).')
+                      ? `✓ Own custom packaging. Base packaging per order is cancelled (${formatEur(0)}).`
+                      : `✓ Embalaje propio. El packaging base por pedido se cancela (${formatEur(0)}).`)
                   : (language === 'en'
                       ? 'Client uses standard base packaging.'
                       : 'Se aplica packaging base estándar.')}
@@ -995,8 +995,8 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
               <Package className="w-4 h-4 text-amber-600 shrink-0" />
               <span>
                 {language === 'en'
-                  ? 'Client custom packaging is ACTIVE: Base packaging fee and cost are cancelled (0.00 € / order) in operational calculations and client quote.'
-                  : 'Packaging personalizado del cliente ACTIVO: El coste y tarifa de packaging base están cancelados (0,00 € / pedido) en los cálculos e informe.'}
+                  ? `Client custom packaging is ACTIVE: Base packaging fee and cost are cancelled (${formatEur(0)} / order) in operational calculations and client quote.`
+                  : `Packaging personalizado del cliente ACTIVO: El coste y tarifa de packaging base están cancelados (${formatEur(0)} / pedido) en los cálculos e informe.`}
               </span>
             </div>
             <button
@@ -1014,8 +1014,8 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
           subLabel={
             inputs.customPackaging
               ? (language === 'en'
-                  ? 'Client supplies own packaging · Huboo base fee is 0.00 €'
-                  : 'El cliente suministra su propio packaging · Tarifa de base es 0,00 €')
+                  ? `Client supplies own packaging · Base fee is ${formatEur(0)}`
+                  : `El cliente suministra su propio packaging · Tarifa de base es ${formatEur(0)}`)
               : (language === 'en'
                   ? 'Standard boxes, branded tape or void fill'
                   : 'Cajas estándar, cinta personalizada o precinto')

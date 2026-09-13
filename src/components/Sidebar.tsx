@@ -8,6 +8,7 @@ import { PRODUCT_PROFILES } from '../data/constants';
 import { ChevronDown, ChevronRight, AlertCircle, Package, Truck, Layers, User } from 'lucide-react';
 import { formatEur } from '../utils/calculations';
 import { CleanNumberInput } from './CleanNumberInput';
+import { useLanguage } from '../context/LanguageContext';
 
 interface SidebarProps {
   inputs: CalculatorInputs;
@@ -16,6 +17,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) => {
+  const { currencySymbol } = useLanguage();
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const handleProductChange = (newProduct: ProductType) => {
@@ -214,7 +216,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
               </div>
               <p className="text-[9.5px] text-gray-500 mt-1 leading-tight">
                 {inputs.customPackaging
-                  ? 'Packaging propio del cliente activo: el packaging base se cancela (0,00 €).'
+                  ? `Packaging propio del cliente activo: el packaging base se cancela (0,00 ${currencySymbol}).`
                   : 'Se factura packaging base estándar.'}
               </p>
             </div>
@@ -427,7 +429,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
               </div>
             </div>
             <div>
-              <label className="block text-[10px] text-gray-500 mb-0.5">Precio Pack (€)</label>
+              <label className="block text-[10px] text-gray-500 mb-0.5">Precio Pack ({currencySymbol})</label>
               <CleanNumberInput
                 step={0.01}
                 min={0}
@@ -485,7 +487,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
               </div>
             </div>
             <div>
-              <label className="block text-[10px] text-gray-500 mb-0.5">Precio 1er Pick (€)</label>
+              <label className="block text-[10px] text-gray-500 mb-0.5">Precio 1er Pick ({currencySymbol})</label>
               <CleanNumberInput
                 step={0.01}
                 min={0}
@@ -573,7 +575,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
         <div className="space-y-2.5">
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">
-              Carrier Cost (€)
+              Carrier Cost ({currencySymbol})
             </label>
             <CleanNumberInput
               step={0.01}
@@ -611,7 +613,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
 
           <div className="bg-white p-2.5 rounded border border-blue-200">
             <div className="flex justify-between items-center text-xs mb-1">
-              <span className="font-semibold text-gray-800">Precio Venta Envío (€)</span>
+              <span className="font-semibold text-gray-800">Precio Venta Envío ({currencySymbol})</span>
               <span className="text-[10px] text-emerald-700 font-medium">
                 +{formatEur(results.shippingProfitPerOrder)} / pedido
               </span>
@@ -655,18 +657,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
                 <span className="text-xs font-semibold text-gray-800">Packaging Base</span>
                 {inputs.customPackaging && (
                   <span className="text-[9px] font-bold text-amber-800 bg-amber-100 border border-amber-200 px-1 rounded">
-                    Cancelado (0,00 €)
+                    Cancelado (0,00 {currencySymbol})
                   </span>
                 )}
               </div>
               {inputs.customPackaging ? (
                 <div className="bg-amber-50 border border-amber-200 rounded p-2 text-[10px] text-amber-900">
-                  Packaging propio activo: tarifa y coste cancelados a 0,00 € / pedido.
+                  Packaging propio activo: tarifa y coste cancelados a 0,00 {currencySymbol} / pedido.
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-[10px] text-gray-500">Precio €</label>
+                    <label className="block text-[10px] text-gray-500">Precio {currencySymbol}</label>
                     <CleanNumberInput
                       step={0.01}
                       min={0}
@@ -678,7 +680,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] text-gray-500">Coste €</label>
+                    <label className="block text-[10px] text-gray-500">Coste {currencySymbol}</label>
                     <CleanNumberInput
                       step={0.01}
                       min={0}
@@ -711,7 +713,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] text-gray-500">Precio €</label>
+                  <label className="block text-[10px] text-gray-500">Precio {currencySymbol}</label>
                   <CleanNumberInput
                     step={0.01}
                     min={0}
@@ -723,7 +725,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] text-gray-500">Coste €</label>
+                  <label className="block text-[10px] text-gray-500">Coste {currencySymbol}</label>
                   <CleanNumberInput
                     step={0.01}
                     min={0}
@@ -755,7 +757,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] text-gray-500">Precio €</label>
+                  <label className="block text-[10px] text-gray-500">Precio {currencySymbol}</label>
                   <CleanNumberInput
                     step={0.05}
                     min={0}
@@ -767,7 +769,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] text-gray-500">Coste €</label>
+                  <label className="block text-[10px] text-gray-500">Coste {currencySymbol}</label>
                   <CleanNumberInput
                     step={0.05}
                     min={0}

@@ -113,7 +113,7 @@ export const PropuestaClienteTab: React.FC<PropuestaClienteTabProps> = ({
       lines.push(`- ${isEn ? '1st Unit Pick' : '1er Pick del pedido (1ª ud)'}: ${formatEur(results.firstPickPrice)} ${isEn ? 'per order' : 'por pedido'}`);
       lines.push(`- ${isEn ? 'Additional Pick (> 1st unit)' : 'Pick adicional (> 1ª unidad)'}: ${formatEur(results.additionalPickPrice)} ${isEn ? 'per extra unit' : 'por unidad extra'}`);
       if (inputs.customPackaging) {
-        lines.push(`- ${isEn ? 'Custom packaging (client owned)' : 'Packaging personalizado (propio del cliente)'}: 0,00 € (${isEn ? 'Base fee cancelled' : 'Tarifa base cancelada'})`);
+        lines.push(`- ${isEn ? 'Custom packaging (client owned)' : 'Packaging personalizado (propio del cliente)'}: ${formatEur(0)} (${isEn ? 'Base fee cancelled' : 'Tarifa base cancelada'})`);
       } else if (inputs.packagingPrice > 0) {
         lines.push(`- ${isEn ? 'Base packaging' : 'Packaging base'}: ${formatEur(inputs.packagingPrice)} ${isEn ? 'per order' : 'por pedido'}`);
       }
@@ -534,7 +534,7 @@ export const PropuestaClienteTab: React.FC<PropuestaClienteTabProps> = ({
                               : 'Caja o sobre homologado, precinto y etiqueta de envío')}
                       </td>
                       <td className={`text-right font-mono font-bold ${inputs.customPackaging ? 'text-amber-700' : 'text-gray-900'} ${compactMode ? 'px-3 py-1.5 text-xs' : 'px-4 py-2.5'}`}>
-                        {inputs.customPackaging ? '0,00 €' : formatEur(inputs.packagingPrice)}
+                        {inputs.customPackaging ? formatEur(0) : formatEur(inputs.packagingPrice)}
                       </td>
                     </tr>
                   </tbody>

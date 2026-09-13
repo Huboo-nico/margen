@@ -39,7 +39,7 @@ export const PriceMarginRow: React.FC<PriceMarginRowProps> = ({
   badge,
   hideMarginButton = false,
 }) => {
-  const { language } = useLanguage();
+  const { language, currencySymbol } = useLanguage();
 
   // Price calculations
   const currentPrice =
@@ -237,7 +237,7 @@ export const PriceMarginRow: React.FC<PriceMarginRowProps> = ({
                 placeholder="0.00"
                 className="w-full border border-gray-300 rounded px-2.5 py-1 text-xs font-mono font-bold text-gray-900 focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white"
               />
-              <span className="absolute right-2.5 top-1 text-xs text-gray-400 font-semibold">€</span>
+              <span className="absolute right-2.5 top-1 text-xs text-gray-400 font-semibold">{currencySymbol}</span>
             </div>
           ) : (
             <div className="text-xs font-mono font-bold text-gray-800 bg-white border border-gray-200 rounded px-2.5 py-1">
@@ -324,7 +324,7 @@ export const PriceMarginRow: React.FC<PriceMarginRowProps> = ({
               placeholder="0.00"
               className="w-full border border-gray-300 rounded px-2.5 py-1 text-xs font-mono font-bold text-gray-900 focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white"
             />
-            <span className="absolute right-2.5 top-1 text-xs text-gray-400 font-semibold">€</span>
+            <span className="absolute right-2.5 top-1 text-xs text-gray-400 font-semibold">{currencySymbol}</span>
           </div>
         </div>
       </div>
