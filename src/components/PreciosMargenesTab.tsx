@@ -3,6 +3,7 @@ import { CalculatorInputs, CalculationResults, ProductType } from '../types';
 import { PriceMarginRow } from './PriceMarginRow';
 import { PRODUCT_PROFILES, AVAILABLE_TECHNOLOGIES } from '../data/constants';
 import { useLanguage } from '../context/LanguageContext';
+import { CleanNumberInput } from './CleanNumberInput';
 import {
   formatEur,
   formatPct,
@@ -262,12 +263,14 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
             <label className="block text-xs font-medium text-gray-700 mb-1">
               {language === 'en' ? 'Active SKUs in warehouse' : 'Número de SKUs activos'}
             </label>
-            <input
-              type="number"
+            <CleanNumberInput
               min={1}
               max={50000}
+              step={1}
+              integerOnly={true}
+              fallbackValue={1}
               value={inputs.skuCount}
-              onChange={(e) => onChange({ skuCount: Math.max(1, Number(e.target.value)) })}
+              onChange={(val) => onChange({ skuCount: val })}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-red-500"
             />
             <p className="text-[10px] text-gray-400 mt-1">
@@ -477,12 +480,14 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
             <label className="block text-xs font-medium text-gray-700 mb-1">
               {language === 'en' ? 'Working days / month' : 'Días laborables / mes'}
             </label>
-            <input
-              type="number"
+            <CleanNumberInput
               min={1}
               max={31}
+              step={1}
+              integerOnly={true}
+              fallbackValue={22}
               value={inputs.workingDays}
-              onChange={(e) => onChange({ workingDays: Math.max(1, Number(e.target.value)) })}
+              onChange={(val) => onChange({ workingDays: val })}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs font-mono font-medium focus:ring-2 focus:ring-red-500"
             />
             <p className="text-[10px] text-gray-400 mt-1">
@@ -496,13 +501,12 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
               <label className="block text-xs font-bold text-gray-900 mb-1">
                 {language === 'en' ? 'Orders / day (Input)' : 'Pedidos / día (Entrada)'}
               </label>
-              <input
-                type="number"
-                step="1"
+              <CleanNumberInput
                 min={0}
+                step={1}
+                fallbackValue={0}
                 value={inputs.ordersPerDay}
-                onChange={(e) => {
-                  const val = Math.max(0, Number(e.target.value));
+                onChange={(val) => {
                   onChange({
                     ordersPerDay: val,
                     ordersMonth: val * inputs.workingDays,
@@ -519,13 +523,12 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
               <label className="block text-xs font-bold text-gray-900 mb-1">
                 {language === 'en' ? 'Orders / month (Input)' : 'Pedidos / mes (Entrada)'}
               </label>
-              <input
-                type="number"
-                step="10"
+              <CleanNumberInput
                 min={0}
+                step={10}
+                fallbackValue={0}
                 value={inputs.ordersMonth}
-                onChange={(e) => {
-                  const val = Math.max(0, Number(e.target.value));
+                onChange={(val) => {
                   onChange({
                     ordersMonth: val,
                     ordersPerDay: inputs.workingDays > 0 ? val / inputs.workingDays : 0,
@@ -549,13 +552,14 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
                 {inputs.unitsPerOrder} {language === 'en' ? 'units' : 'uds'}
               </span>
             </div>
-            <input
-              type="number"
-              step="0.1"
+            <CleanNumberInput
               min={1.0}
               max={50.0}
+              step={0.1}
+              decimals={1}
+              fallbackValue={1.0}
               value={inputs.unitsPerOrder}
-              onChange={(e) => onChange({ unitsPerOrder: Math.max(1.0, Number(e.target.value)) })}
+              onChange={(val) => onChange({ unitsPerOrder: val })}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs font-mono font-medium focus:ring-2 focus:ring-red-500"
             />
             <p className="text-[10px] text-gray-400 mt-1">
@@ -692,12 +696,14 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
                 className="w-full accent-red-600 h-1.5 bg-gray-200 rounded cursor-pointer"
               />
               <div className="flex justify-end mt-1">
-                <input
-                  type="number"
+                <CleanNumberInput
                   min={0}
                   max={100}
+                  step={1}
+                  integerOnly={true}
+                  fallbackValue={0}
                   value={inputs[item.key]}
-                  onChange={(e) => onChange({ [item.key]: Math.max(0, Math.min(100, Number(e.target.value))) })}
+                  onChange={(val) => onChange({ [item.key]: val })}
                   className="w-16 text-right border border-gray-300 rounded px-1.5 py-0.5 text-xs font-mono"
                 />
               </div>

@@ -7,6 +7,7 @@ import {
 import { PRODUCT_PROFILES } from '../data/constants';
 import { ChevronDown, ChevronRight, AlertCircle, Package, Truck, Layers, User } from 'lucide-react';
 import { formatEur } from '../utils/calculations';
+import { CleanNumberInput } from './CleanNumberInput';
 
 interface SidebarProps {
   inputs: CalculatorInputs;
@@ -64,12 +65,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
             <label className="block text-xs font-medium text-gray-700 mb-1">
               Número de SKUs activos
             </label>
-            <input
-              type="number"
+            <CleanNumberInput
               min={1}
               max={50000}
+              step={1}
+              integerOnly={true}
+              fallbackValue={1}
               value={inputs.skuCount}
-              onChange={(e) => onChange({ skuCount: Math.max(1, Number(e.target.value)) })}
+              onChange={(val) => onChange({ skuCount: val })}
               className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-red-500 font-mono"
             />
           </div>
@@ -162,12 +165,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
               <label className="block text-xs font-medium text-gray-600 mb-1">
                 Días laborables
               </label>
-              <input
-                type="number"
+              <CleanNumberInput
                 min={1}
                 max={31}
+                step={1}
+                integerOnly={true}
+                fallbackValue={22}
                 value={inputs.workingDays}
-                onChange={(e) => onChange({ workingDays: Math.max(1, Number(e.target.value)) })}
+                onChange={(val) => onChange({ workingDays: val })}
                 className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-xs font-mono"
               />
             </div>
@@ -177,15 +182,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
                 <label className="block text-xs font-medium text-gray-600 mb-1">
                   Pedidos / día
                 </label>
-                <input
-                  type="number"
-                  step="1"
+                <CleanNumberInput
                   min={0}
+                  step={1}
+                  fallbackValue={0}
                   value={inputs.ordersPerDay}
-                  onChange={(e) =>
+                  onChange={(val) =>
                     onChange({
-                      ordersPerDay: Math.max(0, Number(e.target.value)),
-                      ordersMonth: Math.max(0, Number(e.target.value)) * inputs.workingDays,
+                      ordersPerDay: val,
+                      ordersMonth: val * inputs.workingDays,
                     })
                   }
                   className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-xs font-mono font-semibold"
@@ -196,17 +201,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
                 <label className="block text-xs font-medium text-gray-600 mb-1">
                   Pedidos / mes
                 </label>
-                <input
-                  type="number"
-                  step="10"
+                <CleanNumberInput
                   min={0}
+                  step={10}
+                  fallbackValue={0}
                   value={inputs.ordersMonth}
-                  onChange={(e) =>
+                  onChange={(val) =>
                     onChange({
-                      ordersMonth: Math.max(0, Number(e.target.value)),
+                      ordersMonth: val,
                       ordersPerDay:
                         inputs.workingDays > 0
-                          ? Math.max(0, Number(e.target.value)) / inputs.workingDays
+                          ? val / inputs.workingDays
                           : 0,
                     })
                   }
@@ -221,13 +226,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
               <span>Units por pedido (cesta media)</span>
               <span className="font-mono font-bold text-gray-800">{inputs.unitsPerOrder}</span>
             </div>
-            <input
-              type="number"
-              step="0.1"
+            <CleanNumberInput
               min={1.0}
               max={50.0}
+              step={0.1}
+              decimals={1}
+              fallbackValue={1.0}
               value={inputs.unitsPerOrder}
-              onChange={(e) => onChange({ unitsPerOrder: Math.max(1.0, Number(e.target.value)) })}
+              onChange={(val) => onChange({ unitsPerOrder: val })}
               className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-xs font-mono"
             />
             <p className="text-[10px] text-gray-400 mt-1">
@@ -322,13 +328,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
             </div>
             <div>
               <label className="block text-[10px] text-gray-500 mb-0.5">Precio Pack (€)</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
+              <CleanNumberInput
+                step={0.01}
+                min={0}
+                decimals={2}
+                fallbackValue={0}
                 value={Number(results.packPrice.toFixed(2))}
-                onChange={(e) => {
-                  const p = Math.max(0, Number(e.target.value));
+                onChange={(p) => {
                   const m = results.packCost > 0 && p > 0 ? (p - results.packCost) / p : 0;
                   onChange({
                     packPriceManual: p,
@@ -380,13 +386,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
             </div>
             <div>
               <label className="block text-[10px] text-gray-500 mb-0.5">Precio 1er Pick (€)</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
+              <CleanNumberInput
+                step={0.01}
+                min={0}
+                decimals={2}
+                fallbackValue={0}
                 value={Number(results.firstPickPrice.toFixed(2))}
-                onChange={(e) => {
-                  const p = Math.max(0, Number(e.target.value));
+                onChange={(p) => {
                   const m = results.firstPickCost > 0 && p > 0 ? (p - results.firstPickCost) / p : 0;
                   onChange({
                     firstPickPriceManual: p,
@@ -436,13 +442,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
             </div>
             <div>
               <label className="block text-[10px] text-gray-500 mb-0.5">Precio venta / pick</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
+              <CleanNumberInput
+                step={0.01}
+                min={0}
+                decimals={2}
+                fallbackValue={0}
                 value={Number(results.additionalPickPrice.toFixed(2))}
-                onChange={(e) => {
-                  const p = Math.max(0, Number(e.target.value));
+                onChange={(p) => {
                   const m = results.additionalPickCost > 0 && p > 0 ? (p - results.additionalPickCost) / p : 0;
                   onChange({
                     additionalPickPriceManual: p,
@@ -469,12 +475,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
             <label className="block text-xs font-medium text-gray-700 mb-1">
               Carrier Cost (€)
             </label>
-            <input
-              type="number"
-              step="0.01"
+            <CleanNumberInput
+              step={0.01}
               min={0}
+              decimals={2}
+              fallbackValue={0}
               value={inputs.carrierCost}
-              onChange={(e) => onChange({ carrierCost: Math.max(0, Number(e.target.value)) })}
+              onChange={(cost) => onChange({ carrierCost: cost })}
               className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-xs font-mono"
             />
           </div>
@@ -509,13 +516,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
                 +{formatEur(results.shippingProfitPerOrder)} / pedido
               </span>
             </div>
-            <input
-              type="number"
-              step="0.01"
+            <CleanNumberInput
+              step={0.01}
               min={0}
+              decimals={2}
+              fallbackValue={0}
               value={Number(results.shippingPrice.toFixed(2))}
-              onChange={(e) => {
-                const p = Math.max(0, Number(e.target.value));
+              onChange={(p) => {
                 const m = inputs.carrierCost > 0 && p > 0 ? (p - inputs.carrierCost) / p : 0;
                 onChange({
                   shippingPriceManual: p,
@@ -548,23 +555,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-[10px] text-gray-500">Precio €</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
+                  <CleanNumberInput
+                    step={0.01}
+                    min={0}
+                    decimals={2}
+                    fallbackValue={0}
                     value={inputs.packagingPrice}
-                    onChange={(e) => onChange({ packagingPrice: Math.max(0, Number(e.target.value)) })}
+                    onChange={(val) => onChange({ packagingPrice: val })}
                     className="w-full border border-gray-300 rounded px-2 py-1 text-xs font-mono"
                   />
                 </div>
                 <div>
                   <label className="block text-[10px] text-gray-500">Coste €</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
+                  <CleanNumberInput
+                    step={0.01}
+                    min={0}
+                    decimals={2}
+                    fallbackValue={0}
                     value={inputs.packagingCost}
-                    onChange={(e) => onChange({ packagingCost: Math.max(0, Number(e.target.value)) })}
+                    onChange={(val) => onChange({ packagingCost: val })}
                     className="w-full border border-gray-300 rounded px-2 py-1 text-xs font-mono"
                   />
                 </div>
@@ -577,32 +586,38 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
               <div className="grid grid-cols-3 gap-1.5">
                 <div>
                   <label className="block text-[10px] text-gray-500">Cant.</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="10"
+                  <CleanNumberInput
+                    min={0}
+                    max={10}
+                    step={1}
+                    integerOnly={true}
+                    fallbackValue={0}
                     value={inputs.insertsPerOrder}
-                    onChange={(e) => onChange({ insertsPerOrder: Math.max(0, Number(e.target.value)) })}
+                    onChange={(val) => onChange({ insertsPerOrder: val })}
                     className="w-full border border-gray-300 rounded px-1.5 py-1 text-xs font-mono"
                   />
                 </div>
                 <div>
                   <label className="block text-[10px] text-gray-500">Precio €</label>
-                  <input
-                    type="number"
-                    step="0.01"
+                  <CleanNumberInput
+                    step={0.01}
+                    min={0}
+                    decimals={2}
+                    fallbackValue={0}
                     value={inputs.insertPrice}
-                    onChange={(e) => onChange({ insertPrice: Math.max(0, Number(e.target.value)) })}
+                    onChange={(val) => onChange({ insertPrice: val })}
                     className="w-full border border-gray-300 rounded px-1.5 py-1 text-xs font-mono"
                   />
                 </div>
                 <div>
                   <label className="block text-[10px] text-gray-500">Coste €</label>
-                  <input
-                    type="number"
-                    step="0.01"
+                  <CleanNumberInput
+                    step={0.01}
+                    min={0}
+                    decimals={2}
+                    fallbackValue={0}
                     value={inputs.insertCost}
-                    onChange={(e) => onChange({ insertCost: Math.max(0, Number(e.target.value)) })}
+                    onChange={(val) => onChange({ insertCost: val })}
                     className="w-full border border-gray-300 rounded px-1.5 py-1 text-xs font-mono"
                   />
                 </div>
@@ -615,33 +630,38 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
               <div className="grid grid-cols-3 gap-1.5">
                 <div>
                   <label className="block text-[10px] text-gray-500">Tasa %</label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    min="0"
-                    max="50"
-                    value={Math.round(inputs.returnRate * 100)}
-                    onChange={(e) => onChange({ returnRate: Math.max(0, Number(e.target.value)) / 100 })}
+                  <CleanNumberInput
+                    step={0.5}
+                    min={0}
+                    max={50}
+                    decimals={1}
+                    fallbackValue={0}
+                    value={Math.round(inputs.returnRate * 1000) / 10}
+                    onChange={(val) => onChange({ returnRate: val / 100 })}
                     className="w-full border border-gray-300 rounded px-1.5 py-1 text-xs font-mono"
                   />
                 </div>
                 <div>
                   <label className="block text-[10px] text-gray-500">Precio €</label>
-                  <input
-                    type="number"
-                    step="0.05"
+                  <CleanNumberInput
+                    step={0.05}
+                    min={0}
+                    decimals={2}
+                    fallbackValue={0}
                     value={inputs.returnHandlingPrice}
-                    onChange={(e) => onChange({ returnHandlingPrice: Math.max(0, Number(e.target.value)) })}
+                    onChange={(val) => onChange({ returnHandlingPrice: val })}
                     className="w-full border border-gray-300 rounded px-1.5 py-1 text-xs font-mono"
                   />
                 </div>
                 <div>
                   <label className="block text-[10px] text-gray-500">Coste €</label>
-                  <input
-                    type="number"
-                    step="0.05"
+                  <CleanNumberInput
+                    step={0.05}
+                    min={0}
+                    decimals={2}
+                    fallbackValue={0}
                     value={inputs.returnHandlingCost}
-                    onChange={(e) => onChange({ returnHandlingCost: Math.max(0, Number(e.target.value)) })}
+                    onChange={(val) => onChange({ returnHandlingCost: val })}
                     className="w-full border border-gray-300 rounded px-1.5 py-1 text-xs font-mono"
                   />
                 </div>
@@ -654,23 +674,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
               <div className="grid grid-cols-2 gap-2 mb-2">
                 <div>
                   <label className="block text-[10px] text-gray-500">Pallets Goods-in/mes</label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    min="0"
+                  <CleanNumberInput
+                    step={0.5}
+                    min={0}
+                    fallbackValue={0}
                     value={inputs.goodsInPalletsMonth}
-                    onChange={(e) => onChange({ goodsInPalletsMonth: Math.max(0, Number(e.target.value)) })}
+                    onChange={(val) => onChange({ goodsInPalletsMonth: val })}
                     className="w-full border border-gray-300 rounded px-2 py-1 text-xs font-mono"
                   />
                 </div>
                 <div>
                   <label className="block text-[10px] text-gray-500">Pallet-weeks storage/mes</label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    min="0"
+                  <CleanNumberInput
+                    step={0.5}
+                    min={0}
+                    fallbackValue={0}
                     value={inputs.storagePalletWeeksMonth}
-                    onChange={(e) => onChange({ storagePalletWeeksMonth: Math.max(0, Number(e.target.value)) })}
+                    onChange={(val) => onChange({ storagePalletWeeksMonth: val })}
                     className="w-full border border-gray-300 rounded px-2 py-1 text-xs font-mono"
                   />
                 </div>
