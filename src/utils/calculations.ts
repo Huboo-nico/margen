@@ -111,6 +111,7 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
     carrierCost,
     shippingMarginTarget,
     shippingPriceManual,
+    customPackaging = false,
     insertsPerOrder,
     insertPrice,
     insertCost,
@@ -261,11 +262,13 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
   const shippingProfitPerOrder = shippingPrice - Number(carrierCost);
 
   // 6. Servicios Unitarios por Pedido
+  const hasCustomPackaging = Boolean(customPackaging);
   const insertRevenuePerOrder = Number(insertsPerOrder) * Number(insertPrice);
   const insertCostPerOrder = Number(insertsPerOrder) * Number(insertCost);
 
-  const packagingPricePerOrder = Number(packagingPrice);
-  const packagingCostPerOrder = Number(packagingCost);
+  // Si el cliente tiene packaging personalizado propio, nuestro packaging base se cancela (0€)
+  const packagingPricePerOrder = hasCustomPackaging ? 0 : Number(packagingPrice);
+  const packagingCostPerOrder = hasCustomPackaging ? 0 : Number(packagingCost);
 
   const surchargePricePerOrder = 0;
   const surchargeCostPerOrder = 0;
@@ -417,7 +420,9 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
       markup: markupFromPrice(insertRevenuePerOrder, insertCostPerOrder),
     },
     {
-      linea: 'Packaging base',
+      linea: hasCustomPackaging
+        ? 'Packaging base (Cancelado - Propio cliente)'
+        : 'Packaging base',
       categoria: 'Servicios',
       unitPrice: packagingPricePerOrder,
       unitCost: packagingCostPerOrder,
@@ -579,6 +584,8 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
     orderProfitExShipping,
     marginOrderExShipping,
 
+    // Servicios unitarios
+    customPackaging: hasCustomPackaging,
     insertRevenuePerOrder,
     insertCostPerOrder,
     packagingPricePerOrder,

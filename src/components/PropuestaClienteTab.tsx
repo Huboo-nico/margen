@@ -112,7 +112,9 @@ export const PropuestaClienteTab: React.FC<PropuestaClienteTabProps> = ({
       lines.push(`- ${isEn ? 'Base Preparation (Pack)' : 'Preparación base (Pack)'}: ${formatEur(results.packPrice)} ${isEn ? 'per order' : 'por pedido'}`);
       lines.push(`- ${isEn ? '1st Unit Pick' : '1er Pick del pedido (1ª ud)'}: ${formatEur(results.firstPickPrice)} ${isEn ? 'per order' : 'por pedido'}`);
       lines.push(`- ${isEn ? 'Additional Pick (> 1st unit)' : 'Pick adicional (> 1ª unidad)'}: ${formatEur(results.additionalPickPrice)} ${isEn ? 'per extra unit' : 'por unidad extra'}`);
-      if (inputs.packagingPrice > 0) {
+      if (inputs.customPackaging) {
+        lines.push(`- ${isEn ? 'Custom packaging (client owned)' : 'Packaging personalizado (propio del cliente)'}: 0,00 € (${isEn ? 'Base fee cancelled' : 'Tarifa base cancelada'})`);
+      } else if (inputs.packagingPrice > 0) {
         lines.push(`- ${isEn ? 'Base packaging' : 'Packaging base'}: ${formatEur(inputs.packagingPrice)} ${isEn ? 'per order' : 'por pedido'}`);
       }
       lines.push('');
@@ -518,15 +520,21 @@ export const PropuestaClienteTab: React.FC<PropuestaClienteTabProps> = ({
                     </tr>
                     <tr>
                       <td className={`font-medium text-gray-800 ${compactMode ? 'px-3 py-1.5 text-xs' : 'px-4 py-2.5'}`}>
-                        {language === 'en' ? 'Standard base packaging' : 'Packaging base estándar'}
+                        {inputs.customPackaging
+                          ? (language === 'en' ? 'Custom client packaging' : 'Packaging personalizado del cliente')
+                          : (language === 'en' ? 'Standard base packaging' : 'Packaging base estándar')}
                       </td>
                       <td className={`text-gray-500 ${compactMode ? 'px-3 py-1.5 text-[11px]' : 'px-4 py-2.5'}`}>
-                        {language === 'en'
-                          ? 'Certified box or mailer, security tape, and shipping label'
-                          : 'Caja o sobre homologado, precinto y etiqueta de envío'}
+                        {inputs.customPackaging
+                          ? (language === 'en'
+                              ? 'Provided by client · Standard base packaging fee cancelled'
+                              : 'Suministrado por el cliente · Tarifa de base packaging cancelada')
+                          : (language === 'en'
+                              ? 'Certified box or mailer, security tape, and shipping label'
+                              : 'Caja o sobre homologado, precinto y etiqueta de envío')}
                       </td>
-                      <td className={`text-right font-mono font-bold text-gray-900 ${compactMode ? 'px-3 py-1.5 text-xs' : 'px-4 py-2.5'}`}>
-                        {formatEur(inputs.packagingPrice)}
+                      <td className={`text-right font-mono font-bold ${inputs.customPackaging ? 'text-amber-700' : 'text-gray-900'} ${compactMode ? 'px-3 py-1.5 text-xs' : 'px-4 py-2.5'}`}>
+                        {inputs.customPackaging ? '0,00 €' : formatEur(inputs.packagingPrice)}
                       </td>
                     </tr>
                   </tbody>

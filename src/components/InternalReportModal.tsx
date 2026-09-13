@@ -482,32 +482,7 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                       </td>
                     </tr>
 
-                    {/* Subtotal Prep + 1er Pick */}
-                    <tr className="bg-red-50/40 border-y border-red-100 font-semibold print:bg-gray-50">
-                      <td className="px-3 py-1.5 text-red-950 font-bold">
-                        <div>Total Preparación + 1er Pick (Base Pedido)</div>
-                        <div className="text-[9px] text-red-700 font-normal">
-                          Fee mínimo garantizado por paquete procesado
-                        </div>
-                      </td>
-                      <td className="px-2 py-1.5 text-right font-mono text-red-950">
-                        {formatEur(results.prepPlusFirstPickCost)}
-                      </td>
-                      <td className="px-2 py-1.5 text-right font-mono font-bold text-red-700">
-                        {formatPct(results.prepPlusFirstPickMargin)}
-                      </td>
-                      <td className="px-2 py-1.5 text-right font-mono font-bold text-blue-800">
-                        {formatMarkup(results.prepPlusFirstPickMarkup)}
-                      </td>
-                      <td className="px-3 py-1.5 text-right font-mono font-black text-red-700 text-xs sm:text-sm">
-                        {formatEur(results.prepPlusFirstPickPrice)}
-                      </td>
-                      <td className="px-2.5 py-1.5 text-right font-mono font-bold text-emerald-800">
-                        +{formatEur(results.prepPlusFirstPickProfit)}
-                      </td>
-                    </tr>
-
-                    {/* Picks adicionales */}
+                  {/* Picks adicionales */}
                     <tr className="bg-white">
                       <td className="px-3 py-1.5 font-medium text-gray-900">
                         <div>Picks adicionales (&gt; 1 unidad)</div>
@@ -657,7 +632,7 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
               <h4 className="font-bold text-gray-800 mb-1 uppercase text-[9px] tracking-wider">
                 Parámetros Operativos de la Oferta
               </h4>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-1 gap-x-3 text-[10.5px] text-gray-600 print:text-[10px]">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-1.5 gap-x-3 text-[10.5px] text-gray-600 print:text-[10px]">
                 <div>
                   Fuente coste pack: <strong>Calculadora (negociado)</strong>
                 </div>
@@ -669,6 +644,18 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                 </div>
                 <div>
                   Coste carrier base: <strong>{formatEur(results.carrierCost)}</strong>
+                </div>
+                <div>
+                  Packaging: <strong>{inputs.customPackaging ? 'Personalizado (Cliente)' : 'Estándar Huboo'}</strong>
+                </div>
+                <div>
+                  Almacenaje estimado: <strong>{inputs.storagePalletWeeksMonth} pallet·sem/mes</strong>
+                </div>
+                <div>
+                  Recepción Goods-In: <strong>{inputs.goodsInPalletsMonth} pal/mes</strong>
+                </div>
+                <div>
+                  Inserts por pedido: <strong>{inputs.insertsPerOrder} uds</strong>
                 </div>
               </div>
             </div>

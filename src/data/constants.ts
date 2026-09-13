@@ -115,6 +115,7 @@ export const DEFAULT_INPUTS: CalculatorInputs = {
   skuCount: 15,
   productType: 'Suplementos',
   packCostSource: 'Calculadora (negociado)',
+  customPackaging: false,
 
   // 2. Volumen
   volumeMode: 'Pedidos/día',

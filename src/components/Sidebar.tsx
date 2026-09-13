@@ -119,6 +119,106 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
               </span>
             </div>
           </div>
+
+          {/* Parámetros Operativos del Cliente */}
+          <div className="pt-2 border-t border-gray-100 space-y-2.5">
+            <div className="text-[11px] font-bold text-gray-800 flex items-center justify-between">
+              <span>Operativa & Embalaje Cliente</span>
+              <span className="text-[9px] text-gray-400 font-normal">Almacén & Picks</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
+                  Palet x week
+                </label>
+                <CleanNumberInput
+                  min={0}
+                  step={1}
+                  fallbackValue={0}
+                  value={inputs.storagePalletWeeksMonth}
+                  onChange={(val) => onChange({ storagePalletWeeksMonth: val })}
+                  className="w-full border border-gray-300 rounded px-2 py-1 text-xs font-mono"
+                  placeholder="0"
+                />
+                <span className="text-[9px] text-gray-400">Pallets almacenados</span>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
+                  Inbound palets
+                </label>
+                <CleanNumberInput
+                  min={0}
+                  step={1}
+                  fallbackValue={0}
+                  value={inputs.goodsInPalletsMonth}
+                  onChange={(val) => onChange({ goodsInPalletsMonth: val })}
+                  className="w-full border border-gray-300 rounded px-2 py-1 text-xs font-mono"
+                  placeholder="0"
+                />
+                <span className="text-[9px] text-gray-400">Entradas / mes</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
+                Cantidad de inserts x pick
+              </label>
+              <CleanNumberInput
+                min={0}
+                step={1}
+                fallbackValue={0}
+                value={inputs.insertsPerOrder}
+                onChange={(val) => onChange({ insertsPerOrder: val })}
+                className="w-full border border-gray-300 rounded px-2 py-1 text-xs font-mono"
+                placeholder="0"
+              />
+              <span className="text-[9px] text-gray-400">Inserts o folletos por pedido</span>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[11px] font-medium text-gray-700">
+                  Packaging personalizado
+                </label>
+                {inputs.customPackaging && (
+                  <span className="text-[9px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-1 rounded">
+                    Cancelado Base
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => onChange({ customPackaging: true })}
+                  className={`py-1 text-xs font-bold rounded border transition cursor-pointer ${
+                    inputs.customPackaging
+                      ? 'bg-amber-600 text-white border-amber-700 shadow-xs'
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  Sí (Propio)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onChange({ customPackaging: false })}
+                  className={`py-1 text-xs font-bold rounded border transition cursor-pointer ${
+                    !inputs.customPackaging
+                      ? 'bg-gray-800 text-white border-gray-900 shadow-xs'
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  No (Estándar)
+                </button>
+              </div>
+              <p className="text-[9.5px] text-gray-500 mt-1 leading-tight">
+                {inputs.customPackaging
+                  ? 'Packaging propio del cliente activo: el packaging base se cancela (0,00 €).'
+                  : 'Se factura packaging base estándar.'}
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -551,33 +651,46 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
           <div className="p-3 bg-white space-y-3 border-t border-gray-200">
             {/* Packaging */}
             <div className="border-b border-gray-100 pb-2">
-              <span className="text-xs font-semibold text-gray-800 block mb-1">Packaging Base</span>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[10px] text-gray-500">Precio €</label>
-                  <CleanNumberInput
-                    step={0.01}
-                    min={0}
-                    decimals={2}
-                    fallbackValue={0}
-                    value={inputs.packagingPrice}
-                    onChange={(val) => onChange({ packagingPrice: val })}
-                    className="w-full border border-gray-300 rounded px-2 py-1 text-xs font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-gray-500">Coste €</label>
-                  <CleanNumberInput
-                    step={0.01}
-                    min={0}
-                    decimals={2}
-                    fallbackValue={0}
-                    value={inputs.packagingCost}
-                    onChange={(val) => onChange({ packagingCost: val })}
-                    className="w-full border border-gray-300 rounded px-2 py-1 text-xs font-mono"
-                  />
-                </div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-semibold text-gray-800">Packaging Base</span>
+                {inputs.customPackaging && (
+                  <span className="text-[9px] font-bold text-amber-800 bg-amber-100 border border-amber-200 px-1 rounded">
+                    Cancelado (0,00 €)
+                  </span>
+                )}
               </div>
+              {inputs.customPackaging ? (
+                <div className="bg-amber-50 border border-amber-200 rounded p-2 text-[10px] text-amber-900">
+                  Packaging propio activo: tarifa y coste cancelados a 0,00 € / pedido.
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[10px] text-gray-500">Precio €</label>
+                    <CleanNumberInput
+                      step={0.01}
+                      min={0}
+                      decimals={2}
+                      fallbackValue={0}
+                      value={inputs.packagingPrice}
+                      onChange={(val) => onChange({ packagingPrice: val })}
+                      className="w-full border border-gray-300 rounded px-2 py-1 text-xs font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-gray-500">Coste €</label>
+                    <CleanNumberInput
+                      step={0.01}
+                      min={0}
+                      decimals={2}
+                      fallbackValue={0}
+                      value={inputs.packagingCost}
+                      onChange={(val) => onChange({ packagingCost: val })}
+                      className="w-full border border-gray-300 rounded px-2 py-1 text-xs font-mono"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Inserts */}

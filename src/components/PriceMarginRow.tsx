@@ -19,6 +19,7 @@ interface PriceMarginRowProps {
   onResetCost?: () => void;
   allowCostEdit?: boolean;
   badge?: React.ReactNode;
+  hideMarginButton?: boolean;
 }
 
 export const PriceMarginRow: React.FC<PriceMarginRowProps> = ({
@@ -36,6 +37,7 @@ export const PriceMarginRow: React.FC<PriceMarginRowProps> = ({
   onResetCost,
   allowCostEdit = false,
   badge,
+  hideMarginButton = false,
 }) => {
   const { language } = useLanguage();
 
@@ -178,22 +180,24 @@ export const PriceMarginRow: React.FC<PriceMarginRowProps> = ({
 
         {/* Mode Toggle */}
         <div className="inline-flex rounded-md p-0.5 bg-gray-100 text-[11px] border border-gray-200">
-          <button
-            type="button"
-            onClick={() => onModeChange('margin')}
-            className={`px-2.5 py-1 rounded font-medium transition cursor-pointer ${
-              mode === 'margin'
-                ? 'bg-white text-red-600 shadow-xs font-semibold'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            {language === 'en' ? 'Via Margin %' : 'Vía Margen %'}
-          </button>
+          {!hideMarginButton && (
+            <button
+              type="button"
+              onClick={() => onModeChange('margin')}
+              className={`px-2.5 py-1 rounded font-medium transition cursor-pointer ${
+                mode === 'margin'
+                  ? 'bg-white text-red-600 shadow-xs font-semibold'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              {language === 'en' ? 'Via Margin %' : 'Vía Margen %'}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => onModeChange('price')}
             className={`px-2.5 py-1 rounded font-medium transition cursor-pointer ${
-              mode === 'price'
+              mode === 'price' || hideMarginButton
                 ? 'bg-white text-red-600 shadow-xs font-semibold'
                 : 'text-gray-600 hover:text-gray-900'
             }`}

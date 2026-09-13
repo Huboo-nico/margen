@@ -36,6 +36,8 @@ export interface CalculatorInputs {
   skuCount: number;
   productType: ProductType;
   packCostSource: PackCostSource;
+  // Packaging personalizado (si es true, el packaging base se cancela = 0€)
+  customPackaging?: boolean;
 
   // 2. Volumen
   volumeMode: VolumeMode;
@@ -181,6 +183,7 @@ export interface CalculationResults {
   marginOrderExShipping: number | null;
 
   // Servicios unitarios
+  customPackaging: boolean;
   insertRevenuePerOrder: number;
   insertCostPerOrder: number;
   packagingPricePerOrder: number;

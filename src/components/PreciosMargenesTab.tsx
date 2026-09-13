@@ -281,6 +281,135 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
           </div>
         </div>
 
+        {/* 1.2 Parámetros Operativos del Cliente: Almacenaje, Inbound, Inserts y Packaging */}
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <h4 className="text-xs font-bold text-gray-900 mb-2.5 flex items-center gap-1.5">
+            <Package className="w-4 h-4 text-red-600" />
+            <span>
+              {language === 'en'
+                ? 'Client Operational Parameters & Packaging'
+                : 'Parámetros Operativos del Cliente & Embalaje'}
+            </span>
+          </h4>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            {/* Palet x week storage */}
+            <div className="bg-gray-50/70 p-3 rounded-lg border border-gray-200">
+              <label className="block text-xs font-semibold text-gray-800 mb-1">
+                {language === 'en' ? 'Palet x week storage' : 'Palet x week storage'}
+              </label>
+              <CleanNumberInput
+                min={0}
+                step={1}
+                fallbackValue={0}
+                value={inputs.storagePalletWeeksMonth}
+                onChange={(val) => onChange({ storagePalletWeeksMonth: val })}
+                className="w-full bg-white border border-gray-300 rounded-md px-2.5 py-1.5 text-xs font-mono font-bold text-gray-900 focus:ring-2 focus:ring-red-500"
+              />
+              <p className="text-[10px] text-gray-500 mt-1">
+                {language === 'en'
+                  ? 'Pallet locations per week / month'
+                  : 'Pallets almacenados por semana'}
+              </p>
+            </div>
+
+            {/* Inbound goods palets */}
+            <div className="bg-gray-50/70 p-3 rounded-lg border border-gray-200">
+              <label className="block text-xs font-semibold text-gray-800 mb-1">
+                {language === 'en' ? 'Inbound goods palets' : 'Inbound goods palets'}
+              </label>
+              <CleanNumberInput
+                min={0}
+                step={1}
+                fallbackValue={0}
+                value={inputs.goodsInPalletsMonth}
+                onChange={(val) => onChange({ goodsInPalletsMonth: val })}
+                className="w-full bg-white border border-gray-300 rounded-md px-2.5 py-1.5 text-xs font-mono font-bold text-gray-900 focus:ring-2 focus:ring-red-500"
+              />
+              <p className="text-[10px] text-gray-500 mt-1">
+                {language === 'en'
+                  ? 'Pallets received & unloaded per month'
+                  : 'Pallets de entrada al mes (recepción)'}
+              </p>
+            </div>
+
+            {/* Cantidad de inserts x pick */}
+            <div className="bg-gray-50/70 p-3 rounded-lg border border-gray-200">
+              <label className="block text-xs font-semibold text-gray-800 mb-1">
+                {language === 'en' ? 'Cantidad de inserts x pick' : 'Cantidad de inserts x pick'}
+              </label>
+              <CleanNumberInput
+                min={0}
+                step={1}
+                fallbackValue={0}
+                value={inputs.insertsPerOrder}
+                onChange={(val) => onChange({ insertsPerOrder: val })}
+                className="w-full bg-white border border-gray-300 rounded-md px-2.5 py-1.5 text-xs font-mono font-bold text-gray-900 focus:ring-2 focus:ring-red-500"
+              />
+              <p className="text-[10px] text-gray-500 mt-1">
+                {language === 'en'
+                  ? 'Flyers or promotional cards / order'
+                  : 'Flyers / muestras por pedido enviado'}
+              </p>
+            </div>
+
+            {/* Packaging personalizado (si o no) */}
+            <div className={`p-3 rounded-lg border transition-colors ${
+              inputs.customPackaging
+                ? 'bg-amber-50/70 border-amber-300'
+                : 'bg-gray-50/70 border-gray-200'
+            }`}>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-gray-800">
+                  {language === 'en' ? 'Packaging personalizado' : 'Packaging personalizado'}
+                </label>
+                {inputs.customPackaging && (
+                  <span className="text-[9px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-1 py-0.2 rounded">
+                    {language === 'en' ? 'Active' : 'Activo'}
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => onChange({ customPackaging: true })}
+                  className={`py-1 text-xs font-bold rounded border transition cursor-pointer flex items-center justify-center gap-1 ${
+                    inputs.customPackaging
+                      ? 'bg-amber-600 text-white border-amber-700 shadow-xs'
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <Check className={`w-3 h-3 ${inputs.customPackaging ? 'opacity-100' : 'opacity-0'}`} />
+                  {language === 'en' ? 'Yes' : 'Sí'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onChange({ customPackaging: false })}
+                  className={`py-1 text-xs font-bold rounded border transition cursor-pointer flex items-center justify-center gap-1 ${
+                    !inputs.customPackaging
+                      ? 'bg-gray-800 text-white border-gray-900 shadow-xs'
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {!inputs.customPackaging && <Check className="w-3 h-3" />}
+                  No
+                </button>
+              </div>
+
+              <p className="text-[10px] mt-1.5 leading-tight text-gray-600">
+                {inputs.customPackaging
+                  ? (language === 'en'
+                      ? '✓ Own custom packaging. Base packaging per order is cancelled (0.00 €).'
+                      : '✓ Embalaje propio. El packaging base por pedido se cancela (0,00 €).')
+                  : (language === 'en'
+                      ? 'Client uses standard base packaging.'
+                      : 'Se aplica packaging base estándar.')}
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Tecnología / Plataformas de Venta (Shopify, TikTok Shop, PrestaShop, WooCommerce, Temu, etc.) */}
         <div className="mt-4 pt-4 border-t border-gray-100">
           <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
@@ -851,22 +980,65 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
 
       {/* 8. SERVICIOS ADICIONALES & ALMACENAJE */}
       <section className="space-y-3">
-        <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
-          {language === 'en' ? '8. Additional Services & Storage' : '8. Servicios Adicionales & Almacenaje'}
-        </h3>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+            {language === 'en' ? '8. Additional Services & Storage' : '8. Servicios Adicionales & Almacenaje'}
+          </h3>
+          <span className="text-[11px] text-gray-500 font-medium">
+            {language === 'en' ? 'Direct unit rates & margins' : 'Tarifas unitarias directas y márgenes'}
+          </span>
+        </div>
+
+        {inputs.customPackaging && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900 flex items-center justify-between gap-3 shadow-2xs">
+            <div className="flex items-center gap-2">
+              <Package className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>
+                {language === 'en'
+                  ? 'Client custom packaging is ACTIVE: Base packaging fee and cost are cancelled (0.00 € / order) in operational calculations and client quote.'
+                  : 'Packaging personalizado del cliente ACTIVO: El coste y tarifa de packaging base están cancelados (0,00 € / pedido) en los cálculos e informe.'}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => onChange({ customPackaging: false })}
+              className="text-[11px] font-semibold text-amber-800 underline hover:text-amber-950 shrink-0 cursor-pointer"
+            >
+              {language === 'en' ? 'Revert to Base' : 'Revertir a Base'}
+            </button>
+          </div>
+        )}
 
         <PriceMarginRow
           label={language === 'en' ? 'Base packaging per order' : 'Packaging base por pedido'}
-          subLabel={language === 'en' ? 'Standard boxes, branded tape or void fill' : 'Cajas estándar, cinta personalizada o precinto'}
-          cost={inputs.packagingCost}
+          subLabel={
+            inputs.customPackaging
+              ? (language === 'en'
+                  ? 'Client supplies own packaging · Huboo base fee is 0.00 €'
+                  : 'El cliente suministra su propio packaging · Tarifa de base es 0,00 €')
+              : (language === 'en'
+                  ? 'Standard boxes, branded tape or void fill'
+                  : 'Cajas estándar, cinta personalizada o precinto')
+          }
+          cost={inputs.customPackaging ? 0 : inputs.packagingCost}
           mode="price"
+          hideMarginButton={true}
+          badge={
+            inputs.customPackaging ? (
+              <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-300 px-1.5 py-0.5 rounded">
+                {language === 'en' ? 'Cancelled (Custom Packaging)' : 'Cancelado (Packaging Personalizado)'}
+              </span>
+            ) : undefined
+          }
           marginTarget={
-            inputs.packagingPrice > 0
+            inputs.customPackaging
+              ? 0
+              : inputs.packagingPrice > 0
               ? (inputs.packagingPrice - inputs.packagingCost) / inputs.packagingPrice
               : 0
           }
-          manualPrice={inputs.packagingPrice}
-          allowCostEdit={true}
+          manualPrice={inputs.customPackaging ? 0 : inputs.packagingPrice}
+          allowCostEdit={!inputs.customPackaging}
           onCostChange={(c) => onChange({ packagingCost: c })}
           onModeChange={() => {}}
           onMarginChange={(mg) => {
@@ -881,6 +1053,7 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
           subLabel={language === 'en' ? 'Promotional brochure, sample or thank-you card included in parcel' : 'Folleto promocional, muestra o tarjeta incluida en el paquete'}
           cost={inputs.insertCost}
           mode="price"
+          hideMarginButton={true}
           marginTarget={
             inputs.insertPrice > 0
               ? (inputs.insertPrice - inputs.insertCost) / inputs.insertPrice
@@ -902,6 +1075,7 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
           subLabel={language === 'en' ? 'Inspection, condition check, refurbishing and restocking' : 'Inspección, control de estado, reacondicionamiento y retorno a stock'}
           cost={inputs.returnHandlingCost}
           mode="price"
+          hideMarginButton={true}
           marginTarget={
             inputs.returnHandlingPrice > 0
               ? (inputs.returnHandlingPrice - inputs.returnHandlingCost) / inputs.returnHandlingPrice
@@ -923,6 +1097,7 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
           subLabel={language === 'en' ? 'Truck unloading, ASN matching and rack put-away' : 'Descarga de camión, control contra albarán y ubicación en rack'}
           cost={inputs.goodsInCost}
           mode="price"
+          hideMarginButton={true}
           marginTarget={
             inputs.goodsInPrice > 0
               ? (inputs.goodsInPrice - inputs.goodsInCost) / inputs.goodsInPrice
@@ -944,6 +1119,7 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
           subLabel={language === 'en' ? 'Cubic meter / pallet rack location per week' : 'Coste de metro cúbico / posición de pallet por semana'}
           cost={inputs.storageCost}
           mode="price"
+          hideMarginButton={true}
           marginTarget={
             inputs.storagePrice > 0
               ? (inputs.storagePrice - inputs.storageCost) / inputs.storagePrice

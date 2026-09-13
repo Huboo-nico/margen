@@ -218,51 +218,34 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenP
         </div>
       </div>
 
-      {/* SPECIAL SPOTLIGHT: PREPARACIÓN + 1ER PICK */}
-      <div className="bg-linear-to-r from-red-50/70 via-white to-amber-50/40 rounded-xl border-2 border-red-200 p-5 shadow-xs">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-red-200/80 pb-4 mb-4">
+      {/* OPERACIONES DE PREPARACIÓN & PICKING: PACK Y 1ER PICK SEPARADOS */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-2xs">
+        <div className="flex items-center gap-2 border-b border-gray-100 pb-3 mb-4">
+          <Package className="w-5 h-5 text-red-600" />
           <div>
-            <div className="flex items-center gap-2">
-              <Package className="w-5 h-5 text-red-600" />
-              <h3 className="text-base font-bold text-gray-900">
-                {language === 'en'
-                  ? 'Order Preparation: Preparation (Pack) + 1st Pick'
-                  : 'Preparación de Pedido: Preparación (Pack) + 1er Pick'}
-              </h3>
-            </div>
-            <p className="text-xs text-gray-600 mt-1 max-w-xl">
+            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
               {language === 'en'
-                ? 'Standard quote structure: base fee covering initial packaging and picking the first unit of the order.'
-                : 'Estructura estándar de cotización: precio base que cubre el empaquetado inicial y la recogida de la primera unidad del pedido.'}
+                ? 'Order Preparation & Picking (Pack & 1st Pick)'
+                : 'Preparación de Pedido & Picking (Pack & 1er Pick)'}
+            </h3>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {language === 'en'
+                ? 'Separate operational rates: base packaging material and physical picking per unit.'
+                : 'Tarifas operativas separadas: material de packaging base y picking físico por unidad.'}
             </p>
-          </div>
-
-          <div className="bg-white px-5 py-3 rounded-lg border border-red-300 shadow-2xs text-right">
-            <span className="text-xs text-gray-500 block font-medium">
-              {language === 'en' ? 'Total Preparation + 1st Pick' : 'Total Preparación + 1er Pick'}
-            </span>
-            <span className="text-2xl font-black text-red-600 font-mono">
-              {formatEur(results.prepPlusFirstPickPrice)}
-            </span>
-            <span className="text-[11px] font-semibold text-emerald-700 block">
-              {language === 'en' ? 'Margin: ' : 'Margen: '}{formatPct(results.prepPlusFirstPickMargin)} · Markup: {formatMarkup(results.prepPlusFirstPickMarkup)}
-            </span>
-            <span className="text-[10px] text-gray-500 block">
-              +{formatEur(results.prepPlusFirstPickProfit)} {language === 'en' ? 'profit/order' : 'beneficio/pedido'}
-            </span>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Pack Component */}
-          <div className="bg-white p-3.5 rounded-lg border border-gray-200">
+          <div className="bg-gray-50/70 p-3.5 rounded-lg border border-gray-200">
             <div className="flex justify-between items-center mb-1">
-              <span className="text-xs font-bold text-gray-700">
+              <span className="text-xs font-bold text-gray-800">
                 {language === 'en' ? '1. Base preparation (Pack)' : '1. Preparación base (Pack)'}
               </span>
-              <span className="text-xs font-mono font-bold text-gray-900">{formatEur(results.packPrice)}</span>
+              <span className="text-sm font-mono font-bold text-gray-900">{formatEur(results.packPrice)}</span>
             </div>
-            <div className="text-[11px] text-gray-500 space-y-0.5">
+            <div className="text-[11px] text-gray-500 space-y-0.5 mt-2">
               <div className="flex justify-between">
                 <span>{language === 'en' ? 'Operational cost:' : 'Coste operativo:'}</span>
                 <span className="font-mono text-gray-700">{formatEur(results.packCost)}</span>
@@ -279,14 +262,14 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenP
           </div>
 
           {/* 1st Pick Component */}
-          <div className="bg-white p-3.5 rounded-lg border border-gray-200">
+          <div className="bg-gray-50/70 p-3.5 rounded-lg border border-gray-200">
             <div className="flex justify-between items-center mb-1">
-              <span className="text-xs font-bold text-gray-700">
+              <span className="text-xs font-bold text-gray-800">
                 {language === 'en' ? '2. First Pick (1st unit)' : '2. Primer Pick (1ª unidad)'}
               </span>
-              <span className="text-xs font-mono font-bold text-gray-900">{formatEur(results.firstPickPrice)}</span>
+              <span className="text-sm font-mono font-bold text-gray-900">{formatEur(results.firstPickPrice)}</span>
             </div>
-            <div className="text-[11px] text-gray-500 space-y-0.5">
+            <div className="text-[11px] text-gray-500 space-y-0.5 mt-2">
               <div className="flex justify-between">
                 <span>{language === 'en' ? 'Operational cost:' : 'Coste operativo:'}</span>
                 <span className="font-mono text-gray-700">{formatEur(results.firstPickCost)}</span>
@@ -303,14 +286,14 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenP
           </div>
 
           {/* Additional Picks Component */}
-          <div className="bg-white p-3.5 rounded-lg border border-gray-200">
+          <div className="bg-gray-50/70 p-3.5 rounded-lg border border-gray-200">
             <div className="flex justify-between items-center mb-1">
-              <span className="text-xs font-bold text-gray-700">
+              <span className="text-xs font-bold text-gray-800">
                 {language === 'en' ? '3. Additional picks (> 1 unit)' : '3. Picks adicionales (> 1 unit)'}
               </span>
-              <span className="text-xs font-mono font-bold text-gray-900">{formatEur(results.additionalPickPrice)}</span>
+              <span className="text-sm font-mono font-bold text-gray-900">{formatEur(results.additionalPickPrice)}</span>
             </div>
-            <div className="text-[11px] text-gray-500 space-y-0.5">
+            <div className="text-[11px] text-gray-500 space-y-0.5 mt-2">
               <div className="flex justify-between">
                 <span>{language === 'en' ? 'Operating cost / pick:' : 'Coste operativo / pick:'}</span>
                 <span className="font-mono text-gray-700">{formatEur(results.additionalPickCost)}</span>
@@ -400,29 +383,7 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenP
                   </td>
                 </tr>
 
-                {/* 3. Subtotal Base Pedido */}
-                <tr className="bg-red-50/40 border-y border-red-100 font-semibold">
-                  <td className="px-4 py-2.5 text-red-950 font-bold">
-                    <div>{language === 'en' ? 'Total Preparation + 1st Pick (Order Base)' : 'Total Preparación + 1er Pick (Base Pedido)'}</div>
-                    <div className="text-[11px] text-red-700 font-normal">
-                      {language === 'en' ? 'Minimum base fee applied per order' : 'Fee base mínimo aplicado por pedido'}
-                    </div>
-                  </td>
-                  <td className="px-3 py-2.5 text-right font-mono text-red-950">
-                    {formatEur(results.prepPlusFirstPickCost)}
-                  </td>
-                  <td className="px-3 py-2.5 text-right font-mono font-bold text-red-700">
-                    {formatPct(results.prepPlusFirstPickMargin)}
-                  </td>
-                  <td className="px-3 py-2.5 text-right font-mono font-bold text-blue-800">
-                    {formatMarkup(results.prepPlusFirstPickMarkup)}
-                  </td>
-                  <td className="px-4 py-2.5 text-right font-mono font-black text-red-700">
-                    {formatEur(results.prepPlusFirstPickPrice)}
-                  </td>
-                </tr>
-
-                {/* 4. Picks adicionales */}
+                {/* 3. Picks adicionales */}
                 <tr className="hover:bg-gray-50/80 transition">
                   <td className="px-4 py-2.5 font-medium text-gray-900">
                     <div>{language === 'en' ? 'Additional picks (> 1 unit)' : 'Picks adicionales (> 1 unidad)'}</div>
