@@ -553,23 +553,26 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
         </div>
       </section>
 
-      {/* 2. VOLUMEN Y CESTA */}
+      {/* 2. VOLUMEN Y ÓRDENES */}
       <section className="bg-white rounded-xl border border-gray-200 p-5 shadow-2xs">
-        <div className="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-100 pb-3 mb-4 gap-2">
           <div className="flex items-center gap-2">
             <Layers className="w-5 h-5 text-red-600" />
             <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
-              {language === 'en' ? '2. Order Volume & Average Basket' : '2. Volumen y Cesta Media'}
+              {language === 'en' ? '2. Order Volume & Average Basket' : '2. Volumen y Órdenes Medias'}
             </h3>
           </div>
           <span className="text-xs font-mono text-gray-600">
             {language === 'en' ? 'Monthly total: ' : 'Total mes: '}
             <strong>{results.ordersMonth.toLocaleString(language === 'en' ? 'en-US' : 'es-ES')}</strong> {language === 'en' ? 'orders' : 'pedidos'} (
             <strong>{(results.ordersMonth * results.unitsPerOrder).toLocaleString(language === 'en' ? 'en-US' : 'es-ES', { maximumFractionDigits: 0 })}</strong> {language === 'en' ? 'units/month' : 'units/mes'})
+            {inputs.returnRate > 0 && (
+              <> · <span className="text-amber-700 font-semibold">{Math.round(results.ordersMonth * inputs.returnRate).toLocaleString(language === 'en' ? 'en-US' : 'es-ES')} {language === 'en' ? 'returns' : 'devoluciones'} ({(inputs.returnRate * 100).toFixed(1)}%)</span></>
+            )}
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {/* Modalidad de volumen */}
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -675,7 +678,7 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
           <div>
             <div className="flex justify-between items-center mb-1">
               <label className="block text-xs font-medium text-gray-700">
-                {language === 'en' ? 'Units per order (Basket)' : 'Units por pedido (Cesta)'}
+                {language === 'en' ? 'Units per order (Basket)' : 'Units por pedido (Órdenes)'}
               </label>
               <span className="font-mono font-bold text-xs text-red-600 bg-red-50 px-1.5 py-0.2 rounded border border-red-200">
                 {inputs.unitsPerOrder} {language === 'en' ? 'units' : 'uds'}
@@ -697,6 +700,33 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
                 : (language === 'en'
                     ? `1st Pick + ${(inputs.unitsPerOrder - 1).toFixed(1)} extra picks.`
                     : `1er Pick + ${(inputs.unitsPerOrder - 1).toFixed(1)} picks extra.`)}
+            </p>
+          </div>
+
+          {/* % Devoluciones */}
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-xs font-medium text-gray-700">
+                {language === 'en' ? 'Return rate (%)' : '% Devoluciones'}
+              </label>
+              <span className="font-mono font-bold text-xs text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
+                {(inputs.returnRate * 100).toFixed(1)}%
+              </span>
+            </div>
+            <CleanNumberInput
+              min={0}
+              max={100}
+              step={0.5}
+              decimals={1}
+              fallbackValue={0}
+              value={Math.round(inputs.returnRate * 1000) / 10}
+              onChange={(val) => onChange({ returnRate: val / 100 })}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs font-mono font-medium focus:ring-2 focus:ring-red-500"
+            />
+            <p className="text-[10px] text-gray-400 mt-1 font-mono">
+              {language === 'en'
+                ? `≈ ${Math.round(results.ordersMonth * inputs.returnRate).toLocaleString('en-US')} returns/month`
+                : `≈ ${Math.round(results.ordersMonth * inputs.returnRate).toLocaleString('es-ES')} devoluciones/mes`}
             </p>
           </div>
         </div>
@@ -931,7 +961,7 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
           subLabel={
             language === 'en'
               ? `Applies starting from 2nd unit in basket (Standard cost: ${formatEur(results.additionalPickDefaultCost)})`
-              : `Aplica a partir de la 2ª unidad en la cesta de compra (Coste estándar: ${formatEur(results.additionalPickDefaultCost)})`
+              : `Aplica a partir de la 2ª unidad en la orden de compra (Coste estándar: ${formatEur(results.additionalPickDefaultCost)})`
           }
           cost={results.additionalPickCost}
           defaultCost={results.additionalPickDefaultCost}

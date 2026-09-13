@@ -101,10 +101,10 @@ export const PropuestaClienteTab: React.FC<PropuestaClienteTabProps> = ({
     lines.push('================================================\n');
 
     if (includeVolume) {
-      lines.push(isEn ? 'OPERATING CONTEXT & BASKET:' : 'CONTEXTO OPERATIVO Y CESTA:');
+      lines.push(isEn ? 'OPERATING CONTEXT & BASKET:' : 'CONTEXTO OPERATIVO Y ÓRDENES:');
       lines.push(`- ${isEn ? 'Estimated monthly volume' : 'Volumen mensual estimado'}: ${results.ordersMonth} ${isEn ? 'orders/month' : 'pedidos/mes'}`);
       lines.push(`- ${isEn ? 'Daily cadence' : 'Cadencia diaria'}: ${results.ordersPerDay.toFixed(1)} ${isEn ? 'orders/day' : 'pedidos/día'}`);
-      lines.push(`- ${isEn ? 'Average basket' : 'Cesta media'}: ${results.unitsPerOrder.toFixed(1)} ${isEn ? 'units/order' : 'units/pedido'}\n`);
+      lines.push(`- ${isEn ? 'Average basket' : 'Órdenes medias'}: ${results.unitsPerOrder.toFixed(1)} ${isEn ? 'units/order' : 'units/pedido'}\n`);
     }
 
     if (includePrepPick) {
@@ -436,7 +436,7 @@ export const PropuestaClienteTab: React.FC<PropuestaClienteTabProps> = ({
             </div>
             <div>
               <span className="text-[10.5px] text-gray-500 block">
-                {language === 'en' ? 'Average basket' : 'Cesta media'}
+                {language === 'en' ? 'Average basket' : 'Órdenes medias'}
               </span>
               <span className="text-sm sm:text-base font-bold text-gray-900 font-mono">
                 {results.unitsPerOrder.toFixed(1)} {language === 'en' ? 'units / order' : 'units / pedido'}

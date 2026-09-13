@@ -95,14 +95,14 @@ const translations: Record<Language, Record<string, string>> = {
     'pm.notesLabel': 'Notas Comerciales y Operativas',
     'pm.notesPlaceholder': 'Añade detalles sobre el cliente, integraciones, requerimientos de packaging especial o acuerdos comerciales...',
 
-    'pm.titleVolume': '2. Volumen de Pedidos y Cesta Media',
+    'pm.titleVolume': '2. Volumen de Pedidos y Órdenes Medias',
     'pm.volumeMode': 'Modalidad de volumen',
     'pm.ordersPerDay': 'Pedidos / día',
     'pm.ordersPerMonth': 'Pedidos / mes',
     'pm.workingDays': 'Días laborables / mes',
     'pm.estOrdersMonth': 'Pedidos / mes estimados:',
     'pm.equivOrdersDay': 'Pedidos / día equivalentes:',
-    'pm.basketUnits': 'Unidades por pedido (cesta media)',
+    'pm.basketUnits': 'Unidades por pedido (órdenes medias)',
     'pm.additionalPicks': 'Picks adicionales',
     'pm.monthlyHandledUnits': 'Unidades manipuladas al mes',
 

@@ -17,7 +17,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) => {
-  const { currencySymbol } = useLanguage();
+  const { currencySymbol, language } = useLanguage();
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const handleProductChange = (newProduct: ProductType) => {
@@ -228,7 +228,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
       <section className="mb-6">
         <h2 className="text-sm font-bold text-gray-900 border-b border-gray-100 pb-1.5 mb-3 flex items-center gap-1.5">
           <Layers className="w-4 h-4 text-red-600" />
-          <span>2. Volumen y Cesta</span>
+          <span>{language === 'en' ? '2. Volume & Basket' : '2. Volumen y Órdenes'}</span>
         </h2>
 
         <div className="space-y-3">
@@ -325,7 +325,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
 
           <div>
             <div className="flex justify-between items-center text-xs text-gray-600 mb-1">
-              <span>Units por pedido (cesta media)</span>
+              <span>{language === 'en' ? 'Units per order (Basket)' : 'Units por pedido (órdenes)'}</span>
               <span className="font-mono font-bold text-gray-800">{inputs.unitsPerOrder}</span>
             </div>
             <CleanNumberInput
@@ -342,6 +342,30 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
               {inputs.unitsPerOrder === 1
                 ? 'Pedidos de 1 sola unidad (solo 1er Pick).'
                 : `Incluye 1er Pick + ${(inputs.unitsPerOrder - 1).toFixed(1)} picks adicionales.`}
+            </p>
+          </div>
+
+          <div>
+            <div className="flex justify-between items-center text-xs text-gray-600 mb-1">
+              <span>{language === 'en' ? 'Returns rate (%)' : '% Devoluciones'}</span>
+              <span className="font-mono font-bold text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200 text-[11px]">
+                {(inputs.returnRate * 100).toFixed(1)}%
+              </span>
+            </div>
+            <CleanNumberInput
+              min={0}
+              max={100}
+              step={0.5}
+              decimals={1}
+              fallbackValue={0}
+              value={Math.round(inputs.returnRate * 1000) / 10}
+              onChange={(val) => onChange({ returnRate: val / 100 })}
+              className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-xs font-mono"
+            />
+            <p className="text-[10px] text-gray-400 mt-1">
+              {language === 'en'
+                ? `≈ ${Math.round(results.ordersMonth * inputs.returnRate)} returns / month`
+                : `≈ ${Math.round(results.ordersMonth * inputs.returnRate)} devoluciones / mes`}
             </p>
           </div>
         </div>
