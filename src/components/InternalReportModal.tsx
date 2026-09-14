@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { CalculationResults, CalculatorInputs } from '../types';
 import { formatEur, formatPct, formatMarkup } from '../utils/calculations';
 import { useLanguage } from '../context/LanguageContext';
-import { Printer, X, FileText, Package, Layers, Building2, Calendar, SlidersHorizontal, Globe } from 'lucide-react';
+import { Printer, X, FileText, Package, Layers, Building2, Calendar, SlidersHorizontal, Globe, Clock } from 'lucide-react';
 
 interface InternalReportModalProps {
   isOpen: boolean;
@@ -367,6 +367,13 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                   <span>
                     {language === 'en' ? 'Sector:' : 'Sector:'} <strong>{productTypeDisplay}</strong> ({inputs.skuCount} SKUs, Tier {results.tierName})
                   </span>
+                  <span className="flex items-center gap-1 font-semibold text-gray-800 bg-amber-50/80 border border-amber-200 px-1.5 py-0.5 rounded print:bg-white">
+                    <Clock className="w-3 h-3 text-amber-700" />
+                    {language === 'en' ? 'Go-Live Target:' : 'Go-Live Previsto:'} <strong>{results.goLiveDate}</strong>
+                    <span className="text-[10px] text-amber-800 font-normal">
+                      ({results.goLiveDaysRemaining >= 0 ? `${results.goLiveDaysRemaining}d` : `-${Math.abs(results.goLiveDaysRemaining)}d`} · {results.goLiveMonthsRemainingInYear.toFixed(1)}m {results.goLiveYear})
+                    </span>
+                  </span>
                 </div>
 
                 {/* Technology Badges */}
@@ -494,6 +501,50 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                       (Markup {formatMarkup(results.shippingMarkup)})
                     </span>
                   </span>
+                </div>
+              </div>
+
+              {/* Annualized Run Rate (ARR) & In-Year Revenue (YRR) */}
+              <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                <div className="bg-gray-100/80 p-2 rounded-lg border border-gray-200 print:bg-white flex items-center justify-between">
+                  <div>
+                    <span className="text-[9.5px] font-bold uppercase tracking-wider text-gray-600 block">
+                      ARR (Annual Recurring Revenue · 12 {language === 'en' ? 'months' : 'meses'})
+                    </span>
+                    <span className="text-sm font-black font-mono text-gray-900">
+                      {formatEur(results.arrRevenue)}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[9.5px] text-gray-500 block">
+                      {language === 'en' ? 'Annual Profit' : 'Beneficio Anual'}
+                    </span>
+                    <span className="text-xs font-bold font-mono text-emerald-700">
+                      +{formatEur(results.arrProfit)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-red-50/70 p-2 rounded-lg border border-red-200 print:bg-white flex items-center justify-between">
+                  <div>
+                    <span className="text-[9.5px] font-bold uppercase tracking-wider text-red-900 flex items-center gap-1">
+                      <span>YRR (Year Run Rate · {results.goLiveYear})</span>
+                      <span className="text-[8.5px] font-mono text-red-700 bg-red-100 px-1 py-0.2 rounded font-bold">
+                        {results.goLiveMonthsRemainingInYear.toFixed(1)} {language === 'en' ? 'mo' : 'meses'}
+                      </span>
+                    </span>
+                    <span className="text-sm font-black font-mono text-red-700">
+                      {formatEur(results.yrrRevenue)}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[9.5px] text-gray-500 block">
+                      {language === 'en' ? `Profit in ${results.goLiveYear}` : `Beneficio en ${results.goLiveYear}`}
+                    </span>
+                    <span className="text-xs font-bold font-mono text-emerald-700">
+                      +{formatEur(results.yrrProfit)}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

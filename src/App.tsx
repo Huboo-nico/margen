@@ -258,6 +258,7 @@ export const App: React.FC = () => {
                 results={results}
                 inputs={inputs}
                 onOpenPricingSimulator={() => setActiveTab('Precios & Margen')}
+                onUpdateInputs={handleInputChange}
               />
             )}
             {activeTab === 'Precios & Margen' && (

@@ -112,6 +112,7 @@ export const DEFAULT_INPUTS: CalculatorInputs = {
   clientName: 'Cliente Ejemplo A',
   clientNotes: 'Propuesta estándar e-commerce',
   technologies: ['Shopify'],
+  goLiveDate: '2026-10-01',
   skuCount: 15,
   productType: 'Suplementos',
   packCostSource: 'Calculadora (negociado)',
@@ -195,6 +196,7 @@ export const INITIAL_CLIENT_PROFILES: ClientProfile[] = [
       ...DEFAULT_INPUTS,
       clientName: 'NutriLife (Suplementos)',
       technologies: ['Shopify', 'TikTok Shop'],
+      goLiveDate: '2026-10-01',
     },
   },
   {
@@ -206,6 +208,7 @@ export const INITIAL_CLIENT_PROFILES: ClientProfile[] = [
       ...DEFAULT_INPUTS,
       clientName: 'Aura Glow (Cosmética & Perfume)',
       technologies: ['WooCommerce', 'PrestaShop', 'Temu'],
+      goLiveDate: '2026-11-01',
       productType: 'Perfume + vidrio',
       skuCount: 45,
       ordersPerDay: 50,

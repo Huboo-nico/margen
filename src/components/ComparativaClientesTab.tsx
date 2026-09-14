@@ -111,6 +111,9 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
                 <th className="px-3 py-3 text-right font-bold text-emerald-800">
                   {language === 'en' ? 'Profit / mo' : 'Beneficio / mes'}
                 </th>
+                <th className="px-3 py-3 text-left">{language === 'en' ? 'Go-Live Target' : 'Fecha Go-Live'}</th>
+                <th className="px-3 py-3 text-right">{language === 'en' ? 'ARR (12m)' : 'ARR (12m)'}</th>
+                <th className="px-3 py-3 text-right text-red-700">{language === 'en' ? 'YRR' : 'YRR'}</th>
                 <th className="px-4 py-3 text-center">{language === 'en' ? 'Actions' : 'Acciones'}</th>
               </tr>
             </thead>
@@ -260,6 +263,23 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
 
                     <td className="px-3 py-3 text-right font-mono font-bold text-emerald-700">
                       {formatEur(res.totalProfitMonth)}
+                    </td>
+
+                    <td className="px-3 py-3 text-left font-mono text-[11px] text-gray-700">
+                      <div className="font-semibold">{res.goLiveDate}</div>
+                      <div className="text-[9.5px] text-gray-400">
+                        {res.goLiveDaysRemaining >= 0 ? `En ${res.goLiveDaysRemaining}d` : `-${Math.abs(res.goLiveDaysRemaining)}d`}
+                      </div>
+                    </td>
+
+                    <td className="px-3 py-3 text-right font-mono font-bold text-gray-900">
+                      <div>{formatEur(res.arrRevenue)}</div>
+                      <div className="text-[9.5px] text-emerald-600 font-normal">+{formatEur(res.arrProfit)}</div>
+                    </td>
+
+                    <td className="px-3 py-3 text-right font-mono font-bold text-red-700 bg-red-50/30">
+                      <div>{formatEur(res.yrrRevenue)}</div>
+                      <div className="text-[9.5px] text-red-500 font-normal">{res.goLiveMonthsRemainingInYear.toFixed(1)}m in {res.goLiveYear}</div>
                     </td>
 
                     {/* Actions */}

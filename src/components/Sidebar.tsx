@@ -107,6 +107,42 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
             <p className="text-[10px] text-gray-400 mt-0.5">Los costes de pack base se rigen por la calculadora operativa.</p>
           </div>
 
+          {/* Fecha Prevista Go-Live (Planificación interna) */}
+          <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-200 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-gray-800">
+                Fecha Go-Live Prevista
+              </label>
+              <span className="text-[9px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-1.5 py-0.2 rounded">
+                Interna
+              </span>
+            </div>
+            <input
+              type="date"
+              value={inputs.goLiveDate || results.goLiveDate}
+              onChange={(e) => onChange({ goLiveDate: e.target.value })}
+              className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-xs font-mono font-bold text-gray-900 focus:ring-1 focus:ring-red-500 cursor-pointer"
+            />
+            <div className="flex items-center justify-between text-[10px] font-mono text-gray-600 pt-0.5">
+              <span>
+                {results.goLiveDaysRemaining >= 0
+                  ? `Faltan ${results.goLiveDaysRemaining} días`
+                  : `Hace ${Math.abs(results.goLiveDaysRemaining)} días`}
+              </span>
+              <span className="text-gray-400">({results.goLiveMonthsRemainingInYear.toFixed(1)}m en {results.goLiveYear})</span>
+            </div>
+            <div className="pt-1.5 border-t border-gray-200 grid grid-cols-2 gap-1 text-[10.5px]">
+              <div>
+                <span className="text-gray-400 block text-[9px] uppercase">ARR (12m)</span>
+                <span className="font-bold text-gray-900 font-mono">{formatEur(results.arrRevenue)}</span>
+              </div>
+              <div className="text-right">
+                <span className="text-red-500 block text-[9px] uppercase">YRR ({results.goLiveYear})</span>
+                <span className="font-bold text-red-700 font-mono">{formatEur(results.yrrRevenue)}</span>
+              </div>
+            </div>
+          </div>
+
           <div className="bg-gray-50 p-2.5 rounded-md border border-gray-200 text-[11px] space-y-1">
             <div className="flex justify-between">
               <span className="text-gray-500">Tier SKU:</span>

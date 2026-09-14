@@ -583,6 +583,43 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
     },
   ];
 
+  // Proyecciones Anuales (ARR) y Planificación Go-Live (YRR)
+  const arrRevenue = totalRevenueMonth * 12;
+  const arrCost = totalCostMonth * 12;
+  const arrProfit = totalProfitMonth * 12;
+
+  // Fecha Go-Live (Planificación interna)
+  const rawDateStr = inputs.goLiveDate || '2026-10-01';
+  let liveDateObj = new Date(rawDateStr + 'T00:00:00');
+  if (isNaN(liveDateObj.getTime())) {
+    liveDateObj = new Date();
+  }
+  const goLiveDate = rawDateStr;
+  const goLiveYear = liveDateObj.getFullYear();
+
+  // Días y meses activos restantes en el año de go-live
+  const startOfYear = new Date(goLiveYear, 0, 1, 0, 0, 0);
+  const endOfYear = new Date(goLiveYear, 11, 31, 23, 59, 59, 999);
+  const totalDaysInYear = Math.round((endOfYear.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24));
+  const daysActiveInYear = Math.max(
+    0,
+    Math.min(
+      totalDaysInYear,
+      Math.ceil((endOfYear.getTime() - liveDateObj.getTime()) / (1000 * 60 * 60 * 24))
+    )
+  );
+  const goLiveMonthsRemainingInYear = (daysActiveInYear / totalDaysInYear) * 12;
+
+  // Días desde hoy hasta el go-live
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const goLiveDaysRemaining = Math.ceil((liveDateObj.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+  // YRR (Year Remaining Revenue / Run-Rate de ingresos del año de lanzamiento)
+  const yrrRevenue = totalRevenueMonth * goLiveMonthsRemainingInYear;
+  const yrrCost = totalCostMonth * goLiveMonthsRemainingInYear;
+  const yrrProfit = totalProfitMonth * goLiveMonthsRemainingInYear;
+
   return {
     clientName,
     technologies: inputs.technologies || [],
@@ -593,6 +630,18 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
     ordersPerDay,
     ordersMonth,
     unitsPerOrder: Number(unitsPerOrder),
+
+    // Go-Live Schedule & Annual Projections (ARR & YRR)
+    goLiveDate,
+    goLiveDaysRemaining,
+    goLiveMonthsRemainingInYear,
+    goLiveYear,
+    arrRevenue,
+    arrCost,
+    arrProfit,
+    yrrRevenue,
+    yrrCost,
+    yrrProfit,
 
     packCost,
     packDefaultCost: defaultPackCost,

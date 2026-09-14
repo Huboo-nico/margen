@@ -4,14 +4,21 @@ import { useLanguage } from '../context/LanguageContext';
 import { formatEur, formatPct, formatMarkup } from '../utils/calculations';
 import { AlertTriangle, CheckCircle, Package, Truck, Info, ArrowUpRight, FileText } from 'lucide-react';
 import { InternalReportModal } from './InternalReportModal';
+import { LiveDateScheduler } from './LiveDateScheduler';
 
 interface ResumenTabProps {
   results: CalculationResults;
   inputs?: CalculatorInputs;
   onOpenPricingSimulator?: () => void;
+  onUpdateInputs?: (partial: Partial<CalculatorInputs>) => void;
 }
 
-export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenPricingSimulator }) => {
+export const ResumenTab: React.FC<ResumenTabProps> = ({
+  results,
+  inputs,
+  onOpenPricingSimulator,
+  onUpdateInputs,
+}) => {
   const [showPdfModal, setShowPdfModal] = useState(false);
   const { language } = useLanguage();
 
@@ -217,6 +224,17 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({ results, inputs, onOpenP
           </span>
         </div>
       </div>
+
+      {/* Planificación Go-Live & Proyecciones ARR / YRR */}
+      <LiveDateScheduler
+        goLiveDate={inputs?.goLiveDate || results.goLiveDate}
+        results={results}
+        onChange={(dateStr) => {
+          if (onUpdateInputs) {
+            onUpdateInputs({ goLiveDate: dateStr });
+          }
+        }}
+      />
 
       {/* OPERACIONES DE PREPARACIÓN & PICKING: PACK Y 1ER PICK SEPARADOS */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-2xs">

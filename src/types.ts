@@ -35,6 +35,7 @@ export interface CalculatorInputs {
   clientName: string;
   clientNotes: string;
   technologies?: string[];
+  goLiveDate?: string; // Scheduled Go-Live Date (YYYY-MM-DD) for internal planning
   skuCount: number;
   productType: ProductType;
   packCostSource: PackCostSource;
@@ -233,4 +234,16 @@ export interface CalculationResults {
   alerts: string[];
   lines: MonthlyLine[];
   orderSummary: OrderSummaryItem[];
+
+  // Go-Live Schedule & Annual Projections (ARR & YRR)
+  goLiveDate: string;
+  goLiveDaysRemaining: number;
+  goLiveMonthsRemainingInYear: number;
+  goLiveYear: number;
+  arrRevenue: number;
+  arrCost: number;
+  arrProfit: number;
+  yrrRevenue: number;
+  yrrCost: number;
+  yrrProfit: number;
 }

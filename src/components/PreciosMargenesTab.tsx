@@ -4,6 +4,7 @@ import { PriceMarginRow } from './PriceMarginRow';
 import { PRODUCT_PROFILES, AVAILABLE_TECHNOLOGIES } from '../data/constants';
 import { useLanguage } from '../context/LanguageContext';
 import { CleanNumberInput } from './CleanNumberInput';
+import { LiveDateScheduler } from './LiveDateScheduler';
 import {
   formatEur,
   formatPct,
@@ -154,7 +155,7 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
         </div>
 
         {/* Global KPI Metrics Bar */}
-        <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <div>
             <span className="text-[11px] text-gray-500 block">
               {language === 'en' ? 'Avg order revenue:' : 'Facturación / pedido medio:'}
@@ -201,6 +202,37 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
                 Markup {formatMarkup(results.markupTotal)}
               </span>
             </div>
+          </div>
+
+          {/* ARR Metric */}
+          <div className="bg-gray-50/80 p-2 rounded-lg border border-gray-200">
+            <span className="text-[10px] font-bold text-gray-600 block uppercase tracking-wide">
+              ARR (12 {language === 'en' ? 'months' : 'meses'})
+            </span>
+            <span className="text-sm font-black font-mono text-gray-900 block">
+              {formatEur(results.arrRevenue)}
+            </span>
+            <span className="text-[9.5px] text-emerald-700 font-bold font-mono">
+              +{formatEur(results.arrProfit)} {language === 'en' ? 'net' : 'neto'}
+            </span>
+          </div>
+
+          {/* YRR Metric */}
+          <div className="bg-red-50/50 p-2 rounded-lg border border-red-200">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-red-900 block uppercase tracking-wide">
+                YRR ({results.goLiveYear})
+              </span>
+              <span className="text-[9px] font-mono text-red-700 font-bold bg-red-100/80 px-1 py-0.2 rounded">
+                {results.goLiveMonthsRemainingInYear.toFixed(1)}m
+              </span>
+            </div>
+            <span className="text-sm font-black font-mono text-red-700 block">
+              {formatEur(results.yrrRevenue)}
+            </span>
+            <span className="text-[9.5px] text-emerald-700 font-bold font-mono">
+              +{formatEur(results.yrrProfit)} {language === 'en' ? 'net' : 'neto'}
+            </span>
           </div>
         </div>
       </div>
@@ -550,6 +582,15 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
               </p>
             </div>
           </div>
+        </div>
+
+        {/* Planificación Interna: Calendario Go-Live & ARR / YRR */}
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <LiveDateScheduler
+            goLiveDate={inputs.goLiveDate}
+            results={results}
+            onChange={(dateStr) => onChange({ goLiveDate: dateStr })}
+          />
         </div>
       </section>
 
