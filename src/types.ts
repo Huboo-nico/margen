@@ -7,7 +7,8 @@ export type ProductType =
   | 'Cosmética'
   | 'Perfume'
   | 'Vidrio'
-  | 'Perfume + vidrio';
+  | 'Perfume + vidrio'
+  | 'Apparel & Merch';
 
 export type PackCostSource = 'Calculadora (negociado)' | 'Rate card ES (estándar)';
 

@@ -25,6 +25,11 @@ import { ProductType } from '../types';
 
 const productTypeLabels: Record<string, { es: string; en: string }> = {
   'Suplementos': { es: 'Suplementos', en: 'Supplements' },
+  'Cosmética': { es: 'Cosmética', en: 'Cosmetics' },
+  'Perfume': { es: 'Perfume', en: 'Perfume' },
+  'Vidrio': { es: 'Vidrio', en: 'Glass' },
+  'Perfume + vidrio': { es: 'Perfume + vidrio', en: 'Perfume + glass' },
+  'Apparel & Merch': { es: 'Apparel & Merch', en: 'Apparel & Merch' },
   'Moda / Ropa': { es: 'Moda / Ropa', en: 'Fashion / Apparel' },
   'Cosmética / Belleza': { es: 'Cosmética / Belleza', en: 'Cosmetics / Beauty' },
   'Electrónica': { es: 'Electrónica', en: 'Electronics' },

@@ -23,6 +23,11 @@ interface PropuestaClienteTabProps {
 
 const productTypeLabels: Record<string, { es: string; en: string }> = {
   'Suplementos': { es: 'Suplementos (Picks pequeños)', en: 'Supplements (Small Picks)' },
+  'Cosmética': { es: 'Cosmética (Cuidado personal)', en: 'Cosmetics (Personal Care)' },
+  'Perfume': { es: 'Perfume (Fragancias)', en: 'Perfume (Fragrances)' },
+  'Vidrio': { es: 'Vidrio (Material frágil)', en: 'Glass (Fragile Items)' },
+  'Perfume + vidrio': { es: 'Perfume + vidrio (Alta protección)', en: 'Perfume + Glass (High Protection)' },
+  'Apparel & Merch': { es: 'Apparel & Merch (Textil y Merchandising)', en: 'Apparel & Merch (Apparel & Merchandise)' },
   'Moda / Ropa': { es: 'Moda / Ropa (Doblado & embolsado)', en: 'Fashion / Apparel (Folding & Bagging)' },
   'Cosmética / Belleza': { es: 'Cosmética / Belleza (Frágil / múltiples skus)', en: 'Cosmetics / Beauty (Fragile / Multi-SKU)' },
   'Electrónica': { es: 'Electrónica (Número de serie / alto valor)', en: 'Electronics (Serial Number / High Value)' },

@@ -13,6 +13,11 @@ interface InternalReportModalProps {
 
 const productTypeLabels: Record<string, string> = {
   'Suplementos': 'Supplements',
+  'Cosmética': 'Cosmetics',
+  'Perfume': 'Perfume',
+  'Vidrio': 'Glass',
+  'Perfume + vidrio': 'Perfume + glass',
+  'Apparel & Merch': 'Apparel & Merch',
   'Moda / Ropa': 'Fashion / Apparel',
   'Cosmética / Belleza': 'Cosmetics / Beauty',
   'Electrónica': 'Electronics',

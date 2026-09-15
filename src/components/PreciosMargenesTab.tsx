@@ -85,6 +85,7 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
     'Perfume': 'Perfume',
     'Vidrio': language === 'en' ? 'Glass' : 'Vidrio',
     'Perfume + vidrio': language === 'en' ? 'Perfume + glass' : 'Perfume + vidrio',
+    'Apparel & Merch': 'Apparel & Merch',
   };
 
   const currentTechs = inputs.technologies || [];

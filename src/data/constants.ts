@@ -88,6 +88,12 @@ export const PRODUCT_PROFILES: Record<ProductType, ProductProfile> = {
     surchargeCost: 0,
     returnRate: 0.08,
   },
+  'Apparel & Merch': {
+    pickMultiplier: 1.00,
+    surchargePrice: 0,
+    surchargeCost: 0,
+    returnRate: 0.05,
+  },
 };
 
 // Tecnologías y plataformas e-commerce soportadas para la ficha del cliente
