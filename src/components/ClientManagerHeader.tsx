@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { ClientProfile, CalculatorInputs } from '../types';
 import { useLanguage } from '../context/LanguageContext';
+import { useTheme } from '../context/ThemeContext';
 import { Plus, Copy, Trash2, Check, Download, Users, Edit3, Tag } from 'lucide-react';
 import { formatEur } from '../utils/calculations';
 
@@ -28,6 +29,7 @@ export const ClientManagerHeader: React.FC<ClientManagerHeaderProps> = ({
   currentInputs,
 }) => {
   const { t, language } = useLanguage();
+  const { isDark } = useTheme();
   const [copiedNotification, setCopiedNotification] = useState(false);
   const [showNotesInput, setShowNotesInput] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -84,22 +86,30 @@ ${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Canales
   };
 
   return (
-    <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs no-print print:hidden">
+    <div className={`px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs no-print print:hidden transition-colors duration-200 ${
+      isDark
+        ? 'bg-[#1A162B] border-b border-[#2E2A48] text-gray-200'
+        : 'bg-white border-b border-gray-200 text-gray-900'
+    }`}>
       {/* Left section: Client switcher & DIRECT NAME EDITOR */}
       <div className="flex items-center gap-3 flex-wrap">
         {/* Selector */}
         <div className="flex items-center gap-1.5">
-          <span className="font-semibold text-gray-500 flex items-center gap-1">
-            <Users className="w-3.5 h-3.5 text-red-600" />
+          <span className={`font-semibold flex items-center gap-1 ${isDark ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`}>
+            <Users className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">{t('client.select')}</span>
           </span>
           <select
             value={activeClientId}
             onChange={(e) => onSelectClient(e.target.value)}
-            className="border border-gray-300 rounded px-2.5 py-1 text-xs font-bold text-gray-900 bg-gray-50 hover:bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500 cursor-pointer max-w-[150px] sm:max-w-[180px] truncate"
+            className={`rounded px-2.5 py-1 text-xs font-bold cursor-pointer max-w-[150px] sm:max-w-[180px] truncate transition ${
+              isDark
+                ? 'bg-[#120e26] border border-[#2E2A48] text-white focus:ring-2 focus:ring-[#47D2BF]'
+                : 'border border-gray-300 bg-gray-50 hover:bg-white text-gray-900 focus:ring-2 focus:ring-[#6B4ABF]'
+            }`}
           >
             {clients.map((c) => (
-              <option key={c.id} value={c.id}>
+              <option key={c.id} value={c.id} className={isDark ? 'bg-[#1E1B2E] text-white' : ''}>
                 {c.name}
               </option>
             ))}
@@ -107,16 +117,26 @@ ${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Canales
         </div>
 
         {/* INLINE EDITABLE CLIENT NAME */}
-        <div className="flex items-center gap-1.5 bg-red-50/50 border border-red-200/90 rounded-md px-2 py-0.5 shadow-2xs">
-          <Edit3 className="w-3.5 h-3.5 text-red-600 shrink-0" />
-          <span className="text-[11px] font-bold text-red-700 whitespace-nowrap">{t('client.name')}</span>
+        <div className={`flex items-center gap-1.5 rounded-md px-2 py-0.5 shadow-2xs ${
+          isDark
+            ? 'bg-[#25203D] border border-[#47D2BF]/40'
+            : 'bg-purple-50/60 border border-purple-200/90'
+        }`}>
+          <Edit3 className={`w-3.5 h-3.5 shrink-0 ${isDark ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`} />
+          <span className={`text-[11px] font-bold whitespace-nowrap ${isDark ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`}>
+            {t('client.name')}
+          </span>
           <input
             ref={nameInputRef}
             type="text"
             value={currentInputs.clientName || ''}
             onChange={(e) => onRenameClient(e.target.value)}
             placeholder={t('client.placeholderName')}
-            className="bg-white border border-red-300 rounded px-2 py-0.5 text-xs font-bold text-gray-900 focus:ring-2 focus:ring-red-500 focus:outline-none w-36 sm:w-52 md:w-64 transition shadow-inner"
+            className={`rounded px-2 py-0.5 text-xs font-bold focus:outline-none w-36 sm:w-52 md:w-64 transition shadow-inner ${
+              isDark
+                ? 'bg-[#120e26] border border-[#2E2A48] text-white focus:ring-2 focus:ring-[#47D2BF]'
+                : 'bg-white border border-purple-300 text-gray-900 focus:ring-2 focus:ring-[#6B4ABF]'
+            }`}
           />
         </div>
 
@@ -126,13 +146,19 @@ ${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Canales
             {currentInputs.technologies.slice(0, 3).map((tech) => (
               <span
                 key={tech}
-                className="text-[10px] font-bold bg-gray-100 text-gray-700 border border-gray-200 px-1.5 py-0.5 rounded-md"
+                className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+                  isDark
+                    ? 'bg-[#252238] text-gray-200 border border-[#2E2A48]'
+                    : 'bg-gray-100 text-gray-700 border border-gray-200'
+                }`}
               >
                 {tech}
               </span>
             ))}
             {currentInputs.technologies.length > 3 && (
-              <span className="text-[10px] font-semibold text-gray-500 bg-gray-50 border border-gray-200 px-1 py-0.5 rounded">
+              <span className={`text-[10px] font-semibold px-1 py-0.5 rounded ${
+                isDark ? 'text-gray-400 bg-[#252238] border border-[#2E2A48]' : 'text-gray-500 bg-gray-50 border border-gray-200'
+              }`}>
                 +{currentInputs.technologies.length - 3}
               </span>
             )}
@@ -149,14 +175,22 @@ ${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Canales
               onBlur={() => setShowNotesInput(false)}
               placeholder={t('client.placeholderNote')}
               autoFocus
-              className="bg-gray-50 border border-gray-300 rounded px-2 py-0.5 text-[11px] text-gray-700 w-44 focus:ring-1 focus:ring-red-500"
+              className={`rounded px-2 py-0.5 text-[11px] w-44 focus:ring-1 ${
+                isDark
+                  ? 'bg-[#120e26] border border-[#2E2A48] text-white focus:ring-[#47D2BF]'
+                  : 'bg-gray-50 border border-gray-300 text-gray-700 focus:ring-purple-500'
+              }`}
             />
           ) : (
             <button
               type="button"
               onClick={() => setShowNotesInput(true)}
               title={language === 'en' ? 'Add note or internal reference to client' : 'Añadir nota o referencia interna al cliente'}
-              className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-800 px-1.5 py-0.5 rounded hover:bg-gray-100 transition cursor-pointer"
+              className={`flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded transition cursor-pointer ${
+                isDark
+                  ? 'text-gray-400 hover:text-gray-200 hover:bg-[#252238]'
+                  : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
+              }`}
             >
               <Tag className="w-3 h-3 text-gray-400" />
               <span className="max-w-[120px] truncate">
@@ -172,9 +206,9 @@ ${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Canales
             type="button"
             onClick={handleCreateAndFocus}
             title={language === 'en' ? 'Create a new client' : 'Crear un nuevo cliente y ponerle nombre'}
-            className="flex items-center gap-1 px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white font-semibold rounded shadow-2xs transition cursor-pointer"
+            className="flex items-center gap-1 px-2.5 py-1 bg-[#6B4ABF] hover:bg-[#583aa3] text-white font-semibold rounded shadow-2xs border border-[#47D2BF]/30 transition cursor-pointer"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-3.5 h-3.5 text-[#47D2BF]" />
             <span>{t('client.new')}</span>
           </button>
 
@@ -182,7 +216,11 @@ ${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Canales
             type="button"
             onClick={onDuplicateClient}
             title={language === 'en' ? 'Duplicate this client to test another tariff or proposal' : 'Duplicar este cliente para probar otra tarifa o propuesta'}
-            className="flex items-center gap-1 px-2 py-1 bg-gray-50 hover:bg-gray-100 text-gray-700 font-medium rounded border border-gray-200 transition cursor-pointer"
+            className={`flex items-center gap-1 px-2 py-1 font-medium rounded border transition cursor-pointer ${
+              isDark
+                ? 'bg-[#252238] hover:bg-[#2e2a44] text-gray-200 border-[#2E2A48]'
+                : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200'
+            }`}
           >
             <Copy className="w-3 h-3" />
             <span className="hidden sm:inline">{t('client.duplicate')}</span>
@@ -197,7 +235,7 @@ ${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Canales
                 }
               }}
               title={t('client.delete')}
-              className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition cursor-pointer"
+              className="p-1 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded transition cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
@@ -214,11 +252,15 @@ ${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Canales
         <button
           type="button"
           onClick={handleCopyQuote}
-          className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-gray-900 hover:bg-gray-800 text-white rounded transition shadow-2xs cursor-pointer"
+          className={`flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded transition shadow-2xs cursor-pointer ${
+            isDark
+              ? 'bg-[#252238] hover:bg-[#2e2a44] text-white border border-[#47D2BF]/40'
+              : 'bg-gray-900 hover:bg-gray-800 text-white'
+          }`}
         >
           {copiedNotification ? (
             <>
-              <Check className="w-3 h-3 text-emerald-400" />
+              <Check className="w-3 h-3 text-[#47D2BF]" />
               <span>{t('client.copied')}</span>
             </>
           ) : (

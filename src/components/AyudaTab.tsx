@@ -118,17 +118,17 @@ export const AyudaTab: React.FC = () => {
 
       <div>
         <h3 className="text-base font-semibold text-gray-900 mb-2">
-          {language === 'en' ? 'Complexity Multipliers' : 'Multiplicadores de Complejidad'}
+          {language === 'en' ? 'SKU Complexity Multiplier' : 'Multiplicador de Complejidad por SKU'}
         </h3>
         <p className="text-sm text-gray-700 mb-2">
           {language === 'en'
-            ? 'The operational picking cost is adjusted by:'
-            : 'El coste operativo de picking se ajusta por:'}
+            ? 'The operational picking cost is adjusted exclusively by warehouse walking distance (SKU count). Product profiles are descriptive and do not affect final price:'
+            : 'El coste operativo de picking se ajusta exclusivamente por la dispersión en nave (número de SKUs). Los perfiles de producto son informativos y no influyen en el precio final:'}
         </p>
         <pre className="bg-gray-100 p-3 rounded text-xs font-mono text-gray-800 border border-gray-200">
           {language === 'en'
-            ? `Adjusted pick cost =\nBase pick cost\n* SKU Multiplier\n* Product Multiplier`
-            : `Coste pick ajustado =\nCoste pick base\n* Multiplicador SKU\n* Multiplicador producto`}
+            ? `Adjusted pick cost =\nBase pick cost\n* SKU Dispersion Multiplier\n(No product multiplier applied)`
+            : `Coste pick ajustado =\nCoste pick base\n* Multiplicador SKU por dispersión\n(Sin multiplicador por perfil de producto)`}
         </pre>
       </div>
 

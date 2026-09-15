@@ -1,11 +1,91 @@
 @import "tailwindcss";
 
+:root {
+  --bg-primary: #6B4ABF;       /* Fondo morado principal */
+  --bg-card: #FFFFFF;          /* Fondo de tarjetas y contenedores */
+  --text-main: #FFFFFF;        /* Texto principal sobre fondo morado */
+  --text-card: #141414;        /* Texto dentro de las tarjetas blancas */
+  --accent-color: #47D2BF;     /* Turquesa para acentos y detalles */
+  --border-color: #47D2BF;     /* Bordes y elementos interactivos */
+}
+
+/* Definición de colores para el modo oscuro */
+[data-theme="dark"] {
+  --bg-primary: #120e26;       /* Un morado extremadamente oscuro para el fondo */
+  --bg-card: #1E1B2E;          /* Fondo de tarjetas más oscuro pero contrastado */
+  --text-main: #FFFFFF;        /* Texto principal en blanco */
+  --text-card: #F0F0F0;        /* Texto claro para las tarjetas */
+  --accent-color: #47D2BF;     /* El turquesa se mantiene para resaltar */
+  --border-color: #47D2BF;     /* Bordes en turquesa */
+}
+
+html[data-theme="dark"],
+body[data-theme="dark"] {
+  background-color: #120e26;
+  color: #F0F0F0;
+}
+
+/* Brand utility helper classes */
+.brand-bg-primary {
+  background-color: var(--bg-primary);
+}
+.brand-bg-card {
+  background-color: var(--bg-card);
+}
+.brand-text-main {
+  color: var(--text-main);
+}
+.brand-text-card {
+  color: var(--text-card);
+}
+.brand-accent-text {
+  color: var(--accent-color);
+}
+.brand-accent-bg {
+  background-color: var(--accent-color);
+}
+.brand-border {
+  border-color: var(--border-color);
+}
+
 @media print {
-  body {
-    background-color: #ffffff !important;
-    color: #000000 !important;
+  /* Default print color adjust */
+  * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+  }
+
+  /* Default light print */
+  body:not([data-print-theme="dark"]) {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* Dark mode print for PDF export */
+  body[data-print-theme="dark"],
+  [data-print-theme="dark"] {
+    background-color: #120e26 !important;
+    color: #F0F0F0 !important;
+  }
+
+  body[data-print-theme="dark"] .print-dark-surface,
+  [data-print-theme="dark"] .print-dark-surface {
+    background-color: #1E1B2E !important;
+    color: #F0F0F0 !important;
+    border-color: #2E2A48 !important;
+  }
+
+  /* In dark PDF mode, prevent any print:bg-white overrides */
+  body[data-print-theme="dark"] .print\:bg-white {
+    background-color: #1E1B2E !important;
+    color: #F0F0F0 !important;
+  }
+  body[data-print-theme="dark"] .print\:text-black {
+    color: #F0F0F0 !important;
+  }
+  body[data-print-theme="dark"] .print\:bg-gray-200 {
+    background-color: #252238 !important;
+    color: #F0F0F0 !important;
   }
 
   /* Hide unnecessary background navigation, sidebar, and controls during printing */

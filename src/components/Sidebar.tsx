@@ -21,12 +21,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const handleProductChange = (newProduct: ProductType) => {
-    const prof = PRODUCT_PROFILES[newProduct];
     onChange({
       productType: newProduct,
-      surchargePrice: 0,
-      surchargeCost: 0,
-      returnRate: prof.returnRate,
     });
   };
 
@@ -81,19 +77,38 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
 
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">
-              Tipo de producto
+              {language === 'en' ? 'Product type' : 'Tipo de producto'}
             </label>
             <select
               value={inputs.productType}
               onChange={(e) => handleProductChange(e.target.value as ProductType)}
               className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-red-500 bg-white"
             >
-              {(Object.keys(PRODUCT_PROFILES) as ProductType[]).map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
+              {(Object.keys(PRODUCT_PROFILES) as ProductType[]).map((type) => {
+                const label =
+                  language === 'en'
+                    ? type === 'Suplementos'
+                      ? 'Supplements'
+                      : type === 'Cosmética'
+                      ? 'Cosmetics'
+                      : type === 'Vidrio'
+                      ? 'Glass'
+                      : type === 'Perfume + vidrio'
+                      ? 'Perfume + glass'
+                      : type
+                    : type;
+                return (
+                  <option key={type} value={type}>
+                    {label}
+                  </option>
+                );
+              })}
             </select>
+            <p className="text-[10px] text-gray-400 mt-0.5">
+              {language === 'en'
+                ? 'Informative profile (does not alter final price)'
+                : 'Perfil informativo (no influye en el precio final)'}
+            </p>
           </div>
 
           <div>

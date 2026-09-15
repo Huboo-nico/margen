@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { CalculationResults, CalculatorInputs } from '../types';
 import { formatEur, formatPct, formatMarkup } from '../utils/calculations';
 import { useLanguage } from '../context/LanguageContext';
+import { useTheme } from '../context/ThemeContext';
 import {
   Printer,
   X,
@@ -16,6 +17,8 @@ import {
   PieChart as PieIcon,
   BarChart3,
   TrendingUp,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -39,16 +42,16 @@ interface InternalReportModalProps {
 }
 
 const CHART_PALETTE = [
+  '#6B4ABF', // brand purple
+  '#47D2BF', // brand turquoise
   '#2563eb', // blue-600
   '#059669', // emerald-600
   '#d97706', // amber-600
-  '#7c3aed', // violet-600
-  '#db2777', // pink-600
+  '#ec4899', // pink-500
   '#0891b2', // cyan-600
+  '#7c3aed', // violet-600
   '#ea580c', // orange-600
   '#0d9488', // teal-600
-  '#4f46e5', // indigo-600
-  '#65a30d', // lime-600
 ];
 
 const productTypeLabels: Record<string, string> = {
@@ -72,6 +75,8 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
   inputs,
 }) => {
   const { language, currencySymbol } = useLanguage();
+  const { theme: appTheme } = useTheme();
+  const [reportTheme, setReportTheme] = useState<'light' | 'dark'>(appTheme);
 
   // Section toggle state (defaulted for 1-page A4 printing)
   const [showVolume, setShowVolume] = useState(true);
@@ -84,17 +89,29 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
   const [showNotes, setShowNotes] = useState(Boolean(inputs.clientNotes));
   const [compactMode, setCompactMode] = useState(true);
 
-  // Isolate body in print when modal is open
+  // Sync report theme with app theme when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setReportTheme(appTheme);
+    }
+  }, [isOpen, appTheme]);
+
+  // Isolate body in print and apply theme attribute for print styling
   useEffect(() => {
     if (isOpen) {
       document.body.classList.add('report-modal-open');
+      document.body.setAttribute('data-print-theme', reportTheme);
     } else {
       document.body.classList.remove('report-modal-open');
+      document.body.removeAttribute('data-print-theme');
     }
     return () => {
       document.body.classList.remove('report-modal-open');
+      document.body.removeAttribute('data-print-theme');
     };
-  }, [isOpen]);
+  }, [isOpen, reportTheme]);
+
+  const isDarkReport = reportTheme === 'dark';
 
   if (!isOpen) return null;
 
@@ -250,8 +267,8 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
   const isOnePageEstimated = !showMonthlyPL && !showCharts;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 print:p-0 print:bg-white print:static">
-      <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-4xl max-h-[94vh] flex flex-col overflow-hidden print:max-h-none print:max-w-none print:border-none print:shadow-none print:rounded-none">
+    <div className={`fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 print:p-0 ${isDarkReport ? 'print:bg-[#120e26]' : 'print:bg-[#FAF7F2]'} print:static`}>
+      <div className={`${isDarkReport ? 'bg-[#120e26] border-[#2E2A48]' : 'bg-[#FAF7F2] border-[#E8DFD3]'} rounded-2xl shadow-2xl border w-full max-w-4xl max-h-[94vh] flex flex-col overflow-hidden print:max-h-none print:max-w-none print:border-none print:shadow-none print:rounded-none`}>
         
         {/* Modal Header & Interactive Config Toolbar (Hidden on Print) */}
         <div className="bg-gray-900 text-white shrink-0 print:hidden border-b border-gray-800">
@@ -285,13 +302,46 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-2 self-end sm:self-auto">
+            <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap justify-end">
+              {/* PDF Theme Switcher (Día / Noche) */}
+              <div className="flex items-center bg-gray-950 p-1 rounded-lg border border-gray-800 shadow-inner">
+                <span className="text-[10px] text-gray-400 font-medium pl-2 pr-1 hidden sm:inline">
+                  {language === 'en' ? 'Day / Night:' : 'Día / Noche:'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setReportTheme('light')}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold transition cursor-pointer ${
+                    reportTheme === 'light'
+                      ? 'bg-[#FAF7F2] text-[#8C5D1E] border border-[#E5D7C2] shadow-xs'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                  title={language === 'en' ? 'Day mode (warm light tone)' : 'Modo Día (tono cálido)'}
+                >
+                  <Sun className={`w-3.5 h-3.5 ${reportTheme === 'light' ? 'text-amber-500 fill-amber-400/40' : 'text-gray-400'}`} />
+                  <span>{language === 'en' ? 'Day' : 'Día'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReportTheme('dark')}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold transition cursor-pointer ${
+                    reportTheme === 'dark'
+                      ? 'bg-[#1E1B2E] text-[#47D2BF] border border-[#47D2BF]/60 shadow-xs'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                  title={language === 'en' ? 'Night mode (dark theme)' : 'Modo Noche (tema oscuro)'}
+                >
+                  <Moon className={`w-3.5 h-3.5 ${reportTheme === 'dark' ? 'text-[#47D2BF] fill-[#47D2BF]/30' : 'text-gray-400'}`} />
+                  <span>{language === 'en' ? 'Night' : 'Noche'}</span>
+                </button>
+              </div>
+
               <button
                 type="button"
                 onClick={handlePrint}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg shadow-sm transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#6B4ABF] hover:bg-[#583aa3] text-white text-xs font-bold rounded-lg shadow-sm border border-[#47D2BF]/40 transition cursor-pointer"
               >
-                <Printer className="w-4 h-4" />
+                <Printer className="w-4 h-4 text-[#47D2BF]" />
                 <span>{language === 'en' ? 'Print / Save PDF' : 'Imprimir / Guardar PDF'}</span>
               </button>
               <button
@@ -477,43 +527,53 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
 
         {/* Printable Document Body */}
         <div
-          className={`p-5 sm:p-7 overflow-y-auto text-gray-900 print:p-4 print:overflow-visible print:text-black ${
+          className={`p-5 sm:p-7 overflow-y-auto print:p-4 print:overflow-visible ${
             compactMode ? 'space-y-3.5 print:space-y-2.5' : 'space-y-5 print:space-y-4'
+          } ${
+            isDarkReport ? 'bg-[#120e26] text-[#F0F0F0]' : 'bg-[#FAF7F2] text-[#2D2825] print:text-black'
           }`}
         >
           {/* Document Header */}
-          <div className="border-b-2 border-red-600 pb-3">
+          <div className={`border-b-2 pb-3 ${isDarkReport ? 'border-[#47D2BF]' : 'border-[#6B4ABF]'}`}>
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-red-600 bg-red-50 px-2 py-0.2 rounded border border-red-200">
+                  <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded border ${
+                    isDarkReport
+                      ? 'text-[#47D2BF] bg-[#1E1B2E] border-[#47D2BF]/40'
+                      : 'text-[#6B4ABF] bg-[#F5EFE6] border-[#E5DDD0]'
+                  }`}>
                     {language === 'en' ? 'Confidential · Internal Use' : 'Confidencial · Uso Interno'}
                   </span>
-                  <span className="text-[10px] text-gray-500 font-mono">
+                  <span className={`text-[10px] font-mono ${isDarkReport ? 'text-gray-400' : 'text-[#7D7063]'}`}>
                     ID: {results.clientName ? results.clientName.replace(/\s+/g, '-').toLowerCase() : (language === 'en' ? 'client' : 'cliente')}
                   </span>
                 </div>
-                <h1 className="text-xl font-black text-gray-900 tracking-tight print:text-lg">
+                <h1 className={`text-xl font-black tracking-tight print:text-lg ${isDarkReport ? 'text-white' : 'text-[#2D2825]'}`}>
                   {language === 'en'
                     ? 'Operational Proposal & Profitability Breakdown'
                     : 'Propuesta Operativa & Desglose de Rentabilidad'}
                 </h1>
-                <div className="flex flex-wrap items-center gap-y-0.5 gap-x-3 text-xs text-gray-600 mt-1 print:text-[11px]">
-                  <span className="flex items-center gap-1 font-bold text-gray-900">
-                    <Building2 className="w-3.5 h-3.5 text-gray-500" />
+                <div className={`flex flex-wrap items-center gap-y-0.5 gap-x-3 text-xs mt-1 print:text-[11px] ${isDarkReport ? 'text-gray-300' : 'text-[#5A4E42]'}`}>
+                  <span className={`flex items-center gap-1 font-bold ${isDarkReport ? 'text-white' : 'text-[#2D2825]'}`}>
+                    <Building2 className={`w-3.5 h-3.5 ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#8C5D1E]'}`} />
                     {results.clientName || (language === 'en' ? 'Unnamed Client' : 'Cliente sin nombre')}
                   </span>
-                  <span className="flex items-center gap-1 text-gray-500">
+                  <span className={`flex items-center gap-1 ${isDarkReport ? 'text-gray-400' : 'text-[#7D7063]'}`}>
                     <Calendar className="w-3.5 h-3.5 text-gray-400" />
                     {currentDate}
                   </span>
                   <span>
-                    {language === 'en' ? 'Sector:' : 'Sector:'} <strong>{productTypeDisplay}</strong> ({inputs.skuCount} SKUs, Tier {results.tierName})
+                    {language === 'en' ? 'Sector:' : 'Sector:'} <strong className={isDarkReport ? 'text-white' : 'text-[#2D2825]'}>{productTypeDisplay}</strong> ({inputs.skuCount} SKUs, Tier {results.tierName})
                   </span>
-                  <span className="flex items-center gap-1 font-semibold text-gray-800 bg-amber-50/80 border border-amber-200 px-1.5 py-0.5 rounded print:bg-white">
-                    <Clock className="w-3 h-3 text-amber-700" />
-                    {language === 'en' ? 'Go-Live Target:' : 'Go-Live Previsto:'} <strong>{results.goLiveDate}</strong>
-                    <span className="text-[10px] text-amber-800 font-normal">
+                  <span className={`flex items-center gap-1 font-semibold px-1.5 py-0.5 rounded ${
+                    isDarkReport
+                      ? 'bg-[#1E1B2E] border border-[#47D2BF]/40 text-[#47D2BF]'
+                      : 'text-[#7D4A08] bg-[#FFF8EE] border border-[#F3DFBF]'
+                  }`}>
+                    <Clock className={`w-3 h-3 ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#8C5D1E]'}`} />
+                    {language === 'en' ? 'Go-Live Target:' : 'Go-Live Previsto:'} <strong className={isDarkReport ? 'text-white' : 'text-[#2D2825]'}>{results.goLiveDate}</strong>
+                    <span className={`text-[10px] font-normal ${isDarkReport ? 'text-gray-300' : 'text-[#8C5D1E]'}`}>
                       ({results.goLiveDaysRemaining >= 0 ? `${results.goLiveDaysRemaining}d` : `-${Math.abs(results.goLiveDaysRemaining)}d`} · {results.goLiveMonthsRemainingInYear.toFixed(1)}m {results.goLiveYear})
                     </span>
                   </span>
@@ -522,14 +582,18 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                 {/* Technology Badges */}
                 {showTech && inputs.technologies && inputs.technologies.length > 0 && (
                   <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
-                    <span className="text-[10px] text-gray-500 font-semibold flex items-center gap-1">
-                      <Globe className="w-3 h-3 text-gray-400" />
+                    <span className={`text-[10px] font-semibold flex items-center gap-1 ${isDarkReport ? 'text-gray-400' : 'text-[#7D7063]'}`}>
+                      <Globe className={`w-3 h-3 ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#8C5D1E]'}`} />
                       {language === 'en' ? 'Technology / Platforms:' : 'Tecnología / Plataformas:'}
                     </span>
                     {inputs.technologies.map((t) => (
                       <span
                         key={t}
-                        className="text-[10px] font-bold bg-gray-100 text-gray-800 border border-gray-300 px-2 py-0.5 rounded-md"
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                          isDarkReport
+                            ? 'bg-[#1E1B2E] text-[#47D2BF] border-[#2E2A48]'
+                            : 'bg-[#F6F0E8] text-[#3D352E] border-[#E6DCD0]'
+                        }`}
                       >
                         {t}
                       </span>
@@ -539,15 +603,19 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
               </div>
 
               {showVolume && (
-                <div className="text-left sm:text-right bg-gray-50 px-3 py-2 rounded-lg border border-gray-200 shrink-0 print:bg-white">
-                  <span className="text-[9px] uppercase font-bold text-gray-500 tracking-wider block">
+                <div className={`text-left sm:text-right px-3 py-2 rounded-lg border shrink-0 ${
+                  isDarkReport
+                    ? 'bg-[#1E1B2E] border-[#2E2A48] text-white'
+                    : 'bg-[#F6F0E8] border-[#E6DCD0] text-[#2D2825]'
+                }`}>
+                  <span className={`text-[9px] uppercase font-bold tracking-wider block ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#8C5D1E]'}`}>
                     {language === 'en' ? 'Estimated Volume' : 'Volumen Estimado'}
                   </span>
-                  <span className="text-sm font-black font-mono text-gray-900 block">
+                  <span className={`text-sm font-black font-mono block ${isDarkReport ? 'text-white' : 'text-[#2D2825]'}`}>
                     {results.ordersMonth.toLocaleString(language === 'en' ? 'en-US' : 'es-ES', { maximumFractionDigits: 0 })}{' '}
                     {language === 'en' ? 'orders/month' : 'pedidos/mes'}
                   </span>
-                  <span className="text-[10px] text-gray-500 block">
+                  <span className={`text-[10px] block ${isDarkReport ? 'text-gray-400' : 'text-[#7D7063]'}`}>
                     {results.ordersPerDay.toFixed(1)} {language === 'en' ? 'ord/day' : 'ped/día'} · {results.unitsPerOrder.toFixed(1)} {language === 'en' ? 'units/order' : 'units/ped'}
                   </span>
                 </div>
@@ -555,8 +623,12 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
             </div>
 
             {showNotes && inputs.clientNotes && (
-              <div className="mt-2 bg-amber-50/70 border border-amber-200/80 rounded-md p-2 text-xs text-amber-950 print:text-[10.5px]">
-                <strong className="font-semibold">
+              <div className={`mt-2 rounded-md p-2 text-xs border print:text-[10.5px] ${
+                isDarkReport
+                  ? 'bg-[#1E1B2E] border-[#6B4ABF]/50 text-[#F0F0F0]'
+                  : 'bg-[#FFF8EC] border-[#EED8A8] text-[#553F1A]'
+              }`}>
+                <strong className={isDarkReport ? 'font-semibold text-[#47D2BF]' : 'font-semibold text-[#8C5D1E]'}>
                   {language === 'en' ? 'Client / Operational Notes:' : 'Notas del cliente / Operativa:'}
                 </strong>{' '}
                 {inputs.clientNotes}
@@ -567,55 +639,81 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
           {/* 1. Resumen Ejecutivo Mensual (KPIs) */}
           {showKpis && (
             <div className="break-inside-avoid">
-              <h3 className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1.5 flex items-center gap-1">
-                <Layers className="w-3 h-3 text-red-600" />
+              <h3 className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 flex items-center gap-1 ${
+                isDarkReport ? 'text-[#47D2BF]' : 'text-[#8C5D1E]'
+              }`}>
+                <Layers className={`w-3 h-3 ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`} />
                 {language === 'en' ? '1. Monthly Financial Summary' : '1. Resumen Financiero Mensual'}
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-200 print:bg-white">
-                  <span className="text-[10px] font-medium text-gray-500 block">
+                <div className={`p-2.5 rounded-lg border ${
+                  isDarkReport
+                    ? 'bg-[#1E1B2E] border-[#2E2A48]'
+                    : 'bg-white border-[#E8DFD3]'
+                }`}>
+                  <span className={`text-[10px] font-medium block ${isDarkReport ? 'text-gray-400' : 'text-[#7D7063]'}`}>
                     {language === 'en' ? 'Revenue / month' : 'Facturación / mes'}
                   </span>
-                  <span className="text-base font-black font-mono text-gray-900 block mt-0.5 print:text-sm">
+                  <span className={`text-base font-black font-mono block mt-0.5 print:text-sm ${
+                    isDarkReport ? 'text-white' : 'text-[#2D2825]'
+                  }`}>
                     {formatEur(results.totalRevenueMonth)}
                   </span>
-                  <span className="text-[9px] text-gray-400">
+                  <span className={`text-[9px] ${isDarkReport ? 'text-gray-400' : 'text-[#8C7F72]'}`}>
                     {language === 'en' ? 'Total with shipping' : 'Total con transporte'}
                   </span>
                 </div>
 
-                <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-200 print:bg-white">
-                  <span className="text-[10px] font-medium text-gray-500 block">
+                <div className={`p-2.5 rounded-lg border ${
+                  isDarkReport
+                    ? 'bg-[#221B2B] border-[#3E253A]'
+                    : 'bg-white border-[#E8DFD3]'
+                }`}>
+                  <span className={`text-[10px] font-medium block ${isDarkReport ? 'text-gray-400' : 'text-[#7D7063]'}`}>
                     {language === 'en' ? 'Operating costs / month' : 'Costes operativos / mes'}
                   </span>
-                  <span className="text-base font-black font-mono text-gray-700 block mt-0.5 print:text-sm">
+                  <span className={`text-base font-black font-mono block mt-0.5 print:text-sm ${
+                    isDarkReport ? 'text-red-400' : 'text-[#5A4E42]'
+                  }`}>
                     {formatEur(results.totalCostMonth)}
                   </span>
-                  <span className="text-[9px] text-gray-400">
+                  <span className={`text-[9px] ${isDarkReport ? 'text-gray-400' : 'text-[#8C7F72]'}`}>
                     {language === 'en' ? 'Warehouse + carrier' : 'Almacén + carrier'}
                   </span>
                 </div>
 
-                <div className="bg-emerald-50/70 p-2.5 rounded-lg border border-emerald-200 print:bg-white">
-                  <span className="text-[10px] font-bold text-emerald-800 block">
+                <div className={`p-2.5 rounded-lg border ${
+                  isDarkReport
+                    ? 'bg-[#142926] border-[#47D2BF]/40'
+                    : 'bg-[#F0FAF7] border-[#BBECE2]'
+                }`}>
+                  <span className={`text-[10px] font-bold block ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#0D7A68]'}`}>
                     {language === 'en' ? 'Net profit / month' : 'Beneficio neto / mes'}
                   </span>
-                  <span className="text-base font-black font-mono text-emerald-700 block mt-0.5 print:text-sm">
+                  <span className={`text-base font-black font-mono block mt-0.5 print:text-sm ${
+                    isDarkReport ? 'text-[#47D2BF]' : 'text-[#096052]'
+                  }`}>
                     {formatEur(results.totalProfitMonth)}
                   </span>
-                  <span className="text-[9px] text-emerald-600 font-medium">
+                  <span className={`text-[9px] font-medium ${isDarkReport ? 'text-[#47D2BF]/80' : 'text-[#0D7A68]'}`}>
                     {formatEur(results.profitPerOrder)} {language === 'en' ? 'per order' : 'por pedido'}
                   </span>
                 </div>
 
-                <div className="bg-blue-50/70 p-2.5 rounded-lg border border-blue-200 print:bg-white">
-                  <span className="text-[10px] font-bold text-blue-800 block">
+                <div className={`p-2.5 rounded-lg border ${
+                  isDarkReport
+                    ? 'bg-[#1A2038] border-[#2E3C66]'
+                    : 'bg-[#F2F5FD] border-[#D0DCF8]'
+                }`}>
+                  <span className={`text-[10px] font-bold block ${isDarkReport ? 'text-blue-300' : 'text-blue-800'}`}>
                     {language === 'en' ? 'Overall Margin & Markup' : 'Margen & Markup Global'}
                   </span>
-                  <span className="text-base font-black font-mono text-blue-950 block mt-0.5 print:text-sm">
+                  <span className={`text-base font-black font-mono block mt-0.5 print:text-sm ${
+                    isDarkReport ? 'text-blue-200' : 'text-blue-950'
+                  }`}>
                     {formatPct(results.marginTotal)}
                   </span>
-                  <span className="text-[9px] font-semibold text-blue-700 font-mono">
+                  <span className={`text-[9px] font-semibold font-mono ${isDarkReport ? 'text-blue-300' : 'text-blue-700'}`}>
                     Markup: {formatMarkup(results.markupTotal)}
                   </span>
                 </div>
@@ -623,24 +721,32 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
 
               {/* Split Almacén vs Carrier */}
               <div className="mt-1.5 grid grid-cols-2 gap-2 text-[10.5px]">
-                <div className="bg-gray-50/80 px-2 py-1 rounded border border-gray-200 flex justify-between items-center print:bg-white">
-                  <span className="text-gray-600">
+                <div className={`px-2 py-1 rounded border flex justify-between items-center ${
+                  isDarkReport
+                    ? 'bg-[#1E1B2E] border-[#2E2A48]'
+                    : 'bg-[#F6F0E8] border-[#E6DCD0]'
+                }`}>
+                  <span className={isDarkReport ? 'text-gray-300' : 'text-[#5A4E42]'}>
                     {language === 'en' ? 'Warehouse Operations Margin (Ex Shipping):' : 'Margen Operativa Almacén (Sin Envío):'}
                   </span>
-                  <span className="font-bold text-gray-900 font-mono">
+                  <span className={`font-bold font-mono ${isDarkReport ? 'text-white' : 'text-[#2D2825]'}`}>
                     {formatPct(results.marginExShipping)}{' '}
-                    <span className="text-[9px] text-blue-700 font-normal">
+                    <span className={`text-[9px] font-normal ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`}>
                       (Markup {formatMarkup(results.markupExShipping)})
                     </span>
                   </span>
                 </div>
-                <div className="bg-gray-50/80 px-2 py-1 rounded border border-gray-200 flex justify-between items-center print:bg-white">
-                  <span className="text-gray-600">
+                <div className={`px-2 py-1 rounded border flex justify-between items-center ${
+                  isDarkReport
+                    ? 'bg-[#1E1B2E] border-[#2E2A48]'
+                    : 'bg-[#F6F0E8] border-[#E6DCD0]'
+                }`}>
+                  <span className={isDarkReport ? 'text-gray-300' : 'text-[#5A4E42]'}>
                     {language === 'en' ? 'Shipping Margin (Carrier):' : 'Margen Transporte (Carrier):'}
                   </span>
-                  <span className="font-bold text-gray-900 font-mono">
+                  <span className={`font-bold font-mono ${isDarkReport ? 'text-white' : 'text-[#2D2825]'}`}>
                     {formatPct(results.marginShipping)}{' '}
-                    <span className="text-[9px] text-blue-700 font-normal">
+                    <span className={`text-[9px] font-normal ${isDarkReport ? 'text-[#47D2BF]' : 'text-blue-700'}`}>
                       (Markup {formatMarkup(results.shippingMarkup)})
                     </span>
                   </span>
@@ -649,42 +755,52 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
 
               {/* Annualized Run Rate (ARR) & In-Year Revenue (YRR) */}
               <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                <div className="bg-gray-100/80 p-2 rounded-lg border border-gray-200 print:bg-white flex items-center justify-between">
+                <div className={`p-2 rounded-lg border flex items-center justify-between ${
+                  isDarkReport
+                    ? 'bg-[#1E1B2E] border-[#2E2A48]'
+                    : 'bg-[#F6F0E8] border-[#E6DCD0]'
+                }`}>
                   <div>
-                    <span className="text-[9.5px] font-bold uppercase tracking-wider text-gray-600 block">
+                    <span className={`text-[9.5px] font-bold uppercase tracking-wider block ${isDarkReport ? 'text-gray-400' : 'text-[#7D7063]'}`}>
                       ARR (Annual Recurring Revenue · 12 {language === 'en' ? 'months' : 'meses'})
                     </span>
-                    <span className="text-sm font-black font-mono text-gray-900">
+                    <span className={`text-sm font-black font-mono ${isDarkReport ? 'text-white' : 'text-[#2D2825]'}`}>
                       {formatEur(results.arrRevenue)}
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="text-[9.5px] text-gray-500 block">
+                    <span className={`text-[9.5px] block ${isDarkReport ? 'text-gray-400' : 'text-[#7D7063]'}`}>
                       {language === 'en' ? 'Annual Profit' : 'Beneficio Anual'}
                     </span>
-                    <span className="text-xs font-bold font-mono text-emerald-700">
+                    <span className={`text-xs font-bold font-mono ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#0D7A68]'}`}>
                       +{formatEur(results.arrProfit)}
                     </span>
                   </div>
                 </div>
 
-                <div className="bg-red-50/70 p-2 rounded-lg border border-red-200 print:bg-white flex items-center justify-between">
+                <div className={`p-2 rounded-lg border flex items-center justify-between ${
+                  isDarkReport
+                    ? 'bg-[#241E38] border-[#6B4ABF]/50'
+                    : 'bg-[#F7F2FC] border-[#DDD0F5]'
+                }`}>
                   <div>
-                    <span className="text-[9.5px] font-bold uppercase tracking-wider text-red-900 flex items-center gap-1">
+                    <span className={`text-[9.5px] font-bold uppercase tracking-wider flex items-center gap-1 ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`}>
                       <span>YRR (Year Run Rate · {results.goLiveYear})</span>
-                      <span className="text-[8.5px] font-mono text-red-700 bg-red-100 px-1 py-0.2 rounded font-bold">
+                      <span className={`text-[8.5px] font-mono px-1 py-0.2 rounded font-bold ${
+                        isDarkReport ? 'bg-[#1E1B2E] text-[#47D2BF]' : 'text-[#6B4ABF] bg-purple-100'
+                      }`}>
                         {results.goLiveMonthsRemainingInYear.toFixed(1)} {language === 'en' ? 'mo' : 'meses'}
                       </span>
                     </span>
-                    <span className="text-sm font-black font-mono text-red-700">
+                    <span className={`text-sm font-black font-mono ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`}>
                       {formatEur(results.yrrRevenue)}
                     </span>
                   </div>
                   <div className="text-right">
-                    <span className="text-[9.5px] text-gray-500 block">
+                    <span className={`text-[9.5px] block ${isDarkReport ? 'text-gray-400' : 'text-[#7D7063]'}`}>
                       {language === 'en' ? `Profit in ${results.goLiveYear}` : `Beneficio en ${results.goLiveYear}`}
                     </span>
-                    <span className="text-xs font-bold font-mono text-emerald-700">
+                    <span className={`text-xs font-bold font-mono ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#0D7A68]'}`}>
                       +{formatEur(results.yrrProfit)}
                     </span>
                   </div>
@@ -697,140 +813,154 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
           {showOrderBreakdown && (
             <div className="break-inside-avoid">
               <div className="flex justify-between items-center mb-1.5">
-                <h3 className="text-[10px] font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1">
-                  <Package className="w-3 h-3 text-red-600" />
+                <h3 className={`text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${
+                  isDarkReport ? 'text-[#47D2BF]' : 'text-[#8C5D1E]'
+                }`}>
+                  <Package className={`w-3 h-3 ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`} />
                   {language === 'en'
                     ? '2. Detailed Order Breakdown (Cost, Margin, Markup & Rate)'
                     : '2. Desglose Detallado por Pedido (Coste, Margen, Markup y Tarifa)'}
                 </h3>
-                <span className="text-[10px] text-gray-500 font-mono">
+                <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+                  isDarkReport
+                    ? 'bg-[#1E1B2E] border-[#2E2A48] text-gray-300'
+                    : 'bg-[#F6F0E8] border-[#E6DCD0] text-[#5A4E42]'
+                }`}>
                   {language === 'en' ? 'Average revenue:' : 'Facturación media:'}{' '}
-                  {formatEur(results.orderRevenueExShipping + results.shippingPrice)} /{' '}
+                  <strong className={isDarkReport ? 'text-white' : 'text-[#2D2825]'}>
+                    {formatEur(results.orderRevenueExShipping + results.shippingPrice)}
+                  </strong> /{' '}
                   {language === 'en' ? 'order' : 'ped'}
                 </span>
               </div>
 
-              <div className="border border-gray-200 rounded-lg overflow-hidden shadow-2xs">
+              <div className={`border rounded-lg overflow-hidden shadow-2xs ${
+                isDarkReport ? 'border-[#2E2A48] bg-[#1E1B2E]' : 'border-[#E5DDD0] bg-white'
+              }`}>
                 <table className="w-full text-xs text-left print:text-[10.5px]">
-                  <thead className="bg-gray-100 text-gray-700 font-semibold uppercase text-[9px] border-b border-gray-200">
+                  <thead className={`font-semibold uppercase text-[9px] border-b ${
+                    isDarkReport
+                      ? 'bg-[#252238] text-gray-200 border-[#2E2A48]'
+                      : 'bg-[#F4EEE4] text-[#42382E] border-[#E2D8CA]'
+                  }`}>
                     <tr>
                       <th className="px-3 py-1.5">{language === 'en' ? 'Operational Concept' : 'Concepto Operativo'}</th>
                       <th className="px-2 py-1.5 text-right">{language === 'en' ? 'Base Cost' : 'Coste Base'}</th>
                       <th className="px-2 py-1.5 text-right">{language === 'en' ? 'Margin %' : 'Margen %'}</th>
-                      <th className="px-2 py-1.5 text-right text-blue-700">{language === 'en' ? 'Markup %' : 'Markup %'}</th>
-                      <th className="px-3 py-1.5 text-right font-bold text-gray-900">{language === 'en' ? 'Sale Rate' : 'Tarifa Venta'}</th>
-                      <th className="px-2.5 py-1.5 text-right text-emerald-800">{language === 'en' ? 'Profit' : 'Beneficio'}</th>
+                      <th className={`px-2 py-1.5 text-right ${isDarkReport ? 'text-blue-300' : 'text-blue-700'}`}>{language === 'en' ? 'Markup %' : 'Markup %'}</th>
+                      <th className={`px-3 py-1.5 text-right font-bold ${isDarkReport ? 'text-white' : 'text-[#2D2825]'}`}>{language === 'en' ? 'Sale Rate' : 'Tarifa Venta'}</th>
+                      <th className={`px-2.5 py-1.5 text-right ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#0D7A68]'}`}>{language === 'en' ? 'Profit' : 'Beneficio'}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className={`divide-y ${isDarkReport ? 'divide-[#2E2A48]' : 'divide-[#EFE8DC]'}`}>
                     {/* Preparación base Pack */}
-                    <tr className="bg-white">
-                      <td className="px-3 py-1.5 font-medium text-gray-900">
-                        <div>{language === 'en' ? 'Base preparation (Pack)' : 'Preparación base (Pack)'}</div>
-                        <div className="text-[9px] text-gray-400">
+                    <tr className={isDarkReport ? 'bg-[#1E1B2E] hover:bg-[#252238]/50' : 'bg-white hover:bg-[#FAF6F0]'}>
+                      <td className="px-3 py-1.5 font-medium">
+                        <div className={isDarkReport ? 'text-white' : 'text-[#2D2825]'}>{language === 'en' ? 'Base preparation (Pack)' : 'Preparación base (Pack)'}</div>
+                        <div className={`text-[9px] ${isDarkReport ? 'text-gray-400' : 'text-[#7D7063]'}`}>
                           {language === 'en'
                             ? 'Base packaging and handling (Calculator)'
                             : 'Embalaje y manipulado base (Calculadora)'}
                         </div>
                       </td>
-                      <td className="px-2 py-1.5 text-right font-mono text-gray-700">
+                      <td className={`px-2 py-1.5 text-right font-mono ${isDarkReport ? 'text-gray-300' : 'text-[#5A4E42]'}`}>
                         {formatEur(results.packCost)}
                       </td>
-                      <td className="px-2 py-1.5 text-right font-mono font-medium text-emerald-700">
+                      <td className={`px-2 py-1.5 text-right font-mono font-medium ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#0D7A68]'}`}>
                         {formatPct(results.packMargin)}
                       </td>
-                      <td className="px-2 py-1.5 text-right font-mono font-semibold text-blue-700">
+                      <td className={`px-2 py-1.5 text-right font-mono font-semibold ${isDarkReport ? 'text-blue-300' : 'text-blue-700'}`}>
                         {formatMarkup(results.packMarkup)}
                       </td>
-                      <td className="px-3 py-1.5 text-right font-mono font-bold text-gray-900">
+                      <td className={`px-3 py-1.5 text-right font-mono font-bold ${isDarkReport ? 'text-white' : 'text-[#2D2825]'}`}>
                         {formatEur(results.packPrice)}
                       </td>
-                      <td className="px-2.5 py-1.5 text-right font-mono font-semibold text-emerald-700">
+                      <td className={`px-2.5 py-1.5 text-right font-mono font-semibold ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#0D7A68]'}`}>
                         +{formatEur(results.packPrice - results.packCost)}
                       </td>
                     </tr>
 
                     {/* 1er Pick */}
-                    <tr className="bg-white">
-                      <td className="px-3 py-1.5 font-medium text-gray-900">
-                        <div>{language === 'en' ? '1st Pick (1st unit)' : '1er Pick (1ª unidad)'}</div>
-                        <div className="text-[9px] text-gray-400">
+                    <tr className={isDarkReport ? 'bg-[#1E1B2E] hover:bg-[#252238]/50' : 'bg-white hover:bg-[#FAF6F0]'}>
+                      <td className="px-3 py-1.5 font-medium">
+                        <div className={isDarkReport ? 'text-white' : 'text-[#2D2825]'}>{language === 'en' ? '1st Pick (1st unit)' : '1er Pick (1ª unidad)'}</div>
+                        <div className={`text-[9px] ${isDarkReport ? 'text-gray-400' : 'text-[#7D7063]'}`}>
                           {language === 'en'
                             ? 'Picking 1st unit from warehouse shelf'
                             : 'Picking primera unidad en estantería'}
                         </div>
                       </td>
-                      <td className="px-2 py-1.5 text-right font-mono text-gray-700">
+                      <td className={`px-2 py-1.5 text-right font-mono ${isDarkReport ? 'text-gray-300' : 'text-[#5A4E42]'}`}>
                         {formatEur(results.firstPickCost)}
                       </td>
-                      <td className="px-2 py-1.5 text-right font-mono font-medium text-emerald-700">
+                      <td className={`px-2 py-1.5 text-right font-mono font-medium ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#0D7A68]'}`}>
                         {formatPct(results.firstPickMargin)}
                       </td>
-                      <td className="px-2 py-1.5 text-right font-mono font-semibold text-blue-700">
+                      <td className={`px-2 py-1.5 text-right font-mono font-semibold ${isDarkReport ? 'text-blue-300' : 'text-blue-700'}`}>
                         {formatMarkup(results.firstPickMarkup)}
                       </td>
-                      <td className="px-3 py-1.5 text-right font-mono font-bold text-gray-900">
+                      <td className={`px-3 py-1.5 text-right font-mono font-bold ${isDarkReport ? 'text-white' : 'text-[#2D2825]'}`}>
                         {formatEur(results.firstPickPrice)}
                       </td>
-                      <td className="px-2.5 py-1.5 text-right font-mono font-semibold text-emerald-700">
+                      <td className={`px-2.5 py-1.5 text-right font-mono font-semibold ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#0D7A68]'}`}>
                         +{formatEur(results.firstPickPrice - results.firstPickCost)}
                       </td>
                     </tr>
 
                     {/* Picks adicionales */}
-                    <tr className="bg-white">
-                      <td className="px-3 py-1.5 font-medium text-gray-900">
-                        <div>{language === 'en' ? 'Additional Picks (> 1 unit)' : 'Picks adicionales (> 1 unidad)'}</div>
-                        <div className="text-[9px] text-gray-400">
+                    <tr className={isDarkReport ? 'bg-[#1E1B2E] hover:bg-[#252238]/50' : 'bg-white hover:bg-[#FAF6F0]'}>
+                      <td className="px-3 py-1.5 font-medium">
+                        <div className={isDarkReport ? 'text-white' : 'text-[#2D2825]'}>{language === 'en' ? 'Additional Picks (> 1 unit)' : 'Picks adicionales (> 1 unidad)'}</div>
+                        <div className={`text-[9px] ${isDarkReport ? 'text-gray-400' : 'text-[#7D7063]'}`}>
                           {language === 'en'
                             ? `Per additional unit (current avg: ${(results.unitsPerOrder - 1).toFixed(1)} extra units)`
                             : `Por unidad adicional (media actual: ${(results.unitsPerOrder - 1).toFixed(1)} uds extras)`}
                         </div>
                       </td>
-                      <td className="px-2 py-1.5 text-right font-mono text-gray-700">
+                      <td className={`px-2 py-1.5 text-right font-mono ${isDarkReport ? 'text-gray-300' : 'text-[#5A4E42]'}`}>
                         {formatEur(results.additionalPickCost)}
                       </td>
-                      <td className="px-2 py-1.5 text-right font-mono font-medium text-emerald-700">
+                      <td className={`px-2 py-1.5 text-right font-mono font-medium ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#0D7A68]'}`}>
                         {formatPct(results.additionalPickMargin)}
                       </td>
-                      <td className="px-2 py-1.5 text-right font-mono font-semibold text-blue-700">
+                      <td className={`px-2 py-1.5 text-right font-mono font-semibold ${isDarkReport ? 'text-blue-300' : 'text-blue-700'}`}>
                         {formatMarkup(results.additionalPickMarkup)}
                       </td>
-                      <td className="px-3 py-1.5 text-right font-mono font-bold text-gray-900">
+                      <td className={`px-3 py-1.5 text-right font-mono font-bold ${isDarkReport ? 'text-white' : 'text-[#2D2825]'}`}>
                         {formatEur(results.additionalPickPrice)}
                       </td>
-                      <td className="px-2.5 py-1.5 text-right font-mono font-semibold text-emerald-700">
+                      <td className={`px-2.5 py-1.5 text-right font-mono font-semibold ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#0D7A68]'}`}>
                         +{formatEur(results.additionalPickPrice - results.additionalPickCost)}
                       </td>
                     </tr>
 
                     {/* Envío Carrier */}
-                    <tr className="bg-white">
-                      <td className="px-3 py-1.5 font-medium text-gray-900">
-                        <div>{language === 'en' ? 'Shipping Transport (Carrier)' : 'Envío Transporte (Carrier)'}</div>
-                        <div className="text-[9px] text-gray-400">
+                    <tr className={isDarkReport ? 'bg-[#1E1B2E] hover:bg-[#252238]/50' : 'bg-white hover:bg-[#FAF6F0]'}>
+                      <td className="px-3 py-1.5 font-medium">
+                        <div className={isDarkReport ? 'text-white' : 'text-[#2D2825]'}>{language === 'en' ? 'Shipping Transport (Carrier)' : 'Envío Transporte (Carrier)'}</div>
+                        <div className={`text-[9px] ${isDarkReport ? 'text-gray-400' : 'text-[#7D7063]'}`}>
                           {language === 'en' ? 'Standard courier transit rate' : 'Tarifa peninsular estándar'}
                         </div>
                       </td>
-                      <td className="px-2 py-1.5 text-right font-mono text-gray-700">
+                      <td className={`px-2 py-1.5 text-right font-mono ${isDarkReport ? 'text-gray-300' : 'text-[#5A4E42]'}`}>
                         {formatEur(results.carrierCost)}
                       </td>
-                      <td className="px-2 py-1.5 text-right font-mono font-medium text-emerald-700">
+                      <td className={`px-2 py-1.5 text-right font-mono font-medium ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#0D7A68]'}`}>
                         {formatPct(results.shippingMargin)}
                       </td>
-                      <td className="px-2 py-1.5 text-right font-mono font-semibold text-blue-700">
+                      <td className={`px-2 py-1.5 text-right font-mono font-semibold ${isDarkReport ? 'text-blue-300' : 'text-blue-700'}`}>
                         {formatMarkup(results.shippingMarkup)}
                       </td>
-                      <td className="px-3 py-1.5 text-right font-mono font-bold text-blue-700">
+                      <td className={`px-3 py-1.5 text-right font-mono font-bold ${isDarkReport ? 'text-blue-300' : 'text-blue-700'}`}>
                         {formatEur(results.shippingPrice)}
                       </td>
-                      <td className="px-2.5 py-1.5 text-right font-mono font-semibold text-emerald-700">
+                      <td className={`px-2.5 py-1.5 text-right font-mono font-semibold ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#0D7A68]'}`}>
                         +{formatEur(results.shippingProfitPerOrder)}
                       </td>
                     </tr>
 
                     {/* TOTAL MEDIO POR PEDIDO */}
-                    <tr className="bg-gray-900 text-white font-bold print:bg-gray-200 print:text-black">
+                    <tr className={isDarkReport ? 'bg-[#161228] text-white font-bold border-t-2 border-[#47D2BF]' : 'bg-[#282329] text-[#FFF6EE] font-bold border-t-2 border-[#E2D8CA] print:bg-[#EDE6DC] print:text-black'}>
                       <td className="px-3 py-2 text-white print:text-black">
                         {language === 'en'
                           ? 'TOTAL ESTIMATED AVERAGE PER ORDER (WITH SHIPPING)'
@@ -839,7 +969,7 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                       <td className="px-2 py-2 text-right font-mono text-gray-300 print:text-black">
                         {formatEur(results.orderCostExShipping + results.carrierCost)}
                       </td>
-                      <td className="px-2 py-2 text-right font-mono text-emerald-400 print:text-black">
+                      <td className={`px-2 py-2 text-right font-mono ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#5EEAD4]'} print:text-black`}>
                         {formatPct(results.marginTotal)}
                       </td>
                       <td className="px-2 py-2 text-right font-mono text-blue-300 print:text-black">
@@ -848,7 +978,7 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                       <td className="px-3 py-2 text-right font-mono font-black text-white text-xs sm:text-sm print:text-black">
                         {formatEur(results.orderRevenueExShipping + results.shippingPrice)}
                       </td>
-                      <td className="px-2.5 py-2 text-right font-mono font-black text-emerald-400 text-xs sm:text-sm print:text-black">
+                      <td className={`px-2.5 py-2 text-right font-mono font-black ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#5EEAD4]'} text-xs sm:text-sm print:text-black`}>
                         +{formatEur(results.profitPerOrder)}
                       </td>
                     </tr>
@@ -862,13 +992,15 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
           {showCharts && (
             <div className="break-inside-avoid space-y-2.5">
               <div className="flex justify-between items-center">
-                <h3 className="text-[10px] font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
-                  <PieIcon className="w-3.5 h-3.5 text-red-600" />
+                <h3 className={`text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${
+                  isDarkReport ? 'text-[#47D2BF]' : 'text-[#8C5D1E]'
+                }`}>
+                  <PieIcon className={`w-3.5 h-3.5 ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`} />
                   {language === 'en'
                     ? '3. Operational Analytics & Visual Distribution'
                     : '3. Análisis Gráfico y Distribución Operativa'}
                 </h3>
-                <span className="text-[9.5px] text-gray-500 font-mono">
+                <span className={`text-[9.5px] font-mono ${isDarkReport ? 'text-gray-400' : 'text-[#7D7063]'}`}>
                   {language === 'en'
                     ? `Monthly Turnover: ${formatEur(results.totalRevenueMonth)}`
                     : `Facturación Mensual: ${formatEur(results.totalRevenueMonth)}`}
@@ -878,22 +1010,28 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
               {/* Grid 2 Columnas: Donut (Solo Ingresos) & Comparativa Ingresos vs Costes */}
               <div className="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-2.5">
                 {/* GRÁFICO A: ESTRUCTURA Y REPARTO PORCENTUAL (SOLO INGRESOS) */}
-                <div className="border border-gray-200 rounded-lg p-2.5 bg-white flex flex-col justify-between shadow-2xs break-inside-avoid">
+                <div className={`border rounded-lg p-2.5 flex flex-col justify-between shadow-2xs break-inside-avoid ${
+                  isDarkReport ? 'border-[#2E2A48] bg-[#1E1B2E]' : 'border-[#E5DDD0] bg-white'
+                }`}>
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-1.5">
-                        <PieIcon className="w-3.5 h-3.5 text-red-600 shrink-0" />
-                        <h4 className="text-[11px] font-bold text-gray-900">
+                        <PieIcon className={`w-3.5 h-3.5 shrink-0 ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`} />
+                        <h4 className={`text-[11px] font-bold ${isDarkReport ? 'text-white' : 'text-[#2D2825]'}`}>
                           {language === 'en'
                             ? 'Operational Weight & Distribution'
                             : 'Estructura y Reparto Porcentual'}
                         </h4>
                       </div>
-                      <span className="text-[8.5px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                      <span className={`text-[8.5px] font-bold px-1.5 py-0.5 rounded border ${
+                        isDarkReport
+                          ? 'bg-[#25203D] text-[#47D2BF] border-[#47D2BF]/40'
+                          : 'bg-[#F2F5FD] text-blue-800 border-blue-200'
+                      }`}>
                         {language === 'en' ? 'Revenue Only' : 'Solo Ingresos'}
                       </span>
                     </div>
-                    <p className="text-[9.5px] text-gray-500 mb-1.5">
+                    <p className={`text-[9.5px] mb-1.5 ${isDarkReport ? 'text-gray-400' : 'text-[#7D7063]'}`}>
                       {language === 'en'
                         ? 'Distribution of monthly billed revenue by service line.'
                         : 'Distribución porcentual de la facturación mensual por línea.'}
@@ -911,9 +1049,10 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                               String(name),
                             ]}
                             contentStyle={{
-                              backgroundColor: '#ffffff',
+                              backgroundColor: isDarkReport ? '#1E1B2E' : '#FAF7F2',
                               borderRadius: '6px',
-                              borderColor: '#e5e7eb',
+                              borderColor: isDarkReport ? '#2E2A48' : '#E5DDD0',
+                              color: isDarkReport ? '#F0F0F0' : '#2D2825',
                               boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                               fontSize: '11px',
                             }}
@@ -940,7 +1079,7 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                         <span className="text-[8.5px] uppercase tracking-wider font-semibold text-gray-400">
                           {language === 'en' ? 'Total Rev.' : 'Fact. Total'}
                         </span>
-                        <span className="text-[11px] font-bold font-mono text-gray-900">
+                        <span className={`text-[11px] font-bold font-mono ${isDarkReport ? 'text-white' : 'text-[#2D2825]'}`}>
                           {formatEur(results.totalRevenueMonth)}
                         </span>
                       </div>
@@ -948,26 +1087,30 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                   </div>
 
                   {/* Detalle porcentual por línea */}
-                  <div className="mt-1.5 pt-1.5 border-t border-gray-100 max-h-32 overflow-y-auto space-y-0.5">
+                  <div className={`mt-1.5 pt-1.5 border-t max-h-32 overflow-y-auto space-y-0.5 ${
+                    isDarkReport ? 'border-[#2E2A48]' : 'border-[#EFE8DC]'
+                  }`}>
                     {revenueDonutData.map((item, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center justify-between text-[9.5px] py-0.5 px-1 rounded bg-gray-50/70"
+                        className={`flex items-center justify-between text-[9.5px] py-0.5 px-1 rounded ${
+                          isDarkReport ? 'bg-[#252238] text-gray-200' : 'bg-[#FAF6F0]'
+                        }`}
                       >
                         <div className="flex items-center gap-1.5 truncate mr-1.5">
                           <span
                             className="w-2 h-2 rounded-full shrink-0"
                             style={{ backgroundColor: item.color }}
                           />
-                          <span className="truncate text-gray-700 font-medium" title={item.name}>
+                          <span className={`truncate font-medium ${isDarkReport ? 'text-gray-200' : 'text-[#3D352E]'}`} title={item.name}>
                             {item.name}
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0 font-mono">
-                          <span className="text-gray-500 text-[9px]">
+                          <span className={`text-[9px] ${isDarkReport ? 'text-gray-400' : 'text-[#7D7063]'}`}>
                             {formatEur(item.value)}
                           </span>
-                          <span className="text-gray-900 font-bold w-10 text-right">
+                          <span className={`font-bold w-10 text-right ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#2D2825]'}`}>
                             {item.pct.toFixed(1)}%
                           </span>
                         </div>
@@ -977,22 +1120,28 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                 </div>
 
                 {/* GRÁFICO B: COMPARATIVA INGRESOS VS COSTES POR LÍNEA */}
-                <div className="border border-gray-200 rounded-lg p-2.5 bg-white flex flex-col justify-between shadow-2xs break-inside-avoid">
+                <div className={`border rounded-lg p-2.5 flex flex-col justify-between shadow-2xs break-inside-avoid ${
+                  isDarkReport ? 'border-[#2E2A48] bg-[#1E1B2E]' : 'border-[#E5DDD0] bg-white'
+                }`}>
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-1.5">
-                        <BarChart3 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                        <h4 className="text-[11px] font-bold text-gray-900">
+                        <BarChart3 className={`w-3.5 h-3.5 shrink-0 ${isDarkReport ? 'text-[#47D2BF]' : 'text-blue-600'}`} />
+                        <h4 className={`text-[11px] font-bold ${isDarkReport ? 'text-white' : 'text-[#2D2825]'}`}>
                           {language === 'en'
                             ? 'Revenue vs Costs by Line'
                             : 'Comparativa: Ingresos vs Costes'}
                         </h4>
                       </div>
-                      <span className="text-[8.5px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 border border-gray-200">
+                      <span className={`text-[8.5px] font-bold px-1.5 py-0.5 rounded border ${
+                        isDarkReport
+                          ? 'bg-[#252238] text-gray-200 border-[#2E2A48]'
+                          : 'bg-[#F6F0E8] text-[#42382E] border-[#E5DDD0]'
+                      }`}>
                         {language === 'en' ? `Direct (${currencySymbol})` : `Directa (${currencySymbol})`}
                       </span>
                     </div>
-                    <p className="text-[9.5px] text-gray-500 mb-1.5">
+                    <p className={`text-[9.5px] mb-1.5 ${isDarkReport ? 'text-gray-400' : 'text-[#7D7063]'}`}>
                       {language === 'en'
                         ? 'Direct comparison of monthly revenue vs operational costs.'
                         : 'Comparativa directa de facturación y coste operativo mensual.'}
@@ -1004,16 +1153,16 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                           data={barChartData}
                           margin={{ top: 8, right: 8, left: -14, bottom: 26 }}
                         >
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkReport ? '#2E2A48' : '#E5DDD0'} />
                           <XAxis
                             dataKey="shortName"
-                            tick={{ fontSize: 8.5, fill: '#4b5563' }}
+                            tick={{ fontSize: 8.5, fill: isDarkReport ? '#a1a1aa' : '#7D7063' }}
                             angle={-25}
                             textAnchor="end"
                             interval={0}
                           />
                           <YAxis
-                            tick={{ fontSize: 8.5, fill: '#4b5563' }}
+                            tick={{ fontSize: 8.5, fill: isDarkReport ? '#a1a1aa' : '#7D7063' }}
                             tickFormatter={(v) => `${v}${currencySymbol}`}
                           />
                           <Tooltip
@@ -1026,9 +1175,10 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                                 : String(name),
                             ]}
                             contentStyle={{
-                              backgroundColor: '#ffffff',
+                              backgroundColor: isDarkReport ? '#1E1B2E' : '#FAF7F2',
                               borderRadius: '6px',
-                              borderColor: '#e5e7eb',
+                              borderColor: isDarkReport ? '#2E2A48' : '#E5DDD0',
+                              color: isDarkReport ? '#F0F0F0' : '#2D2825',
                               boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                               fontSize: '11px',
                             }}
@@ -1047,13 +1197,13 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                           <Bar
                             dataKey="Ingresos"
                             name={language === 'en' ? 'Revenue' : 'Ingresos'}
-                            fill="#2563eb"
+                            fill={isDarkReport ? '#6B4ABF' : '#4F46E5'}
                             radius={[2, 2, 0, 0]}
                           />
                           <Bar
                             dataKey="Costes"
                             name={language === 'en' ? 'Costs' : 'Costes'}
-                            fill="#ef4444"
+                            fill={isDarkReport ? '#f87171' : '#E11D48'}
                             radius={[2, 2, 0, 0]}
                           />
                         </BarChart>
@@ -1062,20 +1212,22 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                   </div>
 
                   {/* Resumen comparativo inferior */}
-                  <div className="mt-1.5 pt-1.5 border-t border-gray-100 flex items-center justify-between text-[9.5px]">
+                  <div className={`mt-1.5 pt-1.5 border-t flex items-center justify-between text-[9.5px] ${
+                    isDarkReport ? 'border-[#2E2A48]' : 'border-[#EFE8DC]'
+                  }`}>
                     <div className="flex items-center gap-2">
                       <span className="flex items-center gap-1">
-                        <span className="w-2 h-2 rounded bg-blue-600 inline-block" />
-                        <span className="text-gray-600">{language === 'en' ? 'Rev:' : 'Ing:'}</span>
-                        <strong className="font-mono text-gray-900">{formatEur(results.totalRevenueMonth)}</strong>
+                        <span className="w-2 h-2 rounded bg-purple-500 inline-block" />
+                        <span className={isDarkReport ? 'text-gray-400' : 'text-[#7D7063]'}>{language === 'en' ? 'Rev:' : 'Ing:'}</span>
+                        <strong className={`font-mono ${isDarkReport ? 'text-white' : 'text-[#2D2825]'}`}>{formatEur(results.totalRevenueMonth)}</strong>
                       </span>
                       <span className="flex items-center gap-1">
-                        <span className="w-2 h-2 rounded bg-red-500 inline-block" />
-                        <span className="text-gray-600">{language === 'en' ? 'Cost:' : 'Cos:'}</span>
-                        <strong className="font-mono text-gray-900">{formatEur(results.totalCostMonth)}</strong>
+                        <span className="w-2 h-2 rounded bg-red-400 inline-block" />
+                        <span className={isDarkReport ? 'text-gray-400' : 'text-[#7D7063]'}>{language === 'en' ? 'Cost:' : 'Cos:'}</span>
+                        <strong className={`font-mono ${isDarkReport ? 'text-white' : 'text-[#2D2825]'}`}>{formatEur(results.totalCostMonth)}</strong>
                       </span>
                     </div>
-                    <span className="font-mono font-bold text-emerald-700">
+                    <span className={`font-mono font-bold ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#0D7A68]'}`}>
                       +{formatEur(results.totalProfitMonth)} ({formatPct(results.marginTotal)})
                     </span>
                   </div>
@@ -1083,21 +1235,27 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
               </div>
 
               {/* GRÁFICO C: APORTACIÓN AL BENEFICIO NETO POR LÍNEA */}
-              <div className="border border-gray-200 rounded-lg p-2.5 bg-white shadow-2xs break-inside-avoid">
+              <div className={`border rounded-lg p-2.5 shadow-2xs break-inside-avoid ${
+                isDarkReport ? 'border-[#2E2A48] bg-[#1E1B2E]' : 'border-[#E5DDD0] bg-white'
+              }`}>
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-1.5">
-                    <TrendingUp className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <h4 className="text-[11px] font-bold text-gray-900">
+                    <TrendingUp className={`w-3.5 h-3.5 shrink-0 ${isDarkReport ? 'text-[#47D2BF]' : 'text-emerald-600'}`} />
+                    <h4 className={`text-[11px] font-bold ${isDarkReport ? 'text-white' : 'text-[#2D2825]'}`}>
                       {language === 'en'
                         ? `Net Profit Contribution by Service Line (${currencySymbol})`
                         : `Aportación al Beneficio Neto por Línea (${currencySymbol})`}
                     </h4>
                   </div>
-                  <span className="text-[8.5px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  <span className={`text-[8.5px] font-bold px-1.5 py-0.5 rounded border ${
+                    isDarkReport
+                      ? 'bg-[#142926] text-[#47D2BF] border-[#47D2BF]/40'
+                      : 'bg-[#F0FAF7] text-[#0D7A68] border-[#BBECE2]'
+                  }`}>
                     {language === 'en' ? 'Profitability Driver' : 'Motor de Margen'}
                   </span>
                 </div>
-                <p className="text-[9.5px] text-gray-500 mb-1.5">
+                <p className={`text-[9.5px] mb-1.5 ${isDarkReport ? 'text-gray-400' : 'text-[#7D7063]'}`}>
                   {language === 'en'
                     ? `Absolute net profit in ${currencySymbol} generated by each operational service.`
                     : `Beneficio absoluto en ${currencySymbol} generado por cada servicio operativo.`}
@@ -1110,16 +1268,16 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                       layout="vertical"
                       margin={{ top: 4, right: 24, left: 16, bottom: 4 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e5e7eb" />
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={isDarkReport ? '#2E2A48' : '#E5DDD0'} />
                       <XAxis
                         type="number"
-                        tick={{ fontSize: 8.5, fill: '#4b5563' }}
+                        tick={{ fontSize: 8.5, fill: isDarkReport ? '#a1a1aa' : '#7D7063' }}
                         tickFormatter={(v) => `${v}${currencySymbol}`}
                       />
                       <YAxis
                         type="category"
                         dataKey="shortName"
-                        tick={{ fontSize: 8.5, fill: '#374151' }}
+                        tick={{ fontSize: 8.5, fill: isDarkReport ? '#d4d4d8' : '#42382E' }}
                         width={75}
                       />
                       <Tooltip
@@ -1131,9 +1289,10 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                           ];
                         }}
                         contentStyle={{
-                          backgroundColor: '#ffffff',
+                          backgroundColor: isDarkReport ? '#1E1B2E' : '#FAF7F2',
                           borderRadius: '6px',
-                          borderColor: '#e5e7eb',
+                          borderColor: isDarkReport ? '#2E2A48' : '#E5DDD0',
+                          color: isDarkReport ? '#F0F0F0' : '#2D2825',
                           boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                           fontSize: '11px',
                         }}
@@ -1142,7 +1301,7 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                         {profitChartData.map((entry, index) => (
                           <Cell
                             key={`cell-profit-report-${index}`}
-                            fill={entry.profit >= 0 ? '#10b981' : '#ef4444'}
+                            fill={entry.profit >= 0 ? (isDarkReport ? '#47D2BF' : '#10b981') : '#ef4444'}
                           />
                         ))}
                       </Bar>
@@ -1150,16 +1309,18 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                   </ResponsiveContainer>
                 </div>
 
-                <div className="mt-1.5 pt-1.5 border-t border-gray-100 flex items-center justify-between text-[9px] text-gray-500">
+                <div className={`mt-1.5 pt-1.5 border-t flex items-center justify-between text-[9px] ${
+                  isDarkReport ? 'border-[#2E2A48] text-gray-400' : 'border-[#EFE8DC] text-[#7D7063]'
+                }`}>
                   <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded bg-emerald-500 inline-block" />
+                    <span className={`w-2 h-2 rounded inline-block ${isDarkReport ? 'bg-[#47D2BF]' : 'bg-emerald-500'}`} />
                     {language === 'en' ? `Positive Margin (${currencySymbol})` : `Margen positivo (${currencySymbol})`}
                   </span>
                   <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded bg-red-500 inline-block" />
+                    <span className="w-2 h-2 rounded bg-red-400 inline-block" />
                     {language === 'en' ? 'Deficit / Cost' : 'Déficit / Coste'}
                   </span>
-                  <span className="font-mono text-gray-800 font-bold">
+                  <span className={`font-mono font-bold ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#0D7A68]'}`}>
                     {language === 'en' ? 'Total Net Profit:' : 'Beneficio Neto Total:'} {formatEur(results.totalProfitMonth)}
                   </span>
                 </div>
@@ -1170,65 +1331,77 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
           {/* 4. Desglose Operativo Mensual Completo (P&L por Línea) */}
           {showMonthlyPL && (
             <div className="break-inside-avoid">
-              <h3 className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1.5 flex items-center gap-1">
-                <Layers className="w-3 h-3 text-red-600" />
+              <h3 className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 flex items-center gap-1 ${
+                isDarkReport ? 'text-[#47D2BF]' : 'text-[#8C5D1E]'
+              }`}>
+                <Layers className={`w-3 h-3 ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`} />
                 {language === 'en'
                   ? (showCharts ? '4. Monthly P&L Account by Service Line' : '3. Monthly P&L Account by Service Line')
                   : (showCharts ? '4. Cuenta de Explotación Mensual por Líneas de Servicio' : '3. Cuenta de Explotación Mensual por Líneas de Servicio')}
               </h3>
 
-              <div className="border border-gray-200 rounded-lg overflow-hidden shadow-2xs">
+              <div className={`border rounded-lg overflow-hidden shadow-2xs ${
+                isDarkReport ? 'border-[#2E2A48] bg-[#1E1B2E]' : 'border-[#E5DDD0] bg-white'
+              }`}>
                 <table className="w-full text-xs text-left print:text-[10px]">
-                  <thead className="bg-gray-100 text-gray-700 font-semibold uppercase text-[9px] border-b border-gray-200">
+                  <thead className={`font-semibold uppercase text-[9px] border-b ${
+                    isDarkReport
+                      ? 'bg-[#252238] text-gray-200 border-[#2E2A48]'
+                      : 'bg-[#F4EEE4] text-[#42382E] border-[#E2D8CA]'
+                  }`}>
                     <tr>
                       <th className="px-3 py-1.5">{language === 'en' ? 'Service Line' : 'Línea de Servicio'}</th>
                       <th className="px-2 py-1.5">{language === 'en' ? 'Category' : 'Categoría'}</th>
                       <th className="px-2 py-1.5 text-right">{language === 'en' ? 'Revenue' : 'Facturación'}</th>
                       <th className="px-2 py-1.5 text-right">{language === 'en' ? 'Costs' : 'Costes'}</th>
-                      <th className="px-2.5 py-1.5 text-right text-emerald-800">{language === 'en' ? 'Profit' : 'Beneficio'}</th>
+                      <th className={`px-2.5 py-1.5 text-right ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#0D7A68]'}`}>{language === 'en' ? 'Profit' : 'Beneficio'}</th>
                       <th className="px-2.5 py-1.5 text-right">{language === 'en' ? 'Margin' : 'Margen'}</th>
-                      <th className="px-2 py-1.5 text-right text-blue-700">{language === 'en' ? 'Markup' : 'Markup'}</th>
+                      <th className={`px-2 py-1.5 text-right ${isDarkReport ? 'text-blue-300' : 'text-blue-700'}`}>{language === 'en' ? 'Markup' : 'Markup'}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className={`divide-y ${isDarkReport ? 'divide-[#2E2A48]' : 'divide-[#EFE8DC]'}`}>
                     {results.lines.map((line, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50/80">
-                        <td className="px-3 py-1.5 font-medium text-gray-800">{translateLine(line.linea)}</td>
+                      <tr key={idx} className={isDarkReport ? 'hover:bg-[#252238]/60 text-[#F0F0F0]' : 'hover:bg-[#FAF6F0] text-[#2D2825]'}>
+                        <td className={`px-3 py-1.5 font-medium ${isDarkReport ? 'text-white' : 'text-[#2D2825]'}`}>{translateLine(line.linea)}</td>
                         <td className="px-2 py-1.5 text-[10px] text-gray-400">{translateCategory(line.categoria)}</td>
-                        <td className="px-2 py-1.5 text-right font-mono text-gray-900">
+                        <td className={`px-2 py-1.5 text-right font-mono ${isDarkReport ? 'text-white' : 'text-[#2D2825]'}`}>
                           {formatEur(line.ingresos)}
                         </td>
-                        <td className="px-2 py-1.5 text-right font-mono text-gray-600">
+                        <td className={`px-2 py-1.5 text-right font-mono ${isDarkReport ? 'text-gray-300' : 'text-[#5A4E42]'}`}>
                           {formatEur(line.costes)}
                         </td>
-                        <td className="px-2.5 py-1.5 text-right font-mono font-bold text-emerald-700">
+                        <td className={`px-2.5 py-1.5 text-right font-mono font-bold ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#0D7A68]'}`}>
                           {formatEur(line.beneficio)}
                         </td>
-                        <td className="px-2 py-1.5 text-right font-mono text-gray-800">
+                        <td className={`px-2.5 py-1.5 text-right font-mono ${isDarkReport ? 'text-gray-200' : 'text-[#2D2825]'}`}>
                           {formatPct(line.margen)}
                         </td>
-                        <td className="px-2 py-1.5 text-right font-mono font-semibold text-blue-700">
+                        <td className={`px-2 py-1.5 text-right font-mono font-semibold ${isDarkReport ? 'text-blue-300' : 'text-blue-700'}`}>
                           {formatMarkup(line.markup)}
                         </td>
                       </tr>
                     ))}
-                    <tr className="bg-gray-100 font-bold border-t-2 border-gray-300">
-                      <td className="px-3 py-2 text-gray-900" colSpan={2}>
+                    <tr className={`font-bold border-t-2 ${
+                      isDarkReport
+                        ? 'bg-[#161228] text-white border-[#47D2BF]'
+                        : 'bg-[#F4EEE4] text-[#2D2825] border-t-2 border-[#6B4ABF]'
+                    }`}>
+                      <td className={`px-3 py-2 ${isDarkReport ? 'text-white' : 'text-[#2D2825]'}`} colSpan={2}>
                         {language === 'en' ? 'MONTHLY TOTAL' : 'TOTAL MENSUAL'}
                       </td>
-                      <td className="px-2 py-2 text-right font-mono text-gray-900 font-black">
+                      <td className={`px-2 py-2 text-right font-mono font-black ${isDarkReport ? 'text-white' : 'text-[#2D2825]'}`}>
                         {formatEur(results.totalRevenueMonth)}
                       </td>
-                      <td className="px-2 py-2 text-right font-mono text-gray-700">
+                      <td className={`px-2 py-2 text-right font-mono ${isDarkReport ? 'text-gray-300' : 'text-[#5A4E42]'}`}>
                         {formatEur(results.totalCostMonth)}
                       </td>
-                      <td className="px-2.5 py-2 text-right font-mono text-emerald-700 font-black">
+                      <td className={`px-2.5 py-2 text-right font-mono font-black ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#0D7A68]'}`}>
                         {formatEur(results.totalProfitMonth)}
                       </td>
-                      <td className="px-2 py-2 text-right font-mono font-black text-gray-900">
+                      <td className={`px-2 py-2 text-right font-mono font-black ${isDarkReport ? 'text-gray-200' : 'text-[#2D2825]'}`}>
                         {formatPct(results.marginTotal)}
                       </td>
-                      <td className="px-2 py-2 text-right font-mono font-black text-blue-700">
+                      <td className={`px-2 py-2 text-right font-mono font-black ${isDarkReport ? 'text-blue-300' : 'text-blue-700'}`}>
                         {formatMarkup(results.markupTotal)}
                       </td>
                     </tr>
@@ -1240,30 +1413,38 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
 
           {/* 4. Parámetros Operativos & Packaging */}
           {showParams && (
-            <div className="bg-gray-50 rounded-lg p-2.5 border border-gray-200 text-xs break-inside-avoid print:bg-white print:p-2">
-              <h4 className="font-bold text-gray-800 mb-1 uppercase text-[9px] tracking-wider">
+            <div className={`rounded-lg p-2.5 border text-xs break-inside-avoid print:p-2 ${
+              isDarkReport
+                ? 'bg-[#1E1B2E] border-[#2E2A48] text-gray-300'
+                : 'bg-[#F6F0E8] border-[#E6DCD0] text-[#554A3E]'
+            }`}>
+              <h4 className={`font-bold mb-1 uppercase text-[9px] tracking-wider ${
+                isDarkReport ? 'text-[#47D2BF]' : 'text-[#8C5D1E]'
+              }`}>
                 {language === 'en' ? 'Operating Parameters of the Quote' : 'Parámetros Operativos de la Oferta'}
               </h4>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-1.5 gap-x-3 text-[10.5px] text-gray-600 print:text-[10px]">
+              <div className={`grid grid-cols-2 sm:grid-cols-4 gap-y-1.5 gap-x-3 text-[10.5px] print:text-[10px] ${
+                isDarkReport ? 'text-gray-300' : 'text-[#554A3E]'
+              }`}>
                 <div>
                   {language === 'en' ? 'Pack cost source:' : 'Fuente coste pack:'}{' '}
-                  <strong>{language === 'en' ? 'Calculator (negotiated)' : 'Calculadora (negociado)'}</strong>
+                  <strong className={isDarkReport ? 'text-white' : 'text-[#2D2825]'}>{language === 'en' ? 'Calculator (negotiated)' : 'Calculadora (negociado)'}</strong>
                 </div>
                 <div>
                   {language === 'en' ? 'Working days:' : 'Días laborables:'}{' '}
-                  <strong>{inputs.workingDays} {language === 'en' ? 'days/month' : 'días/mes'}</strong>
+                  <strong className={isDarkReport ? 'text-white' : 'text-[#2D2825]'}>{inputs.workingDays} {language === 'en' ? 'days/month' : 'días/mes'}</strong>
                 </div>
                 <div>
                   {language === 'en' ? 'Pack mix:' : 'Mix de pack:'}{' '}
-                  <strong>SPK {inputs.mixSpk}%, SPL {inputs.mixSpl}%, MPL {inputs.mixMpl}%, LPL {inputs.mixLpl}%</strong>
+                  <strong className={isDarkReport ? 'text-white' : 'text-[#2D2825]'}>SPK {inputs.mixSpk}%, SPL {inputs.mixSpl}%, MPL {inputs.mixMpl}%, LPL {inputs.mixLpl}%</strong>
                 </div>
                 <div>
                   {language === 'en' ? 'Base carrier cost:' : 'Coste carrier base:'}{' '}
-                  <strong>{formatEur(results.carrierCost)}</strong>
+                  <strong className={isDarkReport ? 'text-white' : 'text-[#2D2825]'}>{formatEur(results.carrierCost)}</strong>
                 </div>
                 <div>
                   {language === 'en' ? 'Packaging:' : 'Packaging:'}{' '}
-                  <strong>
+                  <strong className={isDarkReport ? 'text-white' : 'text-[#2D2825]'}>
                     {inputs.customPackaging
                       ? (language === 'en' ? 'Custom (Client)' : 'Personalizado (Cliente)')
                       : (language === 'en' ? 'Standard Huboo' : 'Estándar Huboo')}
@@ -1271,19 +1452,19 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                 </div>
                 <div>
                   {language === 'en' ? 'Estimated storage:' : 'Almacenaje estimado:'}{' '}
-                  <strong>
+                  <strong className={isDarkReport ? 'text-white' : 'text-[#2D2825]'}>
                     {inputs.storagePalletWeeksMonth} {language === 'en' ? 'pallet·wk/month' : 'pallet·sem/mes'}
                   </strong>
                 </div>
                 <div>
                   {language === 'en' ? 'Goods-In inbound:' : 'Recepción Goods-In:'}{' '}
-                  <strong>
+                  <strong className={isDarkReport ? 'text-white' : 'text-[#2D2825]'}>
                     {inputs.goodsInPalletsMonth} {language === 'en' ? 'pal/month' : 'pal/mes'}
                   </strong>
                 </div>
                 <div>
                   {language === 'en' ? 'Inserts per order:' : 'Inserts por pedido:'}{' '}
-                  <strong>
+                  <strong className={isDarkReport ? 'text-white' : 'text-[#2D2825]'}>
                     {inputs.insertsPerOrder} {language === 'en' ? 'units' : 'uds'}
                   </strong>
                 </div>
@@ -1292,7 +1473,9 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
           )}
 
           {/* Footer */}
-          <div className="border-t border-gray-200 pt-2 flex items-center justify-between text-[9px] text-gray-400 print:text-[8.5px]">
+          <div className={`border-t pt-2 flex items-center justify-between text-[9px] print:text-[8.5px] ${
+            isDarkReport ? 'border-[#2E2A48] text-gray-400' : 'border-[#E5DDD0] text-[#8C7F72]'
+          }`}>
             <span>
               {language === 'en'
                 ? 'HUBOO FULFILMENT · OPERATIONAL PROFITABILITY CALCULATOR'

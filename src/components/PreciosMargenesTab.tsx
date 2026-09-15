@@ -38,12 +38,8 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
   const [customTechInput, setCustomTechInput] = useState('');
 
   const handleProductChange = (newProduct: ProductType) => {
-    const prof = PRODUCT_PROFILES[newProduct];
     onChange({
       productType: newProduct,
-      surchargePrice: 0,
-      surchargeCost: 0,
-      returnRate: prof.returnRate,
     });
   };
 
@@ -273,7 +269,7 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
           {/* Sector / Tipo Producto */}
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">
-              {language === 'en' ? 'Product type / Picking profile' : 'Tipo de producto / Perfil de picking'}
+              {language === 'en' ? 'Product type / Profile' : 'Tipo de producto / Perfil'}
             </label>
             <select
               value={inputs.productType}
@@ -287,7 +283,9 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
               ))}
             </select>
             <p className="text-[10px] text-gray-400 mt-1">
-              {language === 'en' ? 'Return rate: ' : 'Retorno estimado: '}{formatPct(inputs.returnRate)}
+              {language === 'en'
+                ? 'Informational profile (does not affect final price)'
+                : 'Perfil informativo (no influye en el precio final)'}
             </p>
           </div>
 

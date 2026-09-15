@@ -12,7 +12,9 @@ import { RateCardTab } from './components/RateCardTab';
 import { AyudaTab } from './components/AyudaTab';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { CurrencySwitcher } from './components/CurrencySwitcher';
+import { ThemeSwitcher } from './components/ThemeSwitcher';
 import { useLanguage } from './context/LanguageContext';
+import { useTheme } from './context/ThemeContext';
 import { PackageCheck } from 'lucide-react';
 
 const STORAGE_KEY = 'fulfilment_calculator_clients_v2';
@@ -171,6 +173,7 @@ export const App: React.FC = () => {
   };
 
   const { t } = useLanguage();
+  const { isDark } = useTheme();
 
   const tabs = [
     { id: 'Resumen', label: t('tab.resumen') },
@@ -183,30 +186,40 @@ export const App: React.FC = () => {
   ] as const;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900">
-      {/* Top Header */}
-      <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3.5 flex items-center justify-between sticky top-0 z-20 shadow-2xs gap-4 no-print print:hidden">
+    <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${
+      isDark ? 'bg-[#120e26] text-[#F0F0F0]' : 'bg-[#F8F9FA] text-gray-900'
+    }`}>
+      {/* Top Header with Brand styling and Theme / Currency / Language Switchers */}
+      <header className={`px-4 sm:px-6 py-3.5 flex items-center justify-between sticky top-0 z-20 shadow-2xs gap-4 no-print print:hidden transition-colors duration-200 ${
+        isDark ? 'bg-[#1E1B2E] border-b border-[#2E2A48]' : 'bg-white border-b border-gray-200'
+      }`}>
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-red-600 flex items-center justify-center text-white shadow-2xs shrink-0">
-            <PackageCheck className="w-5 h-5" />
+          {/* Huboo Brand Badge */}
+          <div className="w-9 h-9 rounded-lg bg-[#6B4ABF] border border-[#47D2BF]/40 flex items-center justify-center text-white shadow-2xs shrink-0">
+            <PackageCheck className="w-5 h-5 text-[#47D2BF]" />
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-lg sm:text-xl font-black text-gray-900 tracking-tight">
+              <h1 className={`text-lg sm:text-xl font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
                 {t('app.title')}
               </h1>
-              <span className="px-2 py-0.5 text-[11px] font-bold rounded bg-amber-100 text-amber-800">
+              <span className={`px-2 py-0.5 text-[11px] font-bold rounded ${
+                isDark
+                  ? 'bg-[#25203D] text-[#47D2BF] border border-[#47D2BF]/40'
+                  : 'bg-purple-100 text-[#6B4ABF] border border-purple-200'
+              }`}>
                 {t('app.clientByClient')}
               </span>
             </div>
-            <p className="text-xs text-gray-500 hidden sm:block">
+            <p className={`text-xs hidden sm:block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
               {t('app.subtitle')}
             </p>
           </div>
         </div>
 
-        {/* Right side: Currency & Language Switcher Controls */}
+        {/* Right side: Luna/Sol Theme, Currency & Language Switcher Controls */}
         <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+          <ThemeSwitcher />
           <CurrencySwitcher />
           <LanguageSwitcher />
         </div>
@@ -234,7 +247,9 @@ export const App: React.FC = () => {
       {/* Main Responsive Content Area */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 print:p-0 print:m-0 print:max-w-none">
         {/* Navigation Tabs */}
-        <div className="border-b border-gray-200 mb-6 flex gap-1 overflow-x-auto pb-0.5 scrollbar-none no-print">
+        <div className={`border-b mb-6 flex gap-1 overflow-x-auto pb-0.5 scrollbar-none no-print ${
+          isDark ? 'border-[#2E2A48]' : 'border-gray-200'
+        }`}>
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -242,8 +257,12 @@ export const App: React.FC = () => {
               onClick={() => setActiveTab(tab.id)}
               className={`pb-3 px-3.5 text-xs sm:text-sm font-semibold transition border-b-2 -mb-px whitespace-nowrap cursor-pointer ${
                 activeTab === tab.id
-                  ? 'border-red-600 text-red-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
+                  ? isDark
+                    ? 'border-[#47D2BF] text-[#47D2BF]'
+                    : 'border-[#6B4ABF] text-[#6B4ABF]'
+                  : isDark
+                    ? 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
               }`}
             >
               {tab.label}
