@@ -2,7 +2,34 @@ import React, { useState, useEffect } from 'react';
 import { CalculationResults, CalculatorInputs } from '../types';
 import { formatEur, formatPct, formatMarkup } from '../utils/calculations';
 import { useLanguage } from '../context/LanguageContext';
-import { Printer, X, FileText, Package, Layers, Building2, Calendar, SlidersHorizontal, Globe, Clock } from 'lucide-react';
+import {
+  Printer,
+  X,
+  FileText,
+  Package,
+  Layers,
+  Building2,
+  Calendar,
+  SlidersHorizontal,
+  Globe,
+  Clock,
+  PieChart as PieIcon,
+  BarChart3,
+  TrendingUp,
+} from 'lucide-react';
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from 'recharts';
 
 interface InternalReportModalProps {
   isOpen: boolean;
@@ -10,6 +37,19 @@ interface InternalReportModalProps {
   results: CalculationResults;
   inputs: CalculatorInputs;
 }
+
+const CHART_PALETTE = [
+  '#2563eb', // blue-600
+  '#059669', // emerald-600
+  '#d97706', // amber-600
+  '#7c3aed', // violet-600
+  '#db2777', // pink-600
+  '#0891b2', // cyan-600
+  '#ea580c', // orange-600
+  '#0d9488', // teal-600
+  '#4f46e5', // indigo-600
+  '#65a30d', // lime-600
+];
 
 const productTypeLabels: Record<string, string> = {
   'Suplementos': 'Supplements',
@@ -31,13 +71,14 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
   results,
   inputs,
 }) => {
-  const { language } = useLanguage();
+  const { language, currencySymbol } = useLanguage();
 
   // Section toggle state (defaulted for 1-page A4 printing)
   const [showVolume, setShowVolume] = useState(true);
   const [showTech, setShowTech] = useState(true);
   const [showKpis, setShowKpis] = useState(true);
   const [showOrderBreakdown, setShowOrderBreakdown] = useState(true);
+  const [showCharts, setShowCharts] = useState(true); // Analytics charts
   const [showMonthlyPL, setShowMonthlyPL] = useState(false); // Off by default to guarantee 1 single page!
   const [showParams, setShowParams] = useState(true);
   const [showNotes, setShowNotes] = useState(Boolean(inputs.clientNotes));
@@ -99,6 +140,39 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
     return map[lineName] || lineName;
   };
 
+  const translateLineShort = (lineName: string) => {
+    if (language !== 'en') {
+      const mapShortEs: Record<string, string> = {
+        'Preparación base (Pack)': 'Prep. Pack',
+        '1er Pick': '1er Pick',
+        'Picks adicionales (>1 unidad)': 'Picks Extra',
+        'Inserts publicitarios': 'Inserts',
+        'Packaging personalizado': 'Packaging',
+        'Recargo manual pedidos': 'Recargo Man.',
+        'Gestión de devoluciones': 'Devoluciones',
+        'Descarga / Recepción': 'Goods-In',
+        'Almacenaje (pallets)': 'Almacenaje',
+        'Envío de pedidos': 'Transporte',
+        TOTAL: 'TOTAL',
+      };
+      return mapShortEs[lineName] || lineName;
+    }
+    const mapShortEn: Record<string, string> = {
+      'Preparación base (Pack)': 'Prep. Pack',
+      '1er Pick': '1st Pick',
+      'Picks adicionales (>1 unidad)': 'Extra Picks',
+      'Inserts publicitarios': 'Inserts',
+      'Packaging personalizado': 'Packaging',
+      'Recargo manual pedidos': 'Manual Surch.',
+      'Gestión de devoluciones': 'Returns',
+      'Descarga / Recepción': 'Goods-In',
+      'Almacenaje (pallets)': 'Storage',
+      'Envío de pedidos': 'Shipping',
+      TOTAL: 'TOTAL',
+    };
+    return mapShortEn[lineName] || lineName;
+  };
+
   const translateCategory = (cat: string) => {
     if (language !== 'en') return cat;
     const map: Record<string, string> = {
@@ -110,12 +184,40 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
     return map[cat] || cat;
   };
 
+  // 1. Estructura y Reparto Porcentual (SOLO INGRESOS según petición explícita)
+  const revenueDonutData = results.lines
+    .filter((l) => l.ingresos > 0)
+    .map((l, idx) => ({
+      name: translateLine(l.linea),
+      shortName: translateLineShort(l.linea),
+      value: Math.round(l.ingresos * 100) / 100,
+      pct: results.totalRevenueMonth > 0 ? (l.ingresos / results.totalRevenueMonth) * 100 : 0,
+      color: CHART_PALETTE[idx % CHART_PALETTE.length],
+    }));
+
+  // 2. Comparativa: Ingresos vs Costes por Línea
+  const barChartData = results.lines.map((l) => ({
+    linea: translateLine(l.linea),
+    shortName: translateLineShort(l.linea),
+    Ingresos: Math.round(l.ingresos * 100) / 100,
+    Costes: Math.round(l.costes * 100) / 100,
+  }));
+
+  // 3. Aportación al Beneficio Neto por Línea
+  const profitChartData = results.lines.map((l) => ({
+    name: translateLine(l.linea),
+    shortName: translateLineShort(l.linea),
+    profit: Math.round(l.beneficio * 100) / 100,
+    margin: l.margen,
+  }));
+
   const applyPresetOnePage = () => {
     setShowVolume(true);
     setShowTech(true);
     setShowKpis(true);
     setShowOrderBreakdown(true);
     setShowMonthlyPL(false);
+    setShowCharts(false);
     setShowParams(true);
     setShowNotes(Boolean(inputs.clientNotes));
     setCompactMode(true);
@@ -127,6 +229,7 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
     setShowKpis(true);
     setShowOrderBreakdown(true);
     setShowMonthlyPL(true);
+    setShowCharts(true);
     setShowParams(true);
     setShowNotes(true);
     setCompactMode(false);
@@ -138,12 +241,13 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
     setShowKpis(false);
     setShowOrderBreakdown(true);
     setShowMonthlyPL(false);
+    setShowCharts(false);
     setShowParams(false);
     setShowNotes(false);
     setCompactMode(true);
   };
 
-  const isOnePageEstimated = !showMonthlyPL || (!showKpis && !showParams);
+  const isOnePageEstimated = !showMonthlyPL && !showCharts;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 print:p-0 print:bg-white print:static">
@@ -224,12 +328,33 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                 type="button"
                 onClick={applyPresetFull}
                 className={`px-2.5 py-1 rounded text-[11px] font-semibold transition cursor-pointer ${
-                  showMonthlyPL
+                  showMonthlyPL && showCharts
                     ? 'bg-red-600 text-white shadow-xs'
                     : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                 }`}
               >
                 {language === 'en' ? '📑 Full Report (2 Pages)' : '📑 Informe Completo (2 Hojas)'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowVolume(true);
+                  setShowTech(true);
+                  setShowKpis(true);
+                  setShowOrderBreakdown(false);
+                  setShowMonthlyPL(false);
+                  setShowCharts(true);
+                  setShowParams(true);
+                  setShowNotes(false);
+                  setCompactMode(false);
+                }}
+                className={`px-2.5 py-1 rounded text-[11px] font-semibold transition cursor-pointer ${
+                  showCharts && !showOrderBreakdown && !showMonthlyPL
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                {language === 'en' ? '📊 Executive & Charts' : '📊 Ejecutivo & Gráficos'}
               </button>
               <button
                 type="button"
@@ -286,6 +411,19 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                   className="rounded text-red-600 focus:ring-0 w-3.5 h-3.5 accent-red-600 cursor-pointer"
                 />
                 <span>{language === 'en' ? 'Rates per Order' : 'Tarifas por Pedido'}</span>
+              </label>
+
+              <label className="flex items-center gap-1 text-gray-300 hover:text-white cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={showCharts}
+                  onChange={(e) => setShowCharts(e.target.checked)}
+                  className="rounded text-red-600 focus:ring-0 w-3.5 h-3.5 accent-red-600 cursor-pointer"
+                />
+                <span className="flex items-center gap-1">
+                  <PieIcon className="w-3 h-3 text-red-400" />
+                  <span>{language === 'en' ? 'Charts' : 'Gráficos'}</span>
+                </span>
               </label>
 
               <label className="flex items-center gap-1 text-gray-300 hover:text-white cursor-pointer select-none">
@@ -720,14 +858,323 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
             </div>
           )}
 
-          {/* 3. Desglose Operativo Mensual Completo (P&L por Línea) */}
+          {/* 3. Gráficos Analíticos: Estructura de Ingresos y Rentabilidad */}
+          {showCharts && (
+            <div className="break-inside-avoid space-y-2.5">
+              <div className="flex justify-between items-center">
+                <h3 className="text-[10px] font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
+                  <PieIcon className="w-3.5 h-3.5 text-red-600" />
+                  {language === 'en'
+                    ? '3. Operational Analytics & Visual Distribution'
+                    : '3. Análisis Gráfico y Distribución Operativa'}
+                </h3>
+                <span className="text-[9.5px] text-gray-500 font-mono">
+                  {language === 'en'
+                    ? `Monthly Turnover: ${formatEur(results.totalRevenueMonth)}`
+                    : `Facturación Mensual: ${formatEur(results.totalRevenueMonth)}`}
+                </span>
+              </div>
+
+              {/* Grid 2 Columnas: Donut (Solo Ingresos) & Comparativa Ingresos vs Costes */}
+              <div className="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-2.5">
+                {/* GRÁFICO A: ESTRUCTURA Y REPARTO PORCENTUAL (SOLO INGRESOS) */}
+                <div className="border border-gray-200 rounded-lg p-2.5 bg-white flex flex-col justify-between shadow-2xs break-inside-avoid">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-1.5">
+                        <PieIcon className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                        <h4 className="text-[11px] font-bold text-gray-900">
+                          {language === 'en'
+                            ? 'Operational Weight & Distribution'
+                            : 'Estructura y Reparto Porcentual'}
+                        </h4>
+                      </div>
+                      <span className="text-[8.5px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                        {language === 'en' ? 'Revenue Only' : 'Solo Ingresos'}
+                      </span>
+                    </div>
+                    <p className="text-[9.5px] text-gray-500 mb-1.5">
+                      {language === 'en'
+                        ? 'Distribution of monthly billed revenue by service line.'
+                        : 'Distribución porcentual de la facturación mensual por línea.'}
+                    </p>
+
+                    <div className="h-40 w-full relative">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Tooltip
+                            formatter={(val, name) => [
+                              `${formatEur(Number(val))} (${(
+                                (Number(val) / (results.totalRevenueMonth || 1)) *
+                                100
+                              ).toFixed(1)}%)`,
+                              String(name),
+                            ]}
+                            contentStyle={{
+                              backgroundColor: '#ffffff',
+                              borderRadius: '6px',
+                              borderColor: '#e5e7eb',
+                              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                              fontSize: '11px',
+                            }}
+                          />
+                          <Pie
+                            data={revenueDonutData}
+                            dataKey="value"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={38}
+                            outerRadius={65}
+                            paddingAngle={2}
+                          >
+                            {revenueDonutData.map((entry, index) => (
+                              <Cell key={`cell-report-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
+
+                      {/* Donut Center Metric */}
+                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                        <span className="text-[8.5px] uppercase tracking-wider font-semibold text-gray-400">
+                          {language === 'en' ? 'Total Rev.' : 'Fact. Total'}
+                        </span>
+                        <span className="text-[11px] font-bold font-mono text-gray-900">
+                          {formatEur(results.totalRevenueMonth)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Detalle porcentual por línea */}
+                  <div className="mt-1.5 pt-1.5 border-t border-gray-100 max-h-32 overflow-y-auto space-y-0.5">
+                    {revenueDonutData.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between text-[9.5px] py-0.5 px-1 rounded bg-gray-50/70"
+                      >
+                        <div className="flex items-center gap-1.5 truncate mr-1.5">
+                          <span
+                            className="w-2 h-2 rounded-full shrink-0"
+                            style={{ backgroundColor: item.color }}
+                          />
+                          <span className="truncate text-gray-700 font-medium" title={item.name}>
+                            {item.name}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0 font-mono">
+                          <span className="text-gray-500 text-[9px]">
+                            {formatEur(item.value)}
+                          </span>
+                          <span className="text-gray-900 font-bold w-10 text-right">
+                            {item.pct.toFixed(1)}%
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* GRÁFICO B: COMPARATIVA INGRESOS VS COSTES POR LÍNEA */}
+                <div className="border border-gray-200 rounded-lg p-2.5 bg-white flex flex-col justify-between shadow-2xs break-inside-avoid">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-1.5">
+                        <BarChart3 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                        <h4 className="text-[11px] font-bold text-gray-900">
+                          {language === 'en'
+                            ? 'Revenue vs Costs by Line'
+                            : 'Comparativa: Ingresos vs Costes'}
+                        </h4>
+                      </div>
+                      <span className="text-[8.5px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 border border-gray-200">
+                        {language === 'en' ? `Direct (${currencySymbol})` : `Directa (${currencySymbol})`}
+                      </span>
+                    </div>
+                    <p className="text-[9.5px] text-gray-500 mb-1.5">
+                      {language === 'en'
+                        ? 'Direct comparison of monthly revenue vs operational costs.'
+                        : 'Comparativa directa de facturación y coste operativo mensual.'}
+                    </p>
+
+                    <div className="h-40 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={barChartData}
+                          margin={{ top: 8, right: 8, left: -14, bottom: 26 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                          <XAxis
+                            dataKey="shortName"
+                            tick={{ fontSize: 8.5, fill: '#4b5563' }}
+                            angle={-25}
+                            textAnchor="end"
+                            interval={0}
+                          />
+                          <YAxis
+                            tick={{ fontSize: 8.5, fill: '#4b5563' }}
+                            tickFormatter={(v) => `${v}${currencySymbol}`}
+                          />
+                          <Tooltip
+                            formatter={(value, name) => [
+                              formatEur(Number(value) || 0),
+                              name === 'Ingresos' && language === 'en'
+                                ? 'Revenue'
+                                : name === 'Costes' && language === 'en'
+                                ? 'Costs'
+                                : String(name),
+                            ]}
+                            contentStyle={{
+                              backgroundColor: '#ffffff',
+                              borderRadius: '6px',
+                              borderColor: '#e5e7eb',
+                              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                              fontSize: '11px',
+                            }}
+                          />
+                          <Legend
+                            verticalAlign="top"
+                            wrapperStyle={{ paddingBottom: '4px', fontSize: '9.5px' }}
+                            formatter={(value) =>
+                              value === 'Ingresos' && language === 'en'
+                                ? 'Revenue'
+                                : value === 'Costes' && language === 'en'
+                                ? 'Costs'
+                                : value
+                            }
+                          />
+                          <Bar
+                            dataKey="Ingresos"
+                            name={language === 'en' ? 'Revenue' : 'Ingresos'}
+                            fill="#2563eb"
+                            radius={[2, 2, 0, 0]}
+                          />
+                          <Bar
+                            dataKey="Costes"
+                            name={language === 'en' ? 'Costs' : 'Costes'}
+                            fill="#ef4444"
+                            radius={[2, 2, 0, 0]}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  {/* Resumen comparativo inferior */}
+                  <div className="mt-1.5 pt-1.5 border-t border-gray-100 flex items-center justify-between text-[9.5px]">
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded bg-blue-600 inline-block" />
+                        <span className="text-gray-600">{language === 'en' ? 'Rev:' : 'Ing:'}</span>
+                        <strong className="font-mono text-gray-900">{formatEur(results.totalRevenueMonth)}</strong>
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded bg-red-500 inline-block" />
+                        <span className="text-gray-600">{language === 'en' ? 'Cost:' : 'Cos:'}</span>
+                        <strong className="font-mono text-gray-900">{formatEur(results.totalCostMonth)}</strong>
+                      </span>
+                    </div>
+                    <span className="font-mono font-bold text-emerald-700">
+                      +{formatEur(results.totalProfitMonth)} ({formatPct(results.marginTotal)})
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* GRÁFICO C: APORTACIÓN AL BENEFICIO NETO POR LÍNEA */}
+              <div className="border border-gray-200 rounded-lg p-2.5 bg-white shadow-2xs break-inside-avoid">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-1.5">
+                    <TrendingUp className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <h4 className="text-[11px] font-bold text-gray-900">
+                      {language === 'en'
+                        ? `Net Profit Contribution by Service Line (${currencySymbol})`
+                        : `Aportación al Beneficio Neto por Línea (${currencySymbol})`}
+                    </h4>
+                  </div>
+                  <span className="text-[8.5px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
+                    {language === 'en' ? 'Profitability Driver' : 'Motor de Margen'}
+                  </span>
+                </div>
+                <p className="text-[9.5px] text-gray-500 mb-1.5">
+                  {language === 'en'
+                    ? `Absolute net profit in ${currencySymbol} generated by each operational service.`
+                    : `Beneficio absoluto en ${currencySymbol} generado por cada servicio operativo.`}
+                </p>
+
+                <div className="h-36 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={profitChartData}
+                      layout="vertical"
+                      margin={{ top: 4, right: 24, left: 16, bottom: 4 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e5e7eb" />
+                      <XAxis
+                        type="number"
+                        tick={{ fontSize: 8.5, fill: '#4b5563' }}
+                        tickFormatter={(v) => `${v}${currencySymbol}`}
+                      />
+                      <YAxis
+                        type="category"
+                        dataKey="shortName"
+                        tick={{ fontSize: 8.5, fill: '#374151' }}
+                        width={75}
+                      />
+                      <Tooltip
+                        formatter={(value, _, item) => {
+                          const pl = item.payload;
+                          return [
+                            `${formatEur(Number(value))} (${language === 'en' ? 'Margin' : 'Margen'}: ${(pl.margin * 100).toFixed(1)}%)`,
+                            language === 'en' ? 'Net Profit' : 'Beneficio Neto',
+                          ];
+                        }}
+                        contentStyle={{
+                          backgroundColor: '#ffffff',
+                          borderRadius: '6px',
+                          borderColor: '#e5e7eb',
+                          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                          fontSize: '11px',
+                        }}
+                      />
+                      <Bar dataKey="profit" name={language === 'en' ? 'Profit' : 'Beneficio'} radius={[0, 2, 2, 0]}>
+                        {profitChartData.map((entry, index) => (
+                          <Cell
+                            key={`cell-profit-report-${index}`}
+                            fill={entry.profit >= 0 ? '#10b981' : '#ef4444'}
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="mt-1.5 pt-1.5 border-t border-gray-100 flex items-center justify-between text-[9px] text-gray-500">
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded bg-emerald-500 inline-block" />
+                    {language === 'en' ? `Positive Margin (${currencySymbol})` : `Margen positivo (${currencySymbol})`}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded bg-red-500 inline-block" />
+                    {language === 'en' ? 'Deficit / Cost' : 'Déficit / Coste'}
+                  </span>
+                  <span className="font-mono text-gray-800 font-bold">
+                    {language === 'en' ? 'Total Net Profit:' : 'Beneficio Neto Total:'} {formatEur(results.totalProfitMonth)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 4. Desglose Operativo Mensual Completo (P&L por Línea) */}
           {showMonthlyPL && (
             <div className="break-inside-avoid">
               <h3 className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1.5 flex items-center gap-1">
                 <Layers className="w-3 h-3 text-red-600" />
                 {language === 'en'
-                  ? '3. Monthly P&L Account by Service Line'
-                  : '3. Cuenta de Explotación Mensual por Líneas de Servicio'}
+                  ? (showCharts ? '4. Monthly P&L Account by Service Line' : '3. Monthly P&L Account by Service Line')
+                  : (showCharts ? '4. Cuenta de Explotación Mensual por Líneas de Servicio' : '3. Cuenta de Explotación Mensual por Líneas de Servicio')}
               </h3>
 
               <div className="border border-gray-200 rounded-lg overflow-hidden shadow-2xs">
@@ -853,8 +1300,8 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
             </span>
             <span>
               {language === 'en'
-                ? `Confidential internal document · Page ${showMonthlyPL ? '1 of 2' : '1 of 1'}`
-                : `Documento interno confidencial · Página ${showMonthlyPL ? '1 de 2' : '1 de 1'}`}
+                ? `Confidential internal document · Page ${showMonthlyPL || showCharts ? '1 of 2' : '1 of 1'}`
+                : `Documento interno confidencial · Página ${showMonthlyPL || showCharts ? '1 de 2' : '1 de 1'}`}
             </span>
           </div>
         </div>

@@ -150,12 +150,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
                 {results.tierName} (×{results.skuMultiplier.toFixed(2)})
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Factor complejidad producto:</span>
-              <span className="font-semibold text-gray-800">
-                ×{results.productPickMultiplier.toFixed(2)}
-              </span>
-            </div>
           </div>
 
           {/* Parámetros Operativos del Cliente */}

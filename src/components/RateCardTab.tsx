@@ -189,16 +189,22 @@ export const RateCardTab: React.FC = () => {
 
       {/* Perfiles de producto */}
       <div>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">
-          {language === 'en' ? 'Product Profiles' : 'Perfiles de producto'}
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-gray-900">
+            {language === 'en' ? 'Product Profiles & Returns' : 'Perfiles de producto y Devoluciones'}
+          </h2>
+          <span className="text-xs text-gray-500">
+            {language === 'en'
+              ? 'Categorization and return rate estimation without pick price surcharge'
+              : 'Clasificación y estimación de retorno sin recargo en tarifa de pick'}
+          </span>
+        </div>
         <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto shadow-xs">
           <table className="w-full text-sm text-left">
             <thead className="bg-gray-50 text-xs font-semibold text-gray-600 uppercase border-b border-gray-200">
               <tr>
-                <th className="px-5 py-3">{language === 'en' ? 'Product Profile' : 'Producto'}</th>
-                <th className="px-5 py-3 text-right">{language === 'en' ? 'Pick Multiplier' : 'Multiplicador pick'}</th>
-                <th className="px-5 py-3 text-right">{language === 'en' ? 'Return Rate' : 'Tasa de Devolución'}</th>
+                <th className="px-5 py-3">{language === 'en' ? 'Product Profile' : 'Perfil de Producto'}</th>
+                <th className="px-5 py-3 text-right">{language === 'en' ? 'Estimated Return Rate' : 'Tasa Estimada Devolución'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -208,9 +214,6 @@ export const RateCardTab: React.FC = () => {
                 return (
                   <tr key={prod} className="hover:bg-gray-50 transition">
                     <td className="px-5 py-3 font-medium text-gray-800">{label}</td>
-                    <td className="px-5 py-3 text-right font-mono text-gray-900 font-medium">
-                      {p.pickMultiplier.toFixed(2)}x
-                    </td>
                     <td className="px-5 py-3 text-right font-mono text-gray-700">
                       {formatPct(p.returnRate)}
                     </td>

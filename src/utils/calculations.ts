@@ -12,7 +12,6 @@ import {
   PACK_COSTS_CALCULATOR,
   BASE_FIRST_PICK_COST,
   BASE_ADDITIONAL_PICK_COST,
-  PRODUCT_PROFILES,
 } from '../data/constants';
 
 export function getSkuTier(skuCount: number): {
@@ -131,7 +130,6 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
   const {
     clientName,
     skuCount,
-    productType,
     volumeMode,
     workingDays,
     unitsPerOrder,
@@ -177,8 +175,7 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
   } = inputs;
 
   const { tierName, skuMultiplier, targetPickMarginDefault } = getSkuTier(Number(skuCount));
-  const profile = PRODUCT_PROFILES[productType] || PRODUCT_PROFILES['Suplementos'];
-  const productPickMultiplier = profile.pickMultiplier;
+  const productPickMultiplier = 1.0;
 
   // Orders volume
   let ordersPerDay = inputs.ordersPerDay;
@@ -234,7 +231,7 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
   const packMargin = marginFromPrice(packPrice, packCost);
 
   // 2. 1er Pick
-  const defaultFirstPickCost = BASE_FIRST_PICK_COST * skuMultiplier * productPickMultiplier;
+  const defaultFirstPickCost = BASE_FIRST_PICK_COST * skuMultiplier;
   const firstPickCost =
     firstPickCostOverride !== undefined && firstPickCostOverride !== null && firstPickCostOverride > 0
       ? Number(firstPickCostOverride)
@@ -275,7 +272,7 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
   const prepPlusFirstPickProfit = prepPlusFirstPickPrice - prepPlusFirstPickCost;
 
   // 4. Picks Adicionales (>1 unidad)
-  const defaultAdditionalPickCost = BASE_ADDITIONAL_PICK_COST * skuMultiplier * productPickMultiplier;
+  const defaultAdditionalPickCost = BASE_ADDITIONAL_PICK_COST * skuMultiplier;
   const additionalPickCost =
     additionalPickCostOverride !== undefined && additionalPickCostOverride !== null && additionalPickCostOverride > 0
       ? Number(additionalPickCostOverride)

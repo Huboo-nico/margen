@@ -287,7 +287,7 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
               ))}
             </select>
             <p className="text-[10px] text-gray-400 mt-1">
-              {language === 'en' ? 'Complexity factor: ' : 'Factor complejidad: '}×{results.productPickMultiplier.toFixed(2)} | {language === 'en' ? 'Return rate: ' : 'Retorno: '}{formatPct(inputs.returnRate)}
+              {language === 'en' ? 'Return rate: ' : 'Retorno estimado: '}{formatPct(inputs.returnRate)}
             </p>
           </div>
 
@@ -968,8 +968,8 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
           label={language === 'en' ? 'First Pick of order (1st unit included)' : 'Primer Pick del pedido (1ª unidad)'}
           subLabel={
             language === 'en'
-              ? `Cost adjusted by SKU tier (×${results.skuMultiplier.toFixed(2)}) and product profile (×${results.productPickMultiplier.toFixed(2)})`
-              : `Coste ajustado por SKU (×${results.skuMultiplier.toFixed(2)}) y perfil de producto (×${results.productPickMultiplier.toFixed(2)})`
+              ? `Cost adjusted by SKU tier (×${results.skuMultiplier.toFixed(2)})`
+              : `Coste ajustado por SKU (×${results.skuMultiplier.toFixed(2)})`
           }
           cost={results.firstPickCost}
           defaultCost={results.firstPickDefaultCost}
