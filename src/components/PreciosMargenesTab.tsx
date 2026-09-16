@@ -3,6 +3,7 @@ import { CalculatorInputs, CalculationResults, ProductType } from '../types';
 import { PriceMarginRow } from './PriceMarginRow';
 import { PRODUCT_PROFILES, AVAILABLE_TECHNOLOGIES } from '../data/constants';
 import { useLanguage } from '../context/LanguageContext';
+import { useTheme } from '../context/ThemeContext';
 import { CleanNumberInput } from './CleanNumberInput';
 import { LiveDateScheduler } from './LiveDateScheduler';
 import {
@@ -35,6 +36,7 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
   onChange,
 }) => {
   const { language } = useLanguage();
+  const { isDark } = useTheme();
   const [customTechInput, setCustomTechInput] = useState('');
 
   const handleProductChange = (newProduct: ProductType) => {
@@ -104,18 +106,20 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Banner: Global Impact and Margin Presets */}
-      <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-2xs">
+      <div className={`p-5 rounded-xl border shadow-2xs ${
+        isDark ? 'bg-[#1E1B2E] border-[#2E2A48]' : 'bg-white border-[#E5DDD0]'
+      }`}>
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <Sliders className="w-5 h-5 text-red-600" />
-              <h2 className="text-base font-bold text-gray-900">
+              <Sliders className={`w-5 h-5 ${isDark ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`} />
+              <h2 className={`text-base font-bold ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
                 {language === 'en'
                   ? 'Complete Configuration, Prices & Margins Panel'
                   : 'Panel Completo de Configuración, Precios & Márgenes'}
               </h2>
             </div>
-            <p className="text-xs text-gray-600 mt-1 max-w-3xl">
+            <p className={`text-xs mt-1 max-w-3xl ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
               {language === 'en'
                 ? 'Configure client details, order volume, packaging mix and adjust operating rates. Set prices directly or define target margin (%) per line.'
                 : 'Configura los datos del cliente, volumen, mix de pack y ajusta las tarifas operativas. Puedes definir precios directamente o establecer el margen objetivo (%) por cada línea.'}
@@ -124,27 +128,39 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
 
           {/* Quick preset margin buttons */}
           <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
-            <span className="text-xs text-gray-400 font-medium">
+            <span className={`text-xs font-medium ${isDark ? 'text-gray-500' : 'text-[#8C8278]'}`}>
               {language === 'en' ? 'Quick margin:' : 'Margen rápido:'}
             </span>
             <button
               type="button"
               onClick={() => applyPresetMarginToAll(0.18)}
-              className="px-2.5 py-1 text-xs font-medium rounded border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700 cursor-pointer"
+              className={`px-2.5 py-1 text-xs font-medium rounded border transition cursor-pointer ${
+                isDark
+                  ? 'border-[#2E2A48] bg-[#151226] hover:bg-[#25203D] text-gray-300'
+                  : 'border-[#E5DDD0] bg-[#FAF7F2] hover:bg-white text-[#2D2825]'
+              }`}
             >
               18% ({language === 'en' ? 'Competitive' : 'Competitivo'})
             </button>
             <button
               type="button"
               onClick={() => applyPresetMarginToAll(0.25)}
-              className="px-2.5 py-1 text-xs font-medium rounded border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 cursor-pointer"
+              className={`px-2.5 py-1 text-xs font-semibold rounded border transition cursor-pointer ${
+                isDark
+                  ? 'border-[#47D2BF]/50 bg-[#25203D] text-[#47D2BF]'
+                  : 'border-[#D5C9B8] bg-[#F4EEE4] text-[#6B4ABF]'
+              }`}
             >
               25% ({language === 'en' ? 'Standard' : 'Estándar'})
             </button>
             <button
               type="button"
               onClick={() => applyPresetMarginToAll(0.35)}
-              className="px-2.5 py-1 text-xs font-medium rounded border border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700 cursor-pointer"
+              className={`px-2.5 py-1 text-xs font-medium rounded border transition cursor-pointer ${
+                isDark
+                  ? 'border-[#2E2A48] bg-[#151226] hover:bg-[#25203D] text-gray-300'
+                  : 'border-[#E5DDD0] bg-[#FAF7F2] hover:bg-white text-[#2D2825]'
+              }`}
             >
               35% (Premium)
             </button>
@@ -152,82 +168,104 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
         </div>
 
         {/* Global KPI Metrics Bar */}
-        <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className={`mt-4 pt-4 border-t grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 ${
+          isDark ? 'border-[#2E2A48]' : 'border-[#E5DDD0]'
+        }`}>
           <div>
-            <span className="text-[11px] text-gray-500 block">
+            <span className={`text-[11px] block ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
               {language === 'en' ? 'Avg order revenue:' : 'Facturación / pedido medio:'}
             </span>
-            <span className="text-base font-bold font-mono text-gray-900">
+            <span className={`text-base font-bold font-mono ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
               {formatEur(results.orderRevenueExShipping + results.shippingPrice)}
             </span>
           </div>
           <div>
-            <span className="text-[11px] text-gray-500 block">
+            <span className={`text-[11px] block ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
               {language === 'en' ? 'Total cost / avg order:' : 'Coste total / pedido medio:'}
             </span>
-            <span className="text-base font-bold font-mono text-gray-900">
+            <span className={`text-base font-bold font-mono ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
               {formatEur(results.orderCostExShipping + results.carrierCost)}
             </span>
           </div>
           <div>
-            <span className="text-[11px] text-gray-500 block">
+            <span className={`text-[11px] block ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
               {language === 'en' ? 'Net profit / order:' : 'Beneficio neto / pedido:'}
             </span>
             <span
               className={`text-base font-bold font-mono ${
-                results.profitPerOrder >= 0 ? 'text-emerald-700' : 'text-red-600'
+                results.profitPerOrder >= 0
+                  ? isDark ? 'text-[#47D2BF]' : 'text-emerald-700'
+                  : isDark ? 'text-rose-400' : 'text-red-600'
               }`}
             >
               {formatEur(results.profitPerOrder)}
             </span>
           </div>
           <div>
-            <span className="text-[11px] text-gray-500 block">
+            <span className={`text-[11px] block ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
               {language === 'en' ? 'Global Margin & Markup:' : 'Margen & Markup Global:'}
             </span>
             <div className="flex items-baseline gap-1.5">
               <span
                 className={`text-base font-bold font-mono ${
                   results.marginTotal !== null && results.marginTotal >= 0.2
-                    ? 'text-gray-900'
-                    : 'text-amber-600'
+                    ? isDark ? 'text-white' : 'text-[#2D2825]'
+                    : isDark ? 'text-amber-300' : 'text-amber-700'
                 }`}
               >
                 {formatPct(results.marginTotal)}
               </span>
-              <span className="text-xs font-semibold font-mono text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.2 rounded">
+              <span className={`text-xs font-semibold font-mono px-1.5 py-0.2 rounded border ${
+                isDark
+                  ? 'text-[#47D2BF] bg-[#25203D] border-[#47D2BF]/40'
+                  : 'text-[#6B4ABF] bg-[#F4EEE4] border-[#D5C9B8]'
+              }`}>
                 Markup {formatMarkup(results.markupTotal)}
               </span>
             </div>
           </div>
 
           {/* ARR Metric */}
-          <div className="bg-gray-50/80 p-2 rounded-lg border border-gray-200">
-            <span className="text-[10px] font-bold text-gray-600 block uppercase tracking-wide">
+          <div className={`p-2 rounded-lg border ${
+            isDark ? 'bg-[#151226] border-[#2E2A48]' : 'bg-[#FAF7F2] border-[#E5DDD0]'
+          }`}>
+            <span className={`text-[10px] font-bold block uppercase tracking-wide ${
+              isDark ? 'text-gray-400' : 'text-[#6D635B]'
+            }`}>
               ARR (12 {language === 'en' ? 'months' : 'meses'})
             </span>
-            <span className="text-sm font-black font-mono text-gray-900 block">
+            <span className={`text-sm font-black font-mono block ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
               {formatEur(results.arrRevenue)}
             </span>
-            <span className="text-[9.5px] text-emerald-700 font-bold font-mono">
+            <span className={`text-[9.5px] font-bold font-mono ${
+              isDark ? 'text-[#47D2BF]' : 'text-emerald-700'
+            }`}>
               +{formatEur(results.arrProfit)} {language === 'en' ? 'net' : 'neto'}
             </span>
           </div>
 
           {/* YRR Metric */}
-          <div className="bg-red-50/50 p-2 rounded-lg border border-red-200">
+          <div className={`p-2 rounded-lg border ${
+            isDark ? 'bg-[#20172e] border-[#3E2748]' : 'bg-[#F4EEE4] border-[#D5C9B8]'
+          }`}>
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-red-900 block uppercase tracking-wide">
+              <span className={`text-[10px] font-bold block uppercase tracking-wide ${
+                isDark ? 'text-rose-300' : 'text-[#6B4ABF]'
+              }`}>
                 YRR ({results.goLiveYear})
               </span>
-              <span className="text-[9px] font-mono text-red-700 font-bold bg-red-100/80 px-1 py-0.2 rounded">
+              <span className={`text-[9px] font-mono font-bold px-1 py-0.2 rounded ${
+                isDark ? 'bg-rose-950/80 text-rose-300' : 'bg-purple-100/80 text-[#6B4ABF]'
+              }`}>
                 {results.goLiveMonthsRemainingInYear.toFixed(1)}m
               </span>
             </div>
-            <span className="text-sm font-black font-mono text-red-700 block">
+            <span className={`text-sm font-black font-mono block ${isDark ? 'text-white' : 'text-[#6B4ABF]'}`}>
               {formatEur(results.yrrRevenue)}
             </span>
-            <span className="text-[9.5px] text-emerald-700 font-bold font-mono">
+            <span className={`text-[9.5px] font-bold font-mono ${
+              isDark ? 'text-[#47D2BF]' : 'text-emerald-700'
+            }`}>
               +{formatEur(results.yrrProfit)} {language === 'en' ? 'net' : 'neto'}
             </span>
           </div>
@@ -235,15 +273,21 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
       </div>
 
       {/* 1. DATOS DEL CLIENTE & OPERATIVA */}
-      <section className="bg-white rounded-xl border border-gray-200 p-5 shadow-2xs">
-        <div className="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
+      <section className={`rounded-xl border p-5 shadow-2xs ${
+        isDark ? 'bg-[#1E1B2E] border-[#2E2A48]' : 'bg-white border-[#E5DDD0]'
+      }`}>
+        <div className={`flex items-center justify-between border-b pb-3 mb-4 ${
+          isDark ? 'border-[#2E2A48]' : 'border-[#E5DDD0]'
+        }`}>
           <div className="flex items-center gap-2">
-            <User className="w-5 h-5 text-red-600" />
-            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+            <User className={`w-5 h-5 ${isDark ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`} />
+            <h3 className={`text-sm font-bold uppercase tracking-wide ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
               {language === 'en' ? '1. Client Data & Operational Profile' : '1. Datos del Cliente & Perfil Operativo'}
             </h3>
           </div>
-          <span className="text-xs font-semibold text-gray-500 bg-gray-50 px-2 py-0.5 rounded border border-gray-200">
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${
+            isDark ? 'text-gray-300 bg-[#151226] border-[#2E2A48]' : 'text-[#6D635B] bg-[#FAF7F2] border-[#E5DDD0]'
+          }`}>
             Tier {results.tierName} (×{results.skuMultiplier.toFixed(2)})
           </span>
         </div>
@@ -251,7 +295,7 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Nombre Cliente */}
           <div>
-            <label className="block text-xs font-bold text-gray-800 mb-1">
+            <label className={`block text-xs font-bold mb-1 ${isDark ? 'text-gray-300' : 'text-[#2D2825]'}`}>
               {language === 'en' ? 'Company / Client Name' : 'Nombre del Cliente / Empresa'}
             </label>
             <input
@@ -259,30 +303,38 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
               value={inputs.clientName}
               onChange={(e) => onChange({ clientName: e.target.value })}
               placeholder={language === 'en' ? 'e.g. Bio Cosmetics Client' : 'Ej: Cliente Cosmética Bio'}
-              className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-xs font-bold text-gray-900 focus:ring-2 focus:ring-red-500 focus:border-red-500 shadow-2xs"
+              className={`w-full border rounded-lg px-3 py-2 text-xs font-bold shadow-2xs focus:outline-none ${
+                isDark
+                  ? 'bg-[#120e26] border-[#2E2A48] text-white focus:border-[#47D2BF]'
+                  : 'bg-white border-[#E5DDD0] text-[#2D2825] focus:border-[#6B4ABF]'
+              }`}
             />
-            <p className="text-[10px] text-gray-400 mt-1">
+            <p className={`text-[10px] mt-1 ${isDark ? 'text-gray-500' : 'text-[#8C8278]'}`}>
               {language === 'en' ? 'Appears on proposals and PDF reports.' : 'Aparece en presupuestos e informes PDF.'}
             </p>
           </div>
 
           {/* Sector / Tipo Producto */}
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
+            <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-[#2D2825]'}`}>
               {language === 'en' ? 'Product type / Profile' : 'Tipo de producto / Perfil'}
             </label>
             <select
               value={inputs.productType}
               onChange={(e) => handleProductChange(e.target.value as ProductType)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-red-500 bg-white font-medium text-gray-800 cursor-pointer"
+              className={`w-full border rounded-lg px-3 py-2 text-xs font-medium cursor-pointer focus:outline-none ${
+                isDark
+                  ? 'bg-[#120e26] border-[#2E2A48] text-white focus:border-[#47D2BF]'
+                  : 'bg-white border-[#E5DDD0] text-[#2D2825] focus:border-[#6B4ABF]'
+              }`}
             >
               {(Object.keys(PRODUCT_PROFILES) as ProductType[]).map((type) => (
-                <option key={type} value={type}>
+                <option key={type} value={type} className={isDark ? 'bg-[#120e26] text-white' : 'bg-white text-gray-900'}>
                   {productTypeLabels[type]}
                 </option>
               ))}
             </select>
-            <p className="text-[10px] text-gray-400 mt-1">
+            <p className={`text-[10px] mt-1 ${isDark ? 'text-gray-500' : 'text-[#8C8278]'}`}>
               {language === 'en'
                 ? 'Informational profile (does not affect final price)'
                 : 'Perfil informativo (no influye en el precio final)'}
@@ -291,7 +343,7 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
 
           {/* Número de SKUs */}
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
+            <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-[#2D2825]'}`}>
               {language === 'en' ? 'Active SKUs in warehouse' : 'Número de SKUs activos'}
             </label>
             <CleanNumberInput
@@ -302,9 +354,13 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
               fallbackValue={1}
               value={inputs.skuCount}
               onChange={(val) => onChange({ skuCount: val })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-red-500"
+              className={`w-full border rounded-lg px-3 py-2 text-xs font-mono ${
+                isDark
+                  ? 'bg-[#120e26] border-[#2E2A48] text-white focus:border-[#47D2BF]'
+                  : 'bg-white border-[#E5DDD0] text-[#2D2825] focus:border-[#6B4ABF]'
+              }`}
             />
-            <p className="text-[10px] text-gray-400 mt-1">
+            <p className={`text-[10px] mt-1 ${isDark ? 'text-gray-500' : 'text-[#8C8278]'}`}>
               {language === 'en'
                 ? `Adjusts picking cost based on warehouse walking distance (${results.tierName}).`
                 : `Ajusta el coste de picking por dispersión en nave (${results.tierName}).`}
@@ -313,9 +369,9 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
         </div>
 
         {/* 1.2 Parámetros Operativos del Cliente: Almacenaje, Inbound, Inserts y Packaging */}
-        <div className="mt-4 pt-4 border-t border-gray-100">
-          <h4 className="text-xs font-bold text-gray-900 mb-2.5 flex items-center gap-1.5">
-            <Package className="w-4 h-4 text-red-600" />
+        <div className={`mt-4 pt-4 border-t ${isDark ? 'border-[#2E2A48]' : 'border-[#E5DDD0]'}`}>
+          <h4 className={`text-xs font-bold mb-2.5 flex items-center gap-1.5 ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
+            <Package className={`w-4 h-4 ${isDark ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`} />
             <span>
               {language === 'en'
                 ? 'Client Operational Parameters & Packaging'
@@ -325,8 +381,10 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             {/* Palet x week storage */}
-            <div className="bg-gray-50/70 p-3 rounded-lg border border-gray-200">
-              <label className="block text-xs font-semibold text-gray-800 mb-1">
+            <div className={`p-3 rounded-lg border ${
+              isDark ? 'bg-[#151226] border-[#2E2A48]' : 'bg-[#FAF7F2] border-[#E5DDD0]'
+            }`}>
+              <label className={`block text-xs font-semibold mb-1 ${isDark ? 'text-gray-300' : 'text-[#2D2825]'}`}>
                 {language === 'en' ? 'Palet x week storage' : 'Palet x week storage'}
               </label>
               <CleanNumberInput
@@ -335,9 +393,13 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
                 fallbackValue={0}
                 value={inputs.storagePalletWeeksMonth}
                 onChange={(val) => onChange({ storagePalletWeeksMonth: val })}
-                className="w-full bg-white border border-gray-300 rounded-md px-2.5 py-1.5 text-xs font-mono font-bold text-gray-900 focus:ring-2 focus:ring-red-500"
+                className={`w-full border rounded-md px-2.5 py-1.5 text-xs font-mono font-bold ${
+                  isDark
+                    ? 'bg-[#120e26] border-[#2E2A48] text-white focus:border-[#47D2BF]'
+                    : 'bg-white border-[#E5DDD0] text-[#2D2825] focus:border-[#6B4ABF]'
+                }`}
               />
-              <p className="text-[10px] text-gray-500 mt-1">
+              <p className={`text-[10px] mt-1 ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
                 {language === 'en'
                   ? 'Pallet locations per week / month'
                   : 'Pallets almacenados por semana'}
@@ -345,8 +407,10 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
             </div>
 
             {/* Inbound goods palets */}
-            <div className="bg-gray-50/70 p-3 rounded-lg border border-gray-200">
-              <label className="block text-xs font-semibold text-gray-800 mb-1">
+            <div className={`p-3 rounded-lg border ${
+              isDark ? 'bg-[#151226] border-[#2E2A48]' : 'bg-[#FAF7F2] border-[#E5DDD0]'
+            }`}>
+              <label className={`block text-xs font-semibold mb-1 ${isDark ? 'text-gray-300' : 'text-[#2D2825]'}`}>
                 {language === 'en' ? 'Inbound goods palets' : 'Inbound goods palets'}
               </label>
               <CleanNumberInput
@@ -355,9 +419,13 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
                 fallbackValue={0}
                 value={inputs.goodsInPalletsMonth}
                 onChange={(val) => onChange({ goodsInPalletsMonth: val })}
-                className="w-full bg-white border border-gray-300 rounded-md px-2.5 py-1.5 text-xs font-mono font-bold text-gray-900 focus:ring-2 focus:ring-red-500"
+                className={`w-full border rounded-md px-2.5 py-1.5 text-xs font-mono font-bold ${
+                  isDark
+                    ? 'bg-[#120e26] border-[#2E2A48] text-white focus:border-[#47D2BF]'
+                    : 'bg-white border-[#E5DDD0] text-[#2D2825] focus:border-[#6B4ABF]'
+                }`}
               />
-              <p className="text-[10px] text-gray-500 mt-1">
+              <p className={`text-[10px] mt-1 ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
                 {language === 'en'
                   ? 'Pallets received & unloaded per month'
                   : 'Pallets de entrada al mes (recepción)'}
@@ -365,8 +433,10 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
             </div>
 
             {/* Cantidad de inserts x pick */}
-            <div className="bg-gray-50/70 p-3 rounded-lg border border-gray-200">
-              <label className="block text-xs font-semibold text-gray-800 mb-1">
+            <div className={`p-3 rounded-lg border ${
+              isDark ? 'bg-[#151226] border-[#2E2A48]' : 'bg-[#FAF7F2] border-[#E5DDD0]'
+            }`}>
+              <label className={`block text-xs font-semibold mb-1 ${isDark ? 'text-gray-300' : 'text-[#2D2825]'}`}>
                 {language === 'en' ? 'Cantidad de inserts x pick' : 'Cantidad de inserts x pick'}
               </label>
               <CleanNumberInput
@@ -375,9 +445,13 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
                 fallbackValue={0}
                 value={inputs.insertsPerOrder}
                 onChange={(val) => onChange({ insertsPerOrder: val })}
-                className="w-full bg-white border border-gray-300 rounded-md px-2.5 py-1.5 text-xs font-mono font-bold text-gray-900 focus:ring-2 focus:ring-red-500"
+                className={`w-full border rounded-md px-2.5 py-1.5 text-xs font-mono font-bold ${
+                  isDark
+                    ? 'bg-[#120e26] border-[#2E2A48] text-white focus:border-[#47D2BF]'
+                    : 'bg-white border-[#E5DDD0] text-[#2D2825] focus:border-[#6B4ABF]'
+                }`}
               />
-              <p className="text-[10px] text-gray-500 mt-1">
+              <p className={`text-[10px] mt-1 ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
                 {language === 'en'
                   ? 'Flyers or promotional cards / order'
                   : 'Flyers / muestras por pedido enviado'}
@@ -387,15 +461,23 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
             {/* Packaging personalizado (si o no) */}
             <div className={`p-3 rounded-lg border transition-colors ${
               inputs.customPackaging
-                ? 'bg-amber-50/70 border-amber-300'
-                : 'bg-gray-50/70 border-gray-200'
+                ? isDark
+                  ? 'bg-[#25203D] border-[#47D2BF]/50'
+                  : 'bg-[#F4EEE4] border-[#D5C9B8]'
+                : isDark
+                ? 'bg-[#151226] border-[#2E2A48]'
+                : 'bg-[#FAF7F2] border-[#E5DDD0]'
             }`}>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold text-gray-800">
+                <label className={`text-xs font-semibold ${isDark ? 'text-gray-300' : 'text-[#2D2825]'}`}>
                   {language === 'en' ? 'Packaging personalizado' : 'Packaging personalizado'}
                 </label>
                 {inputs.customPackaging && (
-                  <span className="text-[9px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-1 py-0.2 rounded">
+                  <span className={`text-[9px] font-bold px-1 py-0.2 rounded border ${
+                    isDark
+                      ? 'text-[#47D2BF] bg-[#120e26] border-[#47D2BF]/40'
+                      : 'text-[#6B4ABF] bg-[#FAF7F2] border-[#D5C9B8]'
+                  }`}>
                     {language === 'en' ? 'Active' : 'Activo'}
                   </span>
                 )}
@@ -407,8 +489,12 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
                   onClick={() => onChange({ customPackaging: true })}
                   className={`py-1 text-xs font-bold rounded border transition cursor-pointer flex items-center justify-center gap-1 ${
                     inputs.customPackaging
-                      ? 'bg-amber-600 text-white border-amber-700 shadow-xs'
-                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                      ? isDark
+                        ? 'bg-[#47D2BF] text-[#120e26] border-[#47D2BF] shadow-xs'
+                        : 'bg-[#6B4ABF] text-white border-[#6B4ABF] shadow-xs'
+                      : isDark
+                      ? 'bg-[#120e26] text-gray-400 border-[#2E2A48] hover:bg-[#151226]'
+                      : 'bg-white text-[#6D635B] border-[#E5DDD0] hover:bg-gray-50'
                   }`}
                 >
                   <Check className={`w-3 h-3 ${inputs.customPackaging ? 'opacity-100' : 'opacity-0'}`} />
@@ -419,8 +505,12 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
                   onClick={() => onChange({ customPackaging: false })}
                   className={`py-1 text-xs font-bold rounded border transition cursor-pointer flex items-center justify-center gap-1 ${
                     !inputs.customPackaging
-                      ? 'bg-gray-800 text-white border-gray-900 shadow-xs'
-                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                      ? isDark
+                        ? 'bg-[#2E2A48] text-white border-[#47D2BF]/40 shadow-xs'
+                        : 'bg-[#2D2825] text-white border-[#2D2825] shadow-xs'
+                      : isDark
+                      ? 'bg-[#120e26] text-gray-400 border-[#2E2A48] hover:bg-[#151226]'
+                      : 'bg-white text-[#6D635B] border-[#E5DDD0] hover:bg-gray-50'
                   }`}
                 >
                   {!inputs.customPackaging && <Check className="w-3 h-3" />}
@@ -428,7 +518,7 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
                 </button>
               </div>
 
-              <p className="text-[10px] mt-1.5 leading-tight text-gray-600">
+              <p className={`text-[10px] mt-1.5 leading-tight ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
                 {inputs.customPackaging
                   ? (language === 'en'
                       ? `✓ Own custom packaging. Base packaging per order is cancelled (${formatEur(0)}).`
@@ -441,19 +531,23 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
           </div>
         </div>
 
-        {/* Tecnología / Plataformas de Venta (Shopify, TikTok Shop, PrestaShop, WooCommerce, Temu, etc.) */}
-        <div className="mt-4 pt-4 border-t border-gray-100">
+        {/* Tecnología / Plataformas de Venta */}
+        <div className={`mt-4 pt-4 border-t ${isDark ? 'border-[#2E2A48]' : 'border-[#E5DDD0]'}`}>
           <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
             <div className="flex items-center gap-2">
-              <Globe className="w-4 h-4 text-red-600" />
-              <label className="text-xs font-bold text-gray-900">
+              <Globe className={`w-4 h-4 ${isDark ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`} />
+              <label className={`text-xs font-bold ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
                 {language === 'en' ? 'Technology / E-commerce Platforms' : 'Tecnología / Plataformas de Venta'}
               </label>
-              <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                isDark
+                  ? 'text-[#47D2BF] bg-[#25203D] border-[#47D2BF]/30'
+                  : 'text-emerald-700 bg-emerald-50 border-emerald-200'
+              }`}>
                 {language === 'en' ? 'No price impact · For client sheet & operations' : 'No varía el precio · Informativo para la ficha'}
               </span>
             </div>
-            <span className="text-[11px] text-gray-500 font-medium">
+            <span className={`text-[11px] font-medium ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
               {currentTechs.length}{' '}
               {language === 'en'
                 ? currentTechs.length === 1 ? 'platform selected' : 'platforms selected'
@@ -461,7 +555,7 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
             </span>
           </div>
 
-          <p className="text-[11px] text-gray-500 mb-2.5">
+          <p className={`text-[11px] mb-2.5 ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
             {language === 'en'
               ? 'Select all the platforms or marketplaces the client sells through to include in the client sheet, quote, and report.'
               : 'Selecciona todas las plataformas o marketplaces con los que opera el cliente para incluirlos en su ficha, cotización e informe.'}
@@ -478,14 +572,18 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
                   onClick={() => toggleTechnology(tech)}
                   className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs transition cursor-pointer border ${
                     isSelected
-                      ? 'bg-red-600 text-white border-red-600 font-bold shadow-2xs'
-                      : 'bg-gray-50 hover:bg-white text-gray-700 border-gray-300 hover:border-gray-400 font-medium'
+                      ? isDark
+                        ? 'bg-[#47D2BF] text-[#120e26] border-[#47D2BF] font-bold shadow-2xs'
+                        : 'bg-[#6B4ABF] text-white border-[#6B4ABF] font-bold shadow-2xs'
+                      : isDark
+                      ? 'bg-[#151226] hover:bg-[#25203D] text-gray-300 border-[#2E2A48] hover:border-[#47D2BF]/40 font-medium'
+                      : 'bg-[#FAF7F2] hover:bg-white text-[#2D2825] border-[#E5DDD0] hover:border-[#D5C9B8] font-medium'
                   }`}
                 >
                   {isSelected ? (
-                    <Check className="w-3 h-3 text-white stroke-[3]" />
+                    <Check className={`w-3 h-3 stroke-[3] ${isDark ? 'text-[#120e26]' : 'text-white'}`} />
                   ) : (
-                    <Plus className="w-3 h-3 text-gray-400" />
+                    <Plus className={`w-3 h-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
                   )}
                   <span>{tech}</span>
                 </button>
@@ -500,11 +598,15 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
                   key={customTech}
                   type="button"
                   onClick={() => toggleTechnology(customTech)}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-gray-900 text-white border border-gray-900 shadow-2xs transition cursor-pointer"
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold shadow-2xs transition cursor-pointer border ${
+                    isDark
+                      ? 'bg-[#25203D] text-[#47D2BF] border-[#47D2BF]/40'
+                      : 'bg-[#2D2825] text-white border-[#2D2825]'
+                  }`}
                 >
-                  <Check className="w-3 h-3 text-white stroke-[3]" />
+                  <Check className="w-3 h-3 stroke-[3]" />
                   <span>{customTech}</span>
-                  <X className="w-3 h-3 text-gray-300 hover:text-white" />
+                  <X className="w-3 h-3 opacity-70 hover:opacity-100" />
                 </button>
               ))}
           </div>
@@ -529,7 +631,11 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
                   ? 'Add other technology (e.g. Mirakl, Odoo, Custom ERP...)'
                   : 'Añadir otra tecnología (ej: Mirakl, Odoo, ERP Propio...)'
               }
-              className="flex-1 bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 focus:ring-2 focus:ring-red-500 focus:outline-none"
+              className={`flex-1 border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none ${
+                isDark
+                  ? 'bg-[#120e26] border-[#2E2A48] text-white focus:border-[#47D2BF]'
+                  : 'bg-white border-[#E5DDD0] text-[#2D2825] focus:border-[#6B4ABF]'
+              }`}
             />
             <button
               type="button"
@@ -539,7 +645,11 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
                   setCustomTechInput('');
                 }
               }}
-              className="px-3 py-1.5 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-lg transition cursor-pointer shrink-0"
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer shrink-0 ${
+                isDark
+                  ? 'bg-[#47D2BF] hover:bg-[#47D2BF]/80 text-[#120e26]'
+                  : 'bg-[#6B4ABF] hover:bg-[#583aa3] text-white'
+              }`}
             >
               {language === 'en' ? '+ Add' : '+ Añadir'}
             </button>
@@ -547,9 +657,9 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
         </div>
 
         {/* Client Notes & Pack Cost Source */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-3 border-t border-gray-100">
+        <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-3 border-t ${isDark ? 'border-[#2E2A48]' : 'border-[#E5DDD0]'}`}>
           <div className="md:col-span-2">
-            <label className="block text-xs font-medium text-gray-700 mb-1">
+            <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-[#2D2825]'}`}>
               {language === 'en' ? 'Client notes / Operational specifications' : 'Notas del cliente / Especificaciones de la operativa'}
             </label>
             <textarea
@@ -557,24 +667,36 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
               value={inputs.clientNotes || ''}
               onChange={(e) => onChange({ clientNotes: e.target.value })}
               placeholder={language === 'en' ? 'e.g. Special packaging with kraft paper, Shopify integration, 2 yearly collections...' : 'Ej: Embalaje especial con papel kraft, cliente requiere integración Shopify, 2 colecciones anuales...'}
-              className="w-full border border-gray-300 rounded-lg p-2.5 text-xs text-gray-800 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+              className={`w-full border rounded-lg p-2.5 text-xs focus:outline-none ${
+                isDark
+                  ? 'bg-[#120e26] border-[#2E2A48] text-white focus:border-[#47D2BF]'
+                  : 'bg-white border-[#E5DDD0] text-[#2D2825] focus:border-[#6B4ABF]'
+              }`}
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
+            <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-[#2D2825]'}`}>
               {language === 'en' ? 'Base pack cost source' : 'Fuente de coste pack base'}
             </label>
-            <div className="w-full border border-emerald-200 bg-emerald-50/50 rounded-lg p-2.5 text-xs flex flex-col justify-between">
+            <div className={`w-full border rounded-lg p-2.5 text-xs flex flex-col justify-between ${
+              isDark
+                ? 'border-emerald-700/50 bg-emerald-950/40'
+                : 'border-emerald-200 bg-emerald-50/70'
+            }`}>
               <div className="flex items-center justify-between">
-                <span className="font-bold text-emerald-950">
+                <span className={`font-bold ${isDark ? 'text-emerald-300' : 'text-emerald-950'}`}>
                   {language === 'en' ? 'Calculator (negotiated)' : 'Calculadora (negociado)'}
                 </span>
-                <span className="text-[10px] bg-emerald-200/80 text-emerald-900 px-1.5 py-0.5 rounded font-bold">
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
+                  isDark
+                    ? 'bg-emerald-900/80 text-emerald-200'
+                    : 'bg-emerald-200/80 text-emerald-900'
+                }`}>
                   {language === 'en' ? 'Active' : 'Activo'}
                 </span>
               </div>
-              <p className="text-[10px] text-emerald-800/80 mt-1">
+              <p className={`text-[10px] mt-1 ${isDark ? 'text-emerald-400/90' : 'text-emerald-800/80'}`}>
                 {language === 'en'
                   ? 'Real material costs agreed with procurement and cardboard suppliers.'
                   : 'Costes reales de material pactados con compras y proveedores de cartón.'}
@@ -584,7 +706,7 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
         </div>
 
         {/* Planificación Interna: Calendario Go-Live & ARR / YRR */}
-        <div className="mt-4 pt-4 border-t border-gray-100">
+        <div className={`mt-4 pt-4 border-t ${isDark ? 'border-[#2E2A48]' : 'border-[#E5DDD0]'}`}>
           <LiveDateScheduler
             goLiveDate={inputs.goLiveDate}
             results={results}
@@ -594,20 +716,24 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
       </section>
 
       {/* 2. VOLUMEN Y ÓRDENES */}
-      <section className="bg-white rounded-xl border border-gray-200 p-5 shadow-2xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-100 pb-3 mb-4 gap-2">
+      <section className={`rounded-xl border p-5 shadow-2xs ${
+        isDark ? 'bg-[#1E1B2E] border-[#2E2A48]' : 'bg-white border-[#E5DDD0]'
+      }`}>
+        <div className={`flex flex-col sm:flex-row sm:items-center justify-between border-b pb-3 mb-4 gap-2 ${
+          isDark ? 'border-[#2E2A48]' : 'border-[#E5DDD0]'
+        }`}>
           <div className="flex items-center gap-2">
-            <Layers className="w-5 h-5 text-red-600" />
-            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+            <Layers className={`w-5 h-5 ${isDark ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`} />
+            <h3 className={`text-sm font-bold uppercase tracking-wide ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
               {language === 'en' ? '2. Order Volume & Average Basket' : '2. Volumen y Órdenes Medias'}
             </h3>
           </div>
-          <span className="text-xs font-mono text-gray-600">
+          <span className={`text-xs font-mono ${isDark ? 'text-gray-300' : 'text-[#6D635B]'}`}>
             {language === 'en' ? 'Monthly total: ' : 'Total mes: '}
-            <strong>{results.ordersMonth.toLocaleString(language === 'en' ? 'en-US' : 'es-ES')}</strong> {language === 'en' ? 'orders' : 'pedidos'} (
-            <strong>{(results.ordersMonth * results.unitsPerOrder).toLocaleString(language === 'en' ? 'en-US' : 'es-ES', { maximumFractionDigits: 0 })}</strong> {language === 'en' ? 'units/month' : 'units/mes'})
+            <strong className={isDark ? 'text-white' : 'text-[#2D2825]'}>{results.ordersMonth.toLocaleString(language === 'en' ? 'en-US' : 'es-ES')}</strong> {language === 'en' ? 'orders' : 'pedidos'} (
+            <strong className={isDark ? 'text-white' : 'text-[#2D2825]'}>{(results.ordersMonth * results.unitsPerOrder).toLocaleString(language === 'en' ? 'en-US' : 'es-ES', { maximumFractionDigits: 0 })}</strong> {language === 'en' ? 'units/month' : 'units/mes'})
             {inputs.returnRate > 0 && (
-              <> · <span className="text-amber-700 font-semibold">{Math.round(results.ordersMonth * inputs.returnRate).toLocaleString(language === 'en' ? 'en-US' : 'es-ES')} {language === 'en' ? 'returns' : 'devoluciones'} ({(inputs.returnRate * 100).toFixed(1)}%)</span></>
+              <> · <span className={isDark ? 'text-amber-300 font-semibold' : 'text-amber-700 font-semibold'}>{Math.round(results.ordersMonth * inputs.returnRate).toLocaleString(language === 'en' ? 'en-US' : 'es-ES')} {language === 'en' ? 'returns' : 'devoluciones'} ({(inputs.returnRate * 100).toFixed(1)}%)</span></>
             )}
           </span>
         </div>
@@ -615,17 +741,23 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {/* Modalidad de volumen */}
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
+            <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-[#2D2825]'}`}>
               {language === 'en' ? 'Calculation mode' : 'Modalidad de cálculo'}
             </label>
-            <div className="grid grid-cols-2 gap-1.5 p-0.5 bg-gray-100 rounded-lg border border-gray-200">
+            <div className={`grid grid-cols-2 gap-1.5 p-0.5 rounded-lg border ${
+              isDark ? 'bg-[#151226] border-[#2E2A48]' : 'bg-[#FAF7F2] border-[#E5DDD0]'
+            }`}>
               <button
                 type="button"
                 onClick={() => onChange({ volumeMode: 'Pedidos/día' })}
                 className={`py-1.5 text-xs font-semibold rounded-md transition cursor-pointer ${
                   inputs.volumeMode === 'Pedidos/día'
-                    ? 'bg-white text-red-600 shadow-2xs'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? isDark
+                      ? 'bg-[#25203D] text-[#47D2BF] shadow-xs'
+                      : 'bg-white text-[#6B4ABF] shadow-xs'
+                    : isDark
+                    ? 'text-gray-400 hover:text-gray-200'
+                    : 'text-[#6D635B] hover:text-[#2D2825]'
                 }`}
               >
                 {language === 'en' ? 'Orders / day' : 'Pedidos / día'}
@@ -635,21 +767,25 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
                 onClick={() => onChange({ volumeMode: 'Pedidos/mes' })}
                 className={`py-1.5 text-xs font-semibold rounded-md transition cursor-pointer ${
                   inputs.volumeMode === 'Pedidos/mes'
-                    ? 'bg-white text-red-600 shadow-2xs'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? isDark
+                      ? 'bg-[#25203D] text-[#47D2BF] shadow-xs'
+                      : 'bg-white text-[#6B4ABF] shadow-xs'
+                    : isDark
+                    ? 'text-gray-400 hover:text-gray-200'
+                    : 'text-[#6D635B] hover:text-[#2D2825]'
                 }`}
               >
                 {language === 'en' ? 'Orders / month' : 'Pedidos / mes'}
               </button>
             </div>
-            <p className="text-[10px] text-gray-400 mt-1">
+            <p className={`text-[10px] mt-1 ${isDark ? 'text-gray-500' : 'text-[#8C8278]'}`}>
               {language === 'en' ? 'Define if quote is based on daily or monthly volume.' : 'Define si el cliente cotiza por día o mes.'}
             </p>
           </div>
 
           {/* Días Laborables */}
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
+            <label className={`block text-xs font-medium mb-1 ${isDark ? 'text-gray-300' : 'text-[#2D2825]'}`}>
               {language === 'en' ? 'Working days / month' : 'Días laborables / mes'}
             </label>
             <CleanNumberInput
@@ -660,9 +796,13 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
               fallbackValue={22}
               value={inputs.workingDays}
               onChange={(val) => onChange({ workingDays: val })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs font-mono font-medium focus:ring-2 focus:ring-red-500"
+              className={`w-full border rounded-lg px-3 py-2 text-xs font-mono font-medium ${
+                isDark
+                  ? 'bg-[#120e26] border-[#2E2A48] text-white focus:border-[#47D2BF]'
+                  : 'bg-white border-[#E5DDD0] text-[#2D2825] focus:border-[#6B4ABF]'
+              }`}
             />
-            <p className="text-[10px] text-gray-400 mt-1">
+            <p className={`text-[10px] mt-1 ${isDark ? 'text-gray-500' : 'text-[#8C8278]'}`}>
               {language === 'en' ? 'Standard reference: 21-22 days/month.' : 'Estándar nacional: 21-22 días/mes.'}
             </p>
           </div>
@@ -670,7 +810,7 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
           {/* Pedidos por día / mes sincronizados */}
           {inputs.volumeMode === 'Pedidos/día' ? (
             <div>
-              <label className="block text-xs font-bold text-gray-900 mb-1">
+              <label className={`block text-xs font-bold mb-1 ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
                 {language === 'en' ? 'Orders / day (Input)' : 'Pedidos / día (Entrada)'}
               </label>
               <CleanNumberInput
@@ -684,15 +824,19 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
                     ordersMonth: val * inputs.workingDays,
                   });
                 }}
-                className="w-full border-2 border-red-300 rounded-lg px-3 py-2 text-xs font-mono font-black text-gray-900 focus:ring-2 focus:ring-red-500 bg-red-50/20"
+                className={`w-full border-2 rounded-lg px-3 py-2 text-xs font-mono font-black ${
+                  isDark
+                    ? 'bg-[#20172e] border-[#47D2BF]/60 text-white'
+                    : 'bg-[#F4EEE4] border-[#D5C9B8] text-[#2D2825]'
+                }`}
               />
-              <p className="text-[10px] text-gray-500 mt-1 font-mono">
+              <p className={`text-[10px] mt-1 font-mono ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
                 = {results.ordersMonth.toLocaleString(language === 'en' ? 'en-US' : 'es-ES')} {language === 'en' ? 'ord/month' : 'ped/mes'}
               </p>
             </div>
           ) : (
             <div>
-              <label className="block text-xs font-bold text-gray-900 mb-1">
+              <label className={`block text-xs font-bold mb-1 ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
                 {language === 'en' ? 'Orders / month (Input)' : 'Pedidos / mes (Entrada)'}
               </label>
               <CleanNumberInput
@@ -706,9 +850,13 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
                     ordersPerDay: inputs.workingDays > 0 ? val / inputs.workingDays : 0,
                   });
                 }}
-                className="w-full border-2 border-red-300 rounded-lg px-3 py-2 text-xs font-mono font-black text-gray-900 focus:ring-2 focus:ring-red-500 bg-red-50/20"
+                className={`w-full border-2 rounded-lg px-3 py-2 text-xs font-mono font-black ${
+                  isDark
+                    ? 'bg-[#20172e] border-[#47D2BF]/60 text-white'
+                    : 'bg-[#F4EEE4] border-[#D5C9B8] text-[#2D2825]'
+                }`}
               />
-              <p className="text-[10px] text-gray-500 mt-1 font-mono">
+              <p className={`text-[10px] mt-1 font-mono ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
                 = {results.ordersPerDay.toFixed(1)} {language === 'en' ? 'ord/day' : 'ped/día'}
               </p>
             </div>
@@ -717,10 +865,14 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
           {/* Unidades por pedido */}
           <div>
             <div className="flex justify-between items-center mb-1">
-              <label className="block text-xs font-medium text-gray-700">
+              <label className={`block text-xs font-medium ${isDark ? 'text-gray-300' : 'text-[#2D2825]'}`}>
                 {language === 'en' ? 'Units per order (Basket)' : 'Units por pedido (Órdenes)'}
               </label>
-              <span className="font-mono font-bold text-xs text-red-600 bg-red-50 px-1.5 py-0.2 rounded border border-red-200">
+              <span className={`font-mono font-bold text-xs px-1.5 py-0.2 rounded border ${
+                isDark
+                  ? 'text-[#47D2BF] bg-[#25203D] border-[#47D2BF]/40'
+                  : 'text-[#6B4ABF] bg-[#FAF7F2] border-[#D5C9B8]'
+              }`}>
                 {inputs.unitsPerOrder} {language === 'en' ? 'units' : 'uds'}
               </span>
             </div>
@@ -732,9 +884,13 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
               fallbackValue={1.0}
               value={inputs.unitsPerOrder}
               onChange={(val) => onChange({ unitsPerOrder: val })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs font-mono font-medium focus:ring-2 focus:ring-red-500"
+              className={`w-full border rounded-lg px-3 py-2 text-xs font-mono font-medium ${
+                isDark
+                  ? 'bg-[#120e26] border-[#2E2A48] text-white focus:border-[#47D2BF]'
+                  : 'bg-white border-[#E5DDD0] text-[#2D2825] focus:border-[#6B4ABF]'
+              }`}
             />
-            <p className="text-[10px] text-gray-400 mt-1">
+            <p className={`text-[10px] mt-1 ${isDark ? 'text-gray-500' : 'text-[#8C8278]'}`}>
               {inputs.unitsPerOrder === 1
                 ? (language === 'en' ? '1st Pick only (1 unit/order).' : '1er Pick únicamente (1 ud/ped).')
                 : (language === 'en'
@@ -746,10 +902,14 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
           {/* % Devoluciones */}
           <div>
             <div className="flex justify-between items-center mb-1">
-              <label className="block text-xs font-medium text-gray-700">
+              <label className={`block text-xs font-medium ${isDark ? 'text-gray-300' : 'text-[#2D2825]'}`}>
                 {language === 'en' ? 'Return rate (%)' : '% Devoluciones'}
               </label>
-              <span className="font-mono font-bold text-xs text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
+              <span className={`font-mono font-bold text-xs px-1.5 py-0.2 rounded border ${
+                isDark
+                  ? 'text-amber-300 bg-amber-950/60 border-amber-800/60'
+                  : 'text-amber-700 bg-amber-50 border-amber-200'
+              }`}>
                 {(inputs.returnRate * 100).toFixed(1)}%
               </span>
             </div>
@@ -761,9 +921,13 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
               fallbackValue={0}
               value={Math.round(inputs.returnRate * 1000) / 10}
               onChange={(val) => onChange({ returnRate: val / 100 })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs font-mono font-medium focus:ring-2 focus:ring-red-500"
+              className={`w-full border rounded-lg px-3 py-2 text-xs font-mono font-medium ${
+                isDark
+                  ? 'bg-[#120e26] border-[#2E2A48] text-white focus:border-[#47D2BF]'
+                  : 'bg-white border-[#E5DDD0] text-[#2D2825] focus:border-[#6B4ABF]'
+              }`}
             />
-            <p className="text-[10px] text-gray-400 mt-1 font-mono">
+            <p className={`text-[10px] mt-1 font-mono ${isDark ? 'text-gray-500' : 'text-[#8C8278]'}`}>
               {language === 'en'
                 ? `≈ ${Math.round(results.ordersMonth * inputs.returnRate).toLocaleString('en-US')} returns/month`
                 : `≈ ${Math.round(results.ordersMonth * inputs.returnRate).toLocaleString('es-ES')} devoluciones/mes`}
@@ -773,23 +937,31 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
       </section>
 
       {/* 3. MIX DE PACK */}
-      <section className="bg-white rounded-xl border border-gray-200 p-5 shadow-2xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-100 pb-3 mb-4 gap-2">
+      <section className={`rounded-xl border p-5 shadow-2xs ${
+        isDark ? 'bg-[#1E1B2E] border-[#2E2A48]' : 'bg-white border-[#E5DDD0]'
+      }`}>
+        <div className={`flex flex-col sm:flex-row sm:items-center justify-between border-b pb-3 mb-4 gap-2 ${
+          isDark ? 'border-[#2E2A48]' : 'border-[#E5DDD0]'
+        }`}>
           <div className="flex items-center gap-2">
-            <Package className="w-5 h-5 text-red-600" />
-            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+            <Package className={`w-5 h-5 ${isDark ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`} />
+            <h3 className={`text-sm font-bold uppercase tracking-wide ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
               {language === 'en' ? '3. Packaging Pack Mix' : '3. Mix de Pack de Embalaje'}
             </h3>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500 font-mono">
+            <span className={`text-xs font-mono ${isDark ? 'text-gray-300' : 'text-[#6D635B]'}`}>
               {language === 'en' ? 'Weighted average pack cost: ' : 'Coste medio ponderado del pack: '}
-              <strong className="text-gray-900 text-sm">{formatEur(results.packCost)}</strong>
+              <strong className={`text-sm ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>{formatEur(results.packCost)}</strong>
             </span>
             <span
               className={`text-[11px] font-bold px-2 py-0.5 rounded border ${
                 mixTotal === 100
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  ? isDark
+                    ? 'bg-emerald-950/60 text-emerald-300 border-emerald-700/60'
+                    : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : isDark
+                  ? 'bg-amber-950/60 text-amber-300 border-amber-800/60'
                   : 'bg-amber-50 text-amber-700 border-amber-200'
               }`}
             >
@@ -799,36 +971,54 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
         </div>
 
         {/* Quick Presets & Normalizer */}
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-4 bg-gray-50 p-2.5 rounded-lg border border-gray-200">
+        <div className={`flex flex-wrap items-center justify-between gap-2 mb-4 p-2.5 rounded-lg border ${
+          isDark ? 'bg-[#151226] border-[#2E2A48]' : 'bg-[#FAF7F2] border-[#E5DDD0]'
+        }`}>
           <div className="flex items-center gap-1.5 flex-wrap text-xs">
-            <span className="text-gray-500 text-[11px] font-medium">
+            <span className={`text-[11px] font-medium ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
               {language === 'en' ? 'Common distributions:' : 'Distribuciones comunes:'}
             </span>
             <button
               type="button"
               onClick={() => applyMixPreset(0, 0, 50, 50)}
-              className="px-2 py-1 text-[11px] bg-white hover:bg-gray-100 border border-gray-200 rounded text-gray-700 font-medium cursor-pointer"
+              className={`px-2 py-1 text-[11px] rounded font-medium cursor-pointer border transition ${
+                isDark
+                  ? 'bg-[#1E1B2E] hover:bg-[#25203D] text-gray-200 border-[#2E2A48]'
+                  : 'bg-white hover:bg-gray-100 text-[#4D453E] border-[#E5DDD0]'
+              }`}
             >
               50% MPL / 50% LPL ({language === 'en' ? 'Standard' : 'Estándar'})
             </button>
             <button
               type="button"
               onClick={() => applyMixPreset(50, 50, 0, 0)}
-              className="px-2 py-1 text-[11px] bg-white hover:bg-gray-100 border border-gray-200 rounded text-gray-700 font-medium cursor-pointer"
+              className={`px-2 py-1 text-[11px] rounded font-medium cursor-pointer border transition ${
+                isDark
+                  ? 'bg-[#1E1B2E] hover:bg-[#25203D] text-gray-200 border-[#2E2A48]'
+                  : 'bg-white hover:bg-gray-100 text-[#4D453E] border-[#E5DDD0]'
+              }`}
             >
               50% SPK / 50% SPL ({language === 'en' ? 'Small' : 'Pequeño'})
             </button>
             <button
               type="button"
               onClick={() => applyMixPreset(25, 25, 25, 25)}
-              className="px-2 py-1 text-[11px] bg-white hover:bg-gray-100 border border-gray-200 rounded text-gray-700 font-medium cursor-pointer"
+              className={`px-2 py-1 text-[11px] rounded font-medium cursor-pointer border transition ${
+                isDark
+                  ? 'bg-[#1E1B2E] hover:bg-[#25203D] text-gray-200 border-[#2E2A48]'
+                  : 'bg-white hover:bg-gray-100 text-[#4D453E] border-[#E5DDD0]'
+              }`}
             >
               25% {language === 'en' ? 'Uniform' : 'Uniforme'}
             </button>
             <button
               type="button"
               onClick={() => applyMixPreset(0, 0, 100, 0)}
-              className="px-2 py-1 text-[11px] bg-white hover:bg-gray-100 border border-gray-200 rounded text-gray-700 font-medium cursor-pointer"
+              className={`px-2 py-1 text-[11px] rounded font-medium cursor-pointer border transition ${
+                isDark
+                  ? 'bg-[#1E1B2E] hover:bg-[#25203D] text-gray-200 border-[#2E2A48]'
+                  : 'bg-white hover:bg-gray-100 text-[#4D453E] border-[#E5DDD0]'
+              }`}
             >
               100% MPL
             </button>
@@ -838,7 +1028,11 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
             <button
               type="button"
               onClick={normalizeMix}
-              className="px-2.5 py-1 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded shadow-2xs transition cursor-pointer"
+              className={`px-2.5 py-1 text-xs font-bold rounded shadow-2xs transition cursor-pointer ${
+                isDark
+                  ? 'bg-amber-600 hover:bg-amber-500 text-white'
+                  : 'bg-amber-600 hover:bg-amber-700 text-white'
+              }`}
             >
               {language === 'en' ? 'Normalize to 100%' : 'Normalizar al 100%'}
             </button>
@@ -875,14 +1069,20 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
               },
             ] as const
           ).map((item) => (
-            <div key={item.key} className="bg-gray-50/70 p-3 rounded-lg border border-gray-200">
+            <div key={item.key} className={`p-3 rounded-lg border ${
+              isDark ? 'bg-[#151226] border-[#2E2A48]' : 'bg-[#FAF7F2] border-[#E5DDD0]'
+            }`}>
               <div className="flex justify-between items-center mb-1">
-                <span className="text-xs font-bold text-gray-900">{item.label}</span>
-                <span className="text-xs font-mono font-black text-red-600 bg-white px-1.5 py-0.2 rounded border border-gray-200">
+                <span className={`text-xs font-bold ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>{item.label}</span>
+                <span className={`text-xs font-mono font-black px-1.5 py-0.2 rounded border ${
+                  isDark
+                    ? 'text-[#47D2BF] bg-[#25203D] border-[#47D2BF]/40'
+                    : 'text-[#6B4ABF] bg-white border-[#E5DDD0]'
+                }`}>
                   {inputs[item.key]}%
                 </span>
               </div>
-              <div className="text-[10px] text-gray-500 mb-2 flex justify-between">
+              <div className={`text-[10px] mb-2 flex justify-between ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
                 <span>{item.desc}</span>
                 <span className="font-mono font-semibold">{language === 'en' ? 'Cost: ' : 'Coste: '}{formatEur(item.cost)}</span>
               </div>
@@ -892,7 +1092,9 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
                 max={100}
                 value={inputs[item.key]}
                 onChange={(e) => onChange({ [item.key]: Number(e.target.value) })}
-                className="w-full accent-red-600 h-1.5 bg-gray-200 rounded cursor-pointer"
+                className={`w-full h-1.5 rounded cursor-pointer ${
+                  isDark ? 'accent-[#47D2BF] bg-[#2E2A48]' : 'accent-[#6B4ABF] bg-[#E5DDD0]'
+                }`}
               />
               <div className="flex justify-end mt-1">
                 <CleanNumberInput
@@ -903,7 +1105,11 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
                   fallbackValue={0}
                   value={inputs[item.key]}
                   onChange={(val) => onChange({ [item.key]: val })}
-                  className="w-16 text-right border border-gray-300 rounded px-1.5 py-0.5 text-xs font-mono"
+                  className={`w-16 text-right border rounded px-1.5 py-0.5 text-xs font-mono ${
+                    isDark
+                      ? 'bg-[#120e26] border-[#2E2A48] text-white'
+                      : 'bg-white border-[#E5DDD0] text-[#2D2825]'
+                  }`}
                 />
               </div>
             </div>
@@ -915,14 +1121,14 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
       <section className="space-y-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
-            <Package className="w-5 h-5 text-red-600" />
-            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+            <Package className={`w-5 h-5 ${isDark ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`} />
+            <h3 className={`text-sm font-bold uppercase tracking-wide ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
               {language === 'en' ? '4. Base Preparation (Pack)' : '4. Preparación Base (Pack)'}
             </h3>
           </div>
-          <span className="text-xs text-gray-500 font-mono">
+          <span className={`text-xs font-mono ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
             {language === 'en' ? 'Pack material mix cost: ' : 'Coste mix material packaging: '}
-            <strong className="text-gray-900">{formatEur(results.packCost)}</strong>
+            <strong className={isDark ? 'text-white' : 'text-[#2D2825]'}>{formatEur(results.packCost)}</strong>
           </span>
         </div>
 
@@ -951,14 +1157,14 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
       <section className="space-y-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
-            <Layers className="w-5 h-5 text-red-600" />
-            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+            <Layers className={`w-5 h-5 ${isDark ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`} />
+            <h3 className={`text-sm font-bold uppercase tracking-wide ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
               {language === 'en' ? '5. First Pick of Order (1st Unit)' : '5. Primer Pick del Pedido (1ª Unidad)'}
             </h3>
           </div>
-          <span className="text-xs text-gray-500 font-mono">
+          <span className={`text-xs font-mono ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
             {language === 'en' ? 'Adjusted pick cost: ' : 'Coste ajustado pick: '}
-            <strong className="text-gray-900">{formatEur(results.firstPickCost)}</strong>
+            <strong className={isDark ? 'text-white' : 'text-[#2D2825]'}>{formatEur(results.firstPickCost)}</strong>
           </span>
         </div>
 
@@ -986,10 +1192,10 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
       {/* 6. PICKS ADICIONALES */}
       <section className="space-y-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+          <h3 className={`text-sm font-bold uppercase tracking-wide ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
             {language === 'en' ? '6. Additional Picks (Extra units > 1)' : '6. Picks Adicionales (Unidades extra > 1)'}
           </h3>
-          <span className="text-xs text-gray-500 font-mono">
+          <span className={`text-xs font-mono ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
             {language === 'en'
               ? `With ${results.unitsPerOrder} units/order = ${(results.unitsPerOrder - 1).toFixed(1)} extra picks / order`
               : `Con ${results.unitsPerOrder} units/pedido = ${(results.unitsPerOrder - 1).toFixed(1)} picks extra / ped`}
@@ -1021,12 +1227,16 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
       <section className="space-y-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
-            <Truck className="w-5 h-5 text-blue-600" />
-            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+            <Truck className={`w-5 h-5 ${isDark ? 'text-[#47D2BF]' : 'text-blue-600'}`} />
+            <h3 className={`text-sm font-bold uppercase tracking-wide ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
               {language === 'en' ? '7. Shipping (Carrier Cost + Transport Margin)' : '7. Envío (Carrier Cost + Margen de Transporte)'}
             </h3>
           </div>
-          <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
+          <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${
+            isDark
+              ? 'text-[#47D2BF] bg-[#25203D] border-[#47D2BF]/40'
+              : 'text-blue-700 bg-blue-50 border-blue-200'
+          }`}>
             {language === 'en' ? 'Shipping sale price: ' : 'Venta Envío: '}
             {formatEur(results.shippingPrice)} ({language === 'en' ? 'Margin: ' : 'Margen: '}{formatPct(results.shippingMargin)} | Markup:{' '}
             {formatMarkup(results.shippingMarkup)})
@@ -1051,18 +1261,22 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
       {/* 8. SERVICIOS ADICIONALES & ALMACENAJE */}
       <section className="space-y-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+          <h3 className={`text-sm font-bold uppercase tracking-wide ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
             {language === 'en' ? '8. Additional Services & Storage' : '8. Servicios Adicionales & Almacenaje'}
           </h3>
-          <span className="text-[11px] text-gray-500 font-medium">
+          <span className={`text-[11px] font-medium ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
             {language === 'en' ? 'Direct unit rates & margins' : 'Tarifas unitarias directas y márgenes'}
           </span>
         </div>
 
         {inputs.customPackaging && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900 flex items-center justify-between gap-3 shadow-2xs">
+          <div className={`rounded-lg p-3 text-xs flex items-center justify-between gap-3 shadow-2xs border ${
+            isDark
+              ? 'bg-[#25203D] border-[#47D2BF]/40 text-gray-200'
+              : 'bg-amber-50 border-amber-200 text-amber-900'
+          }`}>
             <div className="flex items-center gap-2">
-              <Package className="w-4 h-4 text-amber-600 shrink-0" />
+              <Package className={`w-4 h-4 shrink-0 ${isDark ? 'text-[#47D2BF]' : 'text-amber-600'}`} />
               <span>
                 {language === 'en'
                   ? `Client custom packaging is ACTIVE: Base packaging fee and cost are cancelled (${formatEur(0)} / order) in operational calculations and client quote.`
@@ -1072,7 +1286,9 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
             <button
               type="button"
               onClick={() => onChange({ customPackaging: false })}
-              className="text-[11px] font-semibold text-amber-800 underline hover:text-amber-950 shrink-0 cursor-pointer"
+              className={`text-[11px] font-semibold underline shrink-0 cursor-pointer ${
+                isDark ? 'text-[#47D2BF] hover:text-[#47D2BF]/80' : 'text-amber-800 hover:text-amber-950'
+              }`}
             >
               {language === 'en' ? 'Revert to Base' : 'Revertir a Base'}
             </button>
@@ -1095,7 +1311,11 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
           hideMarginButton={true}
           badge={
             inputs.customPackaging ? (
-              <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-300 px-1.5 py-0.5 rounded">
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                isDark
+                  ? 'text-[#47D2BF] bg-[#120e26] border-[#47D2BF]/40'
+                  : 'text-amber-700 bg-amber-50 border-amber-300'
+              }`}>
                 {language === 'en' ? 'Cancelled (Custom Packaging)' : 'Cancelado (Packaging Personalizado)'}
               </span>
             ) : undefined

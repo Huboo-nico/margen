@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CalculationResults } from '../types';
 import { useLanguage } from '../context/LanguageContext';
+import { useTheme } from '../context/ThemeContext';
 import { formatEur } from '../utils/calculations';
 import { Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -18,6 +19,7 @@ export const LiveDateScheduler: React.FC<LiveDateSchedulerProps> = ({
   compact = false,
 }) => {
   const { language } = useLanguage();
+  const { isDark } = useTheme();
   const [showCalendarView, setShowCalendarView] = useState(false);
 
   // Current selected date or default
@@ -91,23 +93,37 @@ export const LiveDateScheduler: React.FC<LiveDateSchedulerProps> = ({
   const isToday = daysUntil === 0;
 
   return (
-    <div className={`bg-gradient-to-br from-white to-gray-50/60 rounded-xl border border-gray-200 ${compact ? 'p-3' : 'p-4'} shadow-2xs`}>
+    <div className={`rounded-xl border ${compact ? 'p-3' : 'p-4'} shadow-2xs transition-colors duration-200 ${
+      isDark
+        ? 'bg-[#1E1B2E] border-[#2E2A48]'
+        : 'bg-white border-[#E5DDD0]'
+    }`}>
       {/* Header and Tag */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-2.5 mb-3">
+      <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-2.5 mb-3 ${
+        isDark ? 'border-[#2E2A48]' : 'border-[#EFE8DC]'
+      }`}>
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-red-50 text-red-600 border border-red-200 flex items-center justify-center shrink-0">
+          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border ${
+            isDark
+              ? 'bg-[#25203D] text-[#47D2BF] border-[#47D2BF]/40'
+              : 'bg-[#F4EEE4] text-[#6B4ABF] border-[#E5DDD0]'
+          }`}>
             <CalendarIcon className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-gray-900">
+              <h4 className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
                 {language === 'en' ? 'Scheduled Live Date' : 'Fecha Prevista Go-Live'}
               </h4>
-              <span className="text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.2 rounded">
+              <span className={`text-[10px] font-semibold px-1.5 py-0.2 rounded border ${
+                isDark
+                  ? 'bg-amber-950/50 text-amber-300 border-amber-800/60'
+                  : 'bg-amber-50 text-amber-800 border-amber-200'
+              }`}>
                 {language === 'en' ? 'Internal Schedule (No Real)' : 'Planificación Interna (No Real)'}
               </span>
             </div>
-            <p className="text-[11px] text-gray-500">
+            <p className={`text-[11px] ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
               {language === 'en'
                 ? 'Target onboarding date to project YRR (In-Year) and annual ARR.'
                 : 'Fecha estimada de operativa para proyectar YRR (año en curso) y ARR anual recurrente.'}
@@ -120,9 +136,15 @@ export const LiveDateScheduler: React.FC<LiveDateSchedulerProps> = ({
           <span
             className={`text-xs font-bold font-mono px-2 py-0.5 rounded-full border flex items-center gap-1 ${
               isToday
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                ? isDark
+                  ? 'bg-emerald-950/60 text-emerald-300 border-emerald-700/60'
+                  : 'bg-emerald-50 text-emerald-700 border-emerald-300'
                 : isPast
-                ? 'bg-gray-100 text-gray-700 border-gray-300'
+                ? isDark
+                  ? 'bg-[#151226] text-gray-400 border-[#2E2A48]'
+                  : 'bg-gray-100 text-gray-700 border-gray-300'
+                : isDark
+                ? 'bg-rose-950/60 text-rose-300 border-rose-800/50'
                 : 'bg-red-50 text-red-700 border-red-200'
             }`}
           >
@@ -136,7 +158,11 @@ export const LiveDateScheduler: React.FC<LiveDateSchedulerProps> = ({
           <button
             type="button"
             onClick={() => setShowCalendarView(!showCalendarView)}
-            className="text-[11px] font-semibold text-gray-600 hover:text-red-600 px-2 py-0.5 rounded border border-gray-200 bg-white hover:border-red-200 transition cursor-pointer"
+            className={`text-[11px] font-semibold px-2 py-0.5 rounded border transition cursor-pointer ${
+              isDark
+                ? 'bg-[#151226] text-gray-300 border-[#2E2A48] hover:border-[#47D2BF] hover:text-[#47D2BF]'
+                : 'bg-[#FAF7F2] text-[#4D453E] border-[#E5DDD0] hover:border-[#6B4ABF] hover:text-[#6B4ABF]'
+            }`}
           >
             {showCalendarView
               ? (language === 'en' ? 'Close Calendar' : 'Cerrar Calendario')
@@ -163,44 +189,64 @@ export const LiveDateScheduler: React.FC<LiveDateSchedulerProps> = ({
                   }
                 }
               }}
-              className="w-full bg-white border border-gray-300 rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-gray-900 shadow-2xs focus:ring-2 focus:ring-red-500 focus:border-red-500 cursor-pointer"
+              className={`w-full border rounded-lg px-3 py-1.5 text-xs font-mono font-bold shadow-2xs cursor-pointer ${
+                isDark
+                  ? 'bg-[#120e26] border-[#2E2A48] text-white focus:border-[#47D2BF] focus:ring-1 focus:ring-[#47D2BF]'
+                  : 'bg-[#FAF7F2] border-[#E5DDD0] text-[#2D2825] focus:border-[#6B4ABF] focus:ring-1 focus:ring-[#6B4ABF]'
+              }`}
             />
           </div>
-          <span className="text-[11px] text-gray-500 font-mono shrink-0">
+          <span className={`text-[11px] font-mono shrink-0 ${isDark ? 'text-gray-400' : 'text-[#7D736A]'}`}>
             {results.goLiveMonthsRemainingInYear.toFixed(1)} {language === 'en' ? `mo in ${results.goLiveYear}` : `meses en ${results.goLiveYear}`}
           </span>
         </div>
 
         {/* Quick presets buttons */}
         <div className="md:col-span-7 flex items-center gap-1.5 flex-wrap justify-start md:justify-end">
-          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mr-0.5">
+          <span className={`text-[10px] font-semibold uppercase tracking-wider mr-0.5 ${isDark ? 'text-gray-500' : 'text-[#8C8278]'}`}>
             {language === 'en' ? 'Quick presets:' : 'Presets:'}
           </span>
           <button
             type="button"
             onClick={() => setPreset('twoWeeks')}
-            className="px-2 py-1 text-[11px] font-medium bg-white hover:bg-gray-100 text-gray-700 border border-gray-200 rounded-md transition cursor-pointer"
+            className={`px-2 py-1 text-[11px] font-medium rounded-md border transition cursor-pointer ${
+              isDark
+                ? 'bg-[#151226] hover:bg-[#25203D] text-gray-300 border-[#2E2A48]'
+                : 'bg-[#FAF7F2] hover:bg-white text-[#4D453E] border-[#E5DDD0]'
+            }`}
           >
             {language === 'en' ? '+2 Weeks' : '+2 Semanas'}
           </button>
           <button
             type="button"
             onClick={() => setPreset('nextMonth1st')}
-            className="px-2 py-1 text-[11px] font-semibold bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-md transition cursor-pointer"
+            className={`px-2 py-1 text-[11px] font-semibold rounded-md border transition cursor-pointer ${
+              isDark
+                ? 'bg-[#25203D] text-[#47D2BF] border-[#47D2BF]/40'
+                : 'bg-[#F4EEE4] text-[#6B4ABF] border-[#D5C9B8]'
+            }`}
           >
             {language === 'en' ? '1st Next Month' : '1º Próximo Mes'}
           </button>
           <button
             type="button"
             onClick={() => setPreset('thirtyDays')}
-            className="px-2 py-1 text-[11px] font-medium bg-white hover:bg-gray-100 text-gray-700 border border-gray-200 rounded-md transition cursor-pointer"
+            className={`px-2 py-1 text-[11px] font-medium rounded-md border transition cursor-pointer ${
+              isDark
+                ? 'bg-[#151226] hover:bg-[#25203D] text-gray-300 border-[#2E2A48]'
+                : 'bg-[#FAF7F2] hover:bg-white text-[#4D453E] border-[#E5DDD0]'
+            }`}
           >
             {language === 'en' ? '+30 Days' : '+30 Días'}
           </button>
           <button
             type="button"
             onClick={() => setPreset('sixtyDays')}
-            className="px-2 py-1 text-[11px] font-medium bg-white hover:bg-gray-100 text-gray-700 border border-gray-200 rounded-md transition cursor-pointer"
+            className={`px-2 py-1 text-[11px] font-medium rounded-md border transition cursor-pointer ${
+              isDark
+                ? 'bg-[#151226] hover:bg-[#25203D] text-gray-300 border-[#2E2A48]'
+                : 'bg-[#FAF7F2] hover:bg-white text-[#4D453E] border-[#E5DDD0]'
+            }`}
           >
             {language === 'en' ? '+60 Days' : '+60 Días'}
           </button>
@@ -209,28 +255,38 @@ export const LiveDateScheduler: React.FC<LiveDateSchedulerProps> = ({
 
       {/* Mini Visual Calendar Picker (Toggleable) */}
       {showCalendarView && (
-        <div className="mt-3.5 pt-3 border-t border-gray-200/80 bg-white p-3 rounded-lg border border-gray-200 shadow-sm max-w-sm">
+        <div className={`mt-3.5 pt-3 border-t p-3 rounded-lg border shadow-sm max-w-sm ${
+          isDark
+            ? 'bg-[#151226] border-[#2E2A48]'
+            : 'bg-white border-[#E5DDD0]'
+        }`}>
           <div className="flex items-center justify-between mb-2">
             <button
               type="button"
               onClick={prevMonth}
-              className="p-1 hover:bg-gray-100 rounded text-gray-600 transition cursor-pointer"
+              className={`p-1 rounded transition cursor-pointer ${
+                isDark ? 'hover:bg-[#25203D] text-gray-300' : 'hover:bg-[#F4EEE4] text-[#4D453E]'
+              }`}
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="text-xs font-bold text-gray-900">
+            <span className={`text-xs font-bold ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
               {currentMonthName} {viewYear}
             </span>
             <button
               type="button"
               onClick={nextMonth}
-              className="p-1 hover:bg-gray-100 rounded text-gray-600 transition cursor-pointer"
+              className={`p-1 rounded transition cursor-pointer ${
+                isDark ? 'hover:bg-[#25203D] text-gray-300' : 'hover:bg-[#F4EEE4] text-[#4D453E]'
+              }`}
             >
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-gray-400 mb-1">
+          <div className={`grid grid-cols-7 gap-1 text-center text-[10px] font-bold mb-1 ${
+            isDark ? 'text-gray-500' : 'text-[#8C8278]'
+          }`}>
             {weekDays.map((d) => (
               <span key={d}>{d}</span>
             ))}
@@ -259,10 +315,16 @@ export const LiveDateScheduler: React.FC<LiveDateSchedulerProps> = ({
                   }}
                   className={`h-7 w-full text-xs font-mono rounded flex items-center justify-center transition cursor-pointer ${
                     isSelected
-                      ? 'bg-red-600 text-white font-bold shadow-xs'
+                      ? isDark
+                        ? 'bg-[#47D2BF] text-[#120e26] font-bold shadow-xs'
+                        : 'bg-[#6B4ABF] text-white font-bold shadow-xs'
                       : isCellToday
-                      ? 'bg-red-50 text-red-700 font-bold border border-red-300'
-                      : 'hover:bg-gray-100 text-gray-800'
+                      ? isDark
+                        ? 'bg-[#25203D] text-[#47D2BF] font-bold border border-[#47D2BF]/40'
+                        : 'bg-[#F4EEE4] text-[#6B4ABF] font-bold border border-[#6B4ABF]'
+                      : isDark
+                      ? 'hover:bg-[#25203D] text-gray-300'
+                      : 'hover:bg-[#FAF7F2] text-[#2D2825]'
                   }`}
                 >
                   {dayNum}
@@ -274,58 +336,72 @@ export const LiveDateScheduler: React.FC<LiveDateSchedulerProps> = ({
       )}
 
       {/* Real-Time ARR & YRR Calculated Impact Box */}
-      <div className="mt-3 pt-3 border-t border-gray-200/70 grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className={`mt-3 pt-3 border-t grid grid-cols-1 sm:grid-cols-2 gap-3 ${
+        isDark ? 'border-[#2E2A48]' : 'border-[#EFE8DC]'
+      }`}>
         {/* ARR Block */}
-        <div className="bg-white p-2.5 rounded-lg border border-gray-200 flex items-center justify-between">
+        <div className={`p-2.5 rounded-lg border flex items-center justify-between ${
+          isDark
+            ? 'bg-[#151226] border-[#2E2A48]'
+            : 'bg-[#FAF7F2] border-[#E5DDD0]'
+        }`}>
           <div>
             <div className="flex items-center gap-1">
-              <span className="text-[10.5px] font-bold text-gray-700 uppercase tracking-wide">
+              <span className={`text-[10.5px] font-bold uppercase tracking-wide ${isDark ? 'text-gray-300' : 'text-[#4D453E]'}`}>
                 ARR (Annual Recurring Revenue)
               </span>
-              <span className="text-[9px] font-mono text-gray-400">12 mo</span>
+              <span className={`text-[9px] font-mono ${isDark ? 'text-gray-500' : 'text-[#8C8278]'}`}>12 mo</span>
             </div>
-            <span className="text-base font-black font-mono text-gray-900">
+            <span className={`text-base font-black font-mono block ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
               {formatEur(results.arrRevenue)}
             </span>
-            <span className="text-[10px] text-gray-500 block">
+            <span className={`text-[10px] block ${isDark ? 'text-gray-400' : 'text-[#7D736A]'}`}>
               {language === 'en' ? 'Annualized run-rate revenue' : 'Facturación anual recurrente normalizada'}
             </span>
           </div>
           <div className="text-right">
-            <span className="text-[10px] font-bold text-emerald-700 font-mono block">
+            <span className={`text-[10px] font-bold font-mono block ${isDark ? 'text-[#47D2BF]' : 'text-emerald-700'}`}>
               +{formatEur(results.arrProfit)}
             </span>
-            <span className="text-[9px] text-gray-400">
+            <span className={`text-[9px] ${isDark ? 'text-gray-500' : 'text-[#8C8278]'}`}>
               {language === 'en' ? 'Annual net profit' : 'Beneficio neto anual'}
             </span>
           </div>
         </div>
 
         {/* YRR Block */}
-        <div className="bg-red-50/40 p-2.5 rounded-lg border border-red-200/80 flex items-center justify-between">
+        <div className={`p-2.5 rounded-lg border flex items-center justify-between ${
+          isDark
+            ? 'bg-[#20172e] border-[#3E2748]'
+            : 'bg-[#F7F2EB] border-[#DCD2C3]'
+        }`}>
           <div>
             <div className="flex items-center gap-1">
-              <span className="text-[10.5px] font-bold text-red-900 uppercase tracking-wide">
+              <span className={`text-[10.5px] font-bold uppercase tracking-wide ${isDark ? 'text-rose-300' : 'text-red-900'}`}>
                 YRR (Year Run Rate · {results.goLiveYear})
               </span>
-              <span className="text-[9px] font-mono font-bold text-red-700 bg-red-100 px-1 py-0.2 rounded">
+              <span className={`text-[9px] font-mono font-bold px-1 py-0.2 rounded ${
+                isDark
+                  ? 'bg-rose-950/60 text-rose-300 border border-rose-800/40'
+                  : 'bg-red-100 text-red-700'
+              }`}>
                 {results.goLiveMonthsRemainingInYear.toFixed(1)} mo
               </span>
             </div>
-            <span className="text-base font-black font-mono text-red-700">
+            <span className={`text-base font-black font-mono block ${isDark ? 'text-rose-300' : 'text-red-700'}`}>
               {formatEur(results.yrrRevenue)}
             </span>
-            <span className="text-[10px] text-red-600/80 block">
+            <span className={`text-[10px] block ${isDark ? 'text-rose-400/80' : 'text-red-600/80'}`}>
               {language === 'en'
                 ? `Revenue in ${results.goLiveYear} from go-live`
                 : `Ingresos en ${results.goLiveYear} desde fecha go-live`}
             </span>
           </div>
           <div className="text-right">
-            <span className="text-[10px] font-bold text-emerald-700 font-mono block">
+            <span className={`text-[10px] font-bold font-mono block ${isDark ? 'text-[#47D2BF]' : 'text-emerald-700'}`}>
               +{formatEur(results.yrrProfit)}
             </span>
-            <span className="text-[9px] text-gray-500">
+            <span className={`text-[9px] ${isDark ? 'text-gray-400' : 'text-[#7D736A]'}`}>
               {language === 'en' ? `Profit in ${results.goLiveYear}` : `Beneficio en ${results.goLiveYear}`}
             </span>
           </div>

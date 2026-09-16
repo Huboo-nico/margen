@@ -187,11 +187,11 @@ export const App: React.FC = () => {
 
   return (
     <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${
-      isDark ? 'bg-[#120e26] text-[#F0F0F0]' : 'bg-[#F8F9FA] text-gray-900'
+      isDark ? 'bg-[#120e26] text-[#F0F0F0]' : 'bg-[#FAF7F2] text-[#2D2825]'
     }`}>
       {/* Top Header with Brand styling and Theme / Currency / Language Switchers */}
       <header className={`px-4 sm:px-6 py-3.5 flex items-center justify-between sticky top-0 z-20 shadow-2xs gap-4 no-print print:hidden transition-colors duration-200 ${
-        isDark ? 'bg-[#1E1B2E] border-b border-[#2E2A48]' : 'bg-white border-b border-gray-200'
+        isDark ? 'bg-[#1E1B2E] border-b border-[#2E2A48]' : 'bg-[#FAF7F2] border-b border-[#E5DDD0]'
       }`}>
         <div className="flex items-center gap-3">
           {/* Huboo Brand Badge */}
@@ -200,24 +200,24 @@ export const App: React.FC = () => {
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className={`text-lg sm:text-xl font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              <h1 className={`text-lg sm:text-xl font-black tracking-tight ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
                 {t('app.title')}
               </h1>
               <span className={`px-2 py-0.5 text-[11px] font-bold rounded ${
                 isDark
                   ? 'bg-[#25203D] text-[#47D2BF] border border-[#47D2BF]/40'
-                  : 'bg-purple-100 text-[#6B4ABF] border border-purple-200'
+                  : 'bg-[#F4EEE4] text-[#6B4ABF] border border-[#E5DDD0]'
               }`}>
                 {t('app.clientByClient')}
               </span>
             </div>
-            <p className={`text-xs hidden sm:block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            <p className={`text-xs hidden sm:block ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
               {t('app.subtitle')}
             </p>
           </div>
         </div>
 
-        {/* Right side: Luna/Sol Theme, Currency & Language Switcher Controls */}
+        {/* Right side: Theme Switcher (Icons only), Currency & Language Switcher Controls */}
         <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
           <ThemeSwitcher />
           <CurrencySwitcher />
@@ -248,7 +248,7 @@ export const App: React.FC = () => {
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 print:p-0 print:m-0 print:max-w-none">
         {/* Navigation Tabs */}
         <div className={`border-b mb-6 flex gap-1 overflow-x-auto pb-0.5 scrollbar-none no-print ${
-          isDark ? 'border-[#2E2A48]' : 'border-gray-200'
+          isDark ? 'border-[#2E2A48]' : 'border-[#E5DDD0]'
         }`}>
           {tabs.map((tab) => (
             <button
@@ -262,7 +262,7 @@ export const App: React.FC = () => {
                     : 'border-[#6B4ABF] text-[#6B4ABF]'
                   : isDark
                     ? 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
+                    : 'border-transparent text-[#7D736A] hover:text-[#2D2825] hover:border-[#D5C9B8]'
               }`}
             >
               {tab.label}

@@ -20,6 +20,7 @@ import {
   PRODUCT_PROFILES,
 } from '../data/constants';
 import { useLanguage } from '../context/LanguageContext';
+import { useTheme } from '../context/ThemeContext';
 import { formatEur, formatPct } from '../utils/calculations';
 import { ProductType } from '../types';
 
@@ -47,6 +48,7 @@ const packTypeEnLabels: Record<string, string> = {
 
 export const RateCardTab: React.FC = () => {
   const { language } = useLanguage();
+  const { isDark } = useTheme();
 
   const baseRates = [
     {
@@ -115,26 +117,32 @@ export const RateCardTab: React.FC = () => {
     <div className="space-y-8">
       {/* Supuestos base */}
       <div>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">
+        <h2 className={`text-xl font-bold mb-4 ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
           {language === 'en' ? 'Base Operational Assumptions' : 'Supuestos base'}
         </h2>
-        <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto shadow-xs">
+        <div className={`rounded-xl border overflow-x-auto shadow-xs ${
+          isDark ? 'bg-[#1E1B2E] border-[#2E2A48]' : 'bg-white border-[#E5DDD0]'
+        }`}>
           <table className="w-full text-sm text-left">
-            <thead className="bg-gray-50 text-xs font-semibold text-gray-600 uppercase border-b border-gray-200">
+            <thead className={`text-xs font-semibold uppercase border-b ${
+              isDark
+                ? 'bg-[#151226] text-gray-400 border-[#2E2A48]'
+                : 'bg-[#FAF7F2] text-[#4D453E] border-[#E5DDD0]'
+            }`}>
               <tr>
                 <th className="px-5 py-3">{language === 'en' ? 'Concept' : 'Concepto'}</th>
                 <th className="px-5 py-3 text-right">{language === 'en' ? 'Value' : 'Valor'}</th>
                 <th className="px-5 py-3 text-left">{language === 'en' ? 'Unit' : 'Unidad'}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className={`divide-y ${isDark ? 'divide-[#2E2A48]' : 'divide-[#EFE8DC]'}`}>
               {baseRates.map((rate, idx) => (
-                <tr key={idx} className="hover:bg-gray-50 transition">
-                  <td className="px-5 py-3 font-medium text-gray-800">{rate.concepto}</td>
-                  <td className="px-5 py-3 text-right font-mono font-medium text-gray-900">
+                <tr key={idx} className={`transition ${isDark ? 'hover:bg-[#25203D]' : 'hover:bg-[#FAF7F2]'}`}>
+                  <td className={`px-5 py-3 font-medium ${isDark ? 'text-gray-200' : 'text-[#2D2825]'}`}>{rate.concepto}</td>
+                  <td className={`px-5 py-3 text-right font-mono font-medium ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
                     {formatEur(rate.valor)}
                   </td>
-                  <td className="px-5 py-3 text-gray-500">{rate.unidad}</td>
+                  <td className={`px-5 py-3 ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>{rate.unidad}</td>
                 </tr>
               ))}
             </tbody>
@@ -142,16 +150,22 @@ export const RateCardTab: React.FC = () => {
         </div>
       </div>
 
-      <hr className="border-gray-200" />
+      <hr className={isDark ? 'border-[#2E2A48]' : 'border-[#E5DDD0]'} />
 
       {/* Precios de pack */}
       <div>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">
+        <h2 className={`text-xl font-bold mb-4 ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
           {language === 'en' ? 'Packaging & Box Type Rates' : 'Precios de pack'}
         </h2>
-        <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto shadow-xs">
+        <div className={`rounded-xl border overflow-x-auto shadow-xs ${
+          isDark ? 'bg-[#1E1B2E] border-[#2E2A48]' : 'bg-white border-[#E5DDD0]'
+        }`}>
           <table className="w-full text-sm text-left">
-            <thead className="bg-gray-50 text-xs font-semibold text-gray-600 uppercase border-b border-gray-200">
+            <thead className={`text-xs font-semibold uppercase border-b ${
+              isDark
+                ? 'bg-[#151226] text-gray-400 border-[#2E2A48]'
+                : 'bg-[#FAF7F2] text-[#4D453E] border-[#E5DDD0]'
+            }`}>
               <tr>
                 <th className="px-5 py-3">Pack</th>
                 <th className="px-5 py-3 text-center">{language === 'en' ? 'Code' : 'Código'}</th>
@@ -160,22 +174,26 @@ export const RateCardTab: React.FC = () => {
                 <th className="px-5 py-3 text-right">{language === 'en' ? 'Standard ES Cost' : 'Coste estándar ES'}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className={`divide-y ${isDark ? 'divide-[#2E2A48]' : 'divide-[#EFE8DC]'}`}>
               {PACK_TYPES.map((type) => (
-                <tr key={type} className="hover:bg-gray-50 transition">
-                  <td className="px-5 py-3 font-medium text-gray-800">
+                <tr key={type} className={`transition ${isDark ? 'hover:bg-[#25203D]' : 'hover:bg-[#FAF7F2]'}`}>
+                  <td className={`px-5 py-3 font-medium ${isDark ? 'text-gray-200' : 'text-[#2D2825]'}`}>
                     {language === 'en' ? (packTypeEnLabels[type] || PACK_LABELS[type]) : PACK_LABELS[type]}
                   </td>
-                  <td className="px-5 py-3 text-center font-mono text-xs font-semibold text-gray-600">
-                    <span className="bg-gray-100 px-2 py-0.5 rounded">{type}</span>
+                  <td className="px-5 py-3 text-center font-mono text-xs font-semibold">
+                    <span className={`px-2 py-0.5 rounded border ${
+                      isDark
+                        ? 'bg-[#151226] text-gray-300 border-[#2E2A48]'
+                        : 'bg-[#FAF7F2] text-[#4D453E] border-[#E5DDD0]'
+                    }`}>{type}</span>
                   </td>
-                  <td className="px-5 py-3 text-right font-mono text-gray-900 font-medium">
+                  <td className={`px-5 py-3 text-right font-mono font-medium ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
                     {formatEur(PACK_PRICES[type])}
                   </td>
-                  <td className="px-5 py-3 text-right font-mono text-gray-700">
+                  <td className={`px-5 py-3 text-right font-mono ${isDark ? 'text-gray-300' : 'text-[#4D453E]'}`}>
                     {formatEur(PACK_COSTS_CALCULATOR[type])}
                   </td>
-                  <td className="px-5 py-3 text-right font-mono text-gray-700">
+                  <td className={`px-5 py-3 text-right font-mono ${isDark ? 'text-gray-300' : 'text-[#4D453E]'}`}>
                     {formatEur(PACK_COSTS_STANDARD_ES[type])}
                   </td>
                 </tr>
@@ -185,36 +203,42 @@ export const RateCardTab: React.FC = () => {
         </div>
       </div>
 
-      <hr className="border-gray-200" />
+      <hr className={isDark ? 'border-[#2E2A48]' : 'border-[#E5DDD0]'} />
 
       {/* Perfiles de producto */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-900">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
             {language === 'en' ? 'Product Profiles & Returns' : 'Perfiles de producto y Devoluciones'}
           </h2>
-          <span className="text-xs text-gray-500">
+          <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
             {language === 'en'
               ? 'Categorization and return rate estimation without pick price surcharge'
               : 'Clasificación y estimación de retorno sin recargo en tarifa de pick'}
           </span>
         </div>
-        <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto shadow-xs">
+        <div className={`rounded-xl border overflow-x-auto shadow-xs ${
+          isDark ? 'bg-[#1E1B2E] border-[#2E2A48]' : 'bg-white border-[#E5DDD0]'
+        }`}>
           <table className="w-full text-sm text-left">
-            <thead className="bg-gray-50 text-xs font-semibold text-gray-600 uppercase border-b border-gray-200">
+            <thead className={`text-xs font-semibold uppercase border-b ${
+              isDark
+                ? 'bg-[#151226] text-gray-400 border-[#2E2A48]'
+                : 'bg-[#FAF7F2] text-[#4D453E] border-[#E5DDD0]'
+            }`}>
               <tr>
                 <th className="px-5 py-3">{language === 'en' ? 'Product Profile' : 'Perfil de Producto'}</th>
                 <th className="px-5 py-3 text-right">{language === 'en' ? 'Estimated Return Rate' : 'Tasa Estimada Devolución'}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className={`divide-y ${isDark ? 'divide-[#2E2A48]' : 'divide-[#EFE8DC]'}`}>
               {(Object.keys(PRODUCT_PROFILES) as ProductType[]).map((prod) => {
                 const p = PRODUCT_PROFILES[prod];
                 const label = productTypeLabels[prod]?.[language] || prod;
                 return (
-                  <tr key={prod} className="hover:bg-gray-50 transition">
-                    <td className="px-5 py-3 font-medium text-gray-800">{label}</td>
-                    <td className="px-5 py-3 text-right font-mono text-gray-700">
+                  <tr key={prod} className={`transition ${isDark ? 'hover:bg-[#25203D]' : 'hover:bg-[#FAF7F2]'}`}>
+                    <td className={`px-5 py-3 font-medium ${isDark ? 'text-gray-200' : 'text-[#2D2825]'}`}>{label}</td>
+                    <td className={`px-5 py-3 text-right font-mono ${isDark ? 'text-gray-300' : 'text-[#4D453E]'}`}>
                       {formatPct(p.returnRate)}
                     </td>
                   </tr>
@@ -227,3 +251,4 @@ export const RateCardTab: React.FC = () => {
     </div>
   );
 };
+

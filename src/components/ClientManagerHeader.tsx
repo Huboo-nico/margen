@@ -89,7 +89,7 @@ ${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Canales
     <div className={`px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs no-print print:hidden transition-colors duration-200 ${
       isDark
         ? 'bg-[#1A162B] border-b border-[#2E2A48] text-gray-200'
-        : 'bg-white border-b border-gray-200 text-gray-900'
+        : 'bg-[#FAF7F2] border-b border-[#E5DDD0] text-[#2D2825]'
     }`}>
       {/* Left section: Client switcher & DIRECT NAME EDITOR */}
       <div className="flex items-center gap-3 flex-wrap">
@@ -105,11 +105,11 @@ ${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Canales
             className={`rounded px-2.5 py-1 text-xs font-bold cursor-pointer max-w-[150px] sm:max-w-[180px] truncate transition ${
               isDark
                 ? 'bg-[#120e26] border border-[#2E2A48] text-white focus:ring-2 focus:ring-[#47D2BF]'
-                : 'border border-gray-300 bg-gray-50 hover:bg-white text-gray-900 focus:ring-2 focus:ring-[#6B4ABF]'
+                : 'border border-[#E5DDD0] bg-white text-[#2D2825] focus:ring-2 focus:ring-[#6B4ABF]'
             }`}
           >
             {clients.map((c) => (
-              <option key={c.id} value={c.id} className={isDark ? 'bg-[#1E1B2E] text-white' : ''}>
+              <option key={c.id} value={c.id} className={isDark ? 'bg-[#1E1B2E] text-white' : 'bg-white text-[#2D2825]'}>
                 {c.name}
               </option>
             ))}
@@ -120,7 +120,7 @@ ${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Canales
         <div className={`flex items-center gap-1.5 rounded-md px-2 py-0.5 shadow-2xs ${
           isDark
             ? 'bg-[#25203D] border border-[#47D2BF]/40'
-            : 'bg-purple-50/60 border border-purple-200/90'
+            : 'bg-[#F4EEE4] border border-[#D5C9B8]'
         }`}>
           <Edit3 className={`w-3.5 h-3.5 shrink-0 ${isDark ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`} />
           <span className={`text-[11px] font-bold whitespace-nowrap ${isDark ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`}>
@@ -135,7 +135,7 @@ ${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Canales
             className={`rounded px-2 py-0.5 text-xs font-bold focus:outline-none w-36 sm:w-52 md:w-64 transition shadow-inner ${
               isDark
                 ? 'bg-[#120e26] border border-[#2E2A48] text-white focus:ring-2 focus:ring-[#47D2BF]'
-                : 'bg-white border border-purple-300 text-gray-900 focus:ring-2 focus:ring-[#6B4ABF]'
+                : 'bg-white border border-[#D5C9B8] text-[#2D2825] focus:ring-2 focus:ring-[#6B4ABF]'
             }`}
           />
         </div>
@@ -149,7 +149,7 @@ ${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Canales
                 className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
                   isDark
                     ? 'bg-[#252238] text-gray-200 border border-[#2E2A48]'
-                    : 'bg-gray-100 text-gray-700 border border-gray-200'
+                    : 'bg-[#F4EEE4] text-[#4D453E] border border-[#E5DDD0]'
                 }`}
               >
                 {tech}
@@ -157,7 +157,7 @@ ${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Canales
             ))}
             {currentInputs.technologies.length > 3 && (
               <span className={`text-[10px] font-semibold px-1 py-0.5 rounded ${
-                isDark ? 'text-gray-400 bg-[#252238] border border-[#2E2A48]' : 'text-gray-500 bg-gray-50 border border-gray-200'
+                isDark ? 'text-gray-400 bg-[#252238] border border-[#2E2A48]' : 'text-[#7D736A] bg-[#F4EEE4] border border-[#E5DDD0]'
               }`}>
                 +{currentInputs.technologies.length - 3}
               </span>
@@ -178,7 +178,7 @@ ${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Canales
               className={`rounded px-2 py-0.5 text-[11px] w-44 focus:ring-1 ${
                 isDark
                   ? 'bg-[#120e26] border border-[#2E2A48] text-white focus:ring-[#47D2BF]'
-                  : 'bg-gray-50 border border-gray-300 text-gray-700 focus:ring-purple-500'
+                  : 'bg-white border border-[#E5DDD0] text-[#2D2825] focus:ring-[#6B4ABF]'
               }`}
             />
           ) : (
@@ -189,7 +189,7 @@ ${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Canales
               className={`flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded transition cursor-pointer ${
                 isDark
                   ? 'text-gray-400 hover:text-gray-200 hover:bg-[#252238]'
-                  : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
+                  : 'text-[#6D635B] hover:text-[#2D2825] hover:bg-[#F4EEE4]'
               }`}
             >
               <Tag className="w-3 h-3 text-gray-400" />
@@ -219,7 +219,7 @@ ${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Canales
             className={`flex items-center gap-1 px-2 py-1 font-medium rounded border transition cursor-pointer ${
               isDark
                 ? 'bg-[#252238] hover:bg-[#2e2a44] text-gray-200 border-[#2E2A48]'
-                : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200'
+                : 'bg-white hover:bg-[#F4EEE4] text-[#4D453E] border-[#E5DDD0]'
             }`}
           >
             <Copy className="w-3 h-3" />
@@ -255,7 +255,7 @@ ${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Canales
           className={`flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded transition shadow-2xs cursor-pointer ${
             isDark
               ? 'bg-[#252238] hover:bg-[#2e2a44] text-white border border-[#47D2BF]/40'
-              : 'bg-gray-900 hover:bg-gray-800 text-white'
+              : 'bg-[#2D2825] hover:bg-[#1E1B2E] text-white'
           }`}
         >
           {copiedNotification ? (

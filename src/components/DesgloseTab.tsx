@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CalculationResults } from '../types';
 import { useLanguage } from '../context/LanguageContext';
+import { useTheme } from '../context/ThemeContext';
 import { formatEur, formatPct, formatMarkup } from '../utils/calculations';
 import {
   ResponsiveContainer,
@@ -43,6 +44,7 @@ const PALETTE = [
 
 export const DesgloseTab: React.FC<DesgloseTabProps> = ({ results }) => {
   const { language, currencySymbol } = useLanguage();
+  const { isDark } = useTheme();
   const [distributionMode, setDistributionMode] = useState<'costs' | 'revenue' | 'profit'>('costs');
 
   const translateLine = (lineName: string) => {
@@ -128,85 +130,105 @@ export const DesgloseTab: React.FC<DesgloseTabProps> = ({ results }) => {
     cost: l.costes,
   }));
 
+  const tooltipBg = isDark ? '#1E1B2E' : '#ffffff';
+  const tooltipBorder = isDark ? '#2E2A48' : '#E5DDD0';
+  const tooltipTextColor = isDark ? '#ffffff' : '#2D2825';
+  const gridStroke = isDark ? '#2E2A48' : '#EFE8DC';
+  const axisTickColor = isDark ? '#9CA3AF' : '#6D635B';
+
   return (
     <div className="space-y-8">
       {/* 1. KPIs RESUMEN EJECUTIVO */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <div className="bg-white p-3.5 rounded-lg border border-gray-200 shadow-2xs">
-          <div className="flex items-center justify-between text-gray-500 mb-1">
-            <span className="text-[11px] font-medium uppercase tracking-wider">
+        <div className={`p-3.5 rounded-lg border shadow-2xs ${
+          isDark ? 'bg-[#1E1B2E] border-[#2E2A48]' : 'bg-white border-[#E5DDD0]'
+        }`}>
+          <div className="flex items-center justify-between mb-1">
+            <span className={`text-[11px] font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
               {language === 'en' ? 'Monthly Revenue' : 'Facturación Mensual'}
             </span>
-            <DollarSign className="w-4 h-4 text-blue-600" />
+            <DollarSign className={`w-4 h-4 ${isDark ? 'text-[#47D2BF]' : 'text-blue-600'}`} />
           </div>
-          <div className="text-lg font-bold font-mono text-gray-900">
+          <div className={`text-lg font-bold font-mono ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
             {formatEur(results.totalRevenueMonth)}
           </div>
-          <div className="text-[10px] text-gray-400 mt-0.5">
+          <div className={`text-[10px] mt-0.5 ${isDark ? 'text-gray-500' : 'text-[#8C8278]'}`}>
             {language === 'en' ? 'Total billed to client' : 'Total facturado cliente'}
           </div>
         </div>
 
-        <div className="bg-white p-3.5 rounded-lg border border-gray-200 shadow-2xs">
-          <div className="flex items-center justify-between text-gray-500 mb-1">
-            <span className="text-[11px] font-medium uppercase tracking-wider">
+        <div className={`p-3.5 rounded-lg border shadow-2xs ${
+          isDark ? 'bg-[#1E1B2E] border-[#2E2A48]' : 'bg-white border-[#E5DDD0]'
+        }`}>
+          <div className="flex items-center justify-between mb-1">
+            <span className={`text-[11px] font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
               {language === 'en' ? 'Operating Costs' : 'Costes Operativos'}
             </span>
             <PackageCheck className="w-4 h-4 text-red-500" />
           </div>
-          <div className="text-lg font-bold font-mono text-gray-900">
+          <div className={`text-lg font-bold font-mono ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
             {formatEur(results.totalCostMonth)}
           </div>
-          <div className="text-[10px] text-gray-400 mt-0.5">
+          <div className={`text-[10px] mt-0.5 ${isDark ? 'text-gray-500' : 'text-[#8C8278]'}`}>
             {language === 'en' ? 'Handling + transport + storage' : 'Handling + envío + almacén'}
           </div>
         </div>
 
-        <div className="bg-white p-3.5 rounded-lg border border-gray-200 shadow-2xs">
-          <div className="flex items-center justify-between text-gray-500 mb-1">
-            <span className="text-[11px] font-medium uppercase tracking-wider">
+        <div className={`p-3.5 rounded-lg border shadow-2xs ${
+          isDark ? 'bg-[#1E1B2E] border-[#2E2A48]' : 'bg-white border-[#E5DDD0]'
+        }`}>
+          <div className="flex items-center justify-between mb-1">
+            <span className={`text-[11px] font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
               {language === 'en' ? 'Net Profit' : 'Beneficio Neto'}
             </span>
-            <TrendingUp className="w-4 h-4 text-emerald-600" />
+            <TrendingUp className={`w-4 h-4 ${isDark ? 'text-[#47D2BF]' : 'text-emerald-600'}`} />
           </div>
           <div
             className={`text-lg font-bold font-mono ${
-              results.totalProfitMonth >= 0 ? 'text-emerald-700' : 'text-red-600'
+              results.totalProfitMonth >= 0
+                ? isDark
+                  ? 'text-[#47D2BF]'
+                  : 'text-emerald-700'
+                : 'text-red-500'
             }`}
           >
             {formatEur(results.totalProfitMonth)}
           </div>
-          <div className="text-[10px] text-gray-400 mt-0.5">
+          <div className={`text-[10px] mt-0.5 ${isDark ? 'text-gray-500' : 'text-[#8C8278]'}`}>
             {language === 'en' ? 'Net monthly margin' : 'Margen neto mensual'}
           </div>
         </div>
 
-        <div className="bg-white p-3.5 rounded-lg border border-gray-200 shadow-2xs">
-          <div className="flex items-center justify-between text-gray-500 mb-1">
-            <span className="text-[11px] font-medium uppercase tracking-wider">
+        <div className={`p-3.5 rounded-lg border shadow-2xs ${
+          isDark ? 'bg-[#1E1B2E] border-[#2E2A48]' : 'bg-white border-[#E5DDD0]'
+        }`}>
+          <div className="flex items-center justify-between mb-1">
+            <span className={`text-[11px] font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
               {language === 'en' ? 'Global Margin' : 'Margen Global'}
             </span>
-            <Percent className="w-4 h-4 text-purple-600" />
+            <Percent className={`w-4 h-4 ${isDark ? 'text-[#47D2BF]' : 'text-purple-600'}`} />
           </div>
-          <div className="text-lg font-bold font-mono text-gray-900">
+          <div className={`text-lg font-bold font-mono ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
             {formatPct(results.marginTotal)}
           </div>
-          <div className="text-[10px] text-gray-500 mt-0.5 font-mono">
-            Markup: <strong className="text-blue-700 font-bold">{formatMarkup(results.markupTotal)}</strong>
+          <div className={`text-[10px] mt-0.5 font-mono ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
+            Markup: <strong className={`font-bold ${isDark ? 'text-[#47D2BF]' : 'text-blue-700'}`}>{formatMarkup(results.markupTotal)}</strong>
           </div>
         </div>
 
-        <div className="bg-white p-3.5 rounded-lg border border-gray-200 shadow-2xs col-span-2 sm:col-span-1">
-          <div className="flex items-center justify-between text-gray-500 mb-1">
-            <span className="text-[11px] font-medium uppercase tracking-wider">
+        <div className={`p-3.5 rounded-lg border shadow-2xs col-span-2 sm:col-span-1 ${
+          isDark ? 'bg-[#1E1B2E] border-[#2E2A48]' : 'bg-white border-[#E5DDD0]'
+        }`}>
+          <div className="flex items-center justify-between mb-1">
+            <span className={`text-[11px] font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
               {language === 'en' ? 'Profit / Order' : 'Margen / Pedido'}
             </span>
-            <TrendingUp className="w-4 h-4 text-blue-600" />
+            <TrendingUp className={`w-4 h-4 ${isDark ? 'text-[#47D2BF]' : 'text-blue-600'}`} />
           </div>
-          <div className="text-lg font-bold font-mono text-blue-800">
+          <div className={`text-lg font-bold font-mono ${isDark ? 'text-[#47D2BF]' : 'text-blue-800'}`}>
             {formatEur(results.profitPerOrder)}
           </div>
-          <div className="text-[10px] text-gray-400 mt-0.5">
+          <div className={`text-[10px] mt-0.5 ${isDark ? 'text-gray-500' : 'text-[#8C8278]'}`}>
             {language === 'en' ? 'Average gain per order' : 'Ganancia neta media/ped.'}
           </div>
         </div>
@@ -215,115 +237,137 @@ export const DesgloseTab: React.FC<DesgloseTabProps> = ({ results }) => {
       {/* 2. TABLA DESGLOSE MENSUAL */}
       <div>
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <h2 className="text-lg font-bold text-gray-900">
+          <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
             {language === 'en' ? 'Detailed Monthly Breakdown' : 'Desglose Operativo Mensual Detallado'}
           </h2>
-          <span className="text-xs text-gray-500 font-medium">
+          <span className={`text-xs font-medium ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
             {language === 'en'
               ? 'Real-time calculation based on operational parameters and margins'
               : 'Cálculo en tiempo real según parámetros y márgenes fijados'}
           </span>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto shadow-xs">
+        <div className={`rounded-lg border overflow-x-auto shadow-xs ${
+          isDark ? 'bg-[#1E1B2E] border-[#2E2A48]' : 'bg-white border-[#E5DDD0]'
+        }`}>
           <table className="w-full text-sm text-left">
-            <thead className="bg-gray-50 text-xs font-semibold text-gray-600 uppercase border-b border-gray-200">
+            <thead className={`text-xs font-semibold uppercase border-b ${
+              isDark
+                ? 'bg-[#151226] text-gray-400 border-[#2E2A48]'
+                : 'bg-[#FAF7F2] text-[#4D453E] border-[#E5DDD0]'
+            }`}>
               <tr>
                 <th className="px-5 py-3">{language === 'en' ? 'Line' : 'Línea'}</th>
                 <th className="px-5 py-3 text-right">{language === 'en' ? 'Revenue' : 'Ingresos'}</th>
                 <th className="px-5 py-3 text-right">{language === 'en' ? 'Costs' : 'Costes'}</th>
                 <th className="px-5 py-3 text-right">{language === 'en' ? 'Profit' : 'Beneficio'}</th>
                 <th className="px-5 py-3 text-right">{language === 'en' ? 'Margin' : 'Margen'}</th>
-                <th className="px-5 py-3 text-right text-blue-700">Markup</th>
+                <th className={`px-5 py-3 text-right ${isDark ? 'text-[#47D2BF]' : 'text-blue-700'}`}>Markup</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className={`divide-y ${isDark ? 'divide-[#2E2A48]' : 'divide-[#EFE8DC]'}`}>
               {results.lines.map((line, idx) => (
-                <tr key={idx} className="hover:bg-gray-50 transition">
-                  <td className="px-5 py-3 font-medium text-gray-800">{translateLine(line.linea)}</td>
-                  <td className="px-5 py-3 text-right font-mono text-gray-700">
+                <tr key={idx} className={`transition ${
+                  isDark ? 'hover:bg-[#25203D]/60' : 'hover:bg-[#FAF7F2]'
+                }`}>
+                  <td className={`px-5 py-3 font-medium ${isDark ? 'text-gray-200' : 'text-[#2D2825]'}`}>
+                    {translateLine(line.linea)}
+                  </td>
+                  <td className={`px-5 py-3 text-right font-mono ${isDark ? 'text-gray-300' : 'text-[#4D453E]'}`}>
                     {formatEur(line.ingresos)}
                   </td>
-                  <td className="px-5 py-3 text-right font-mono text-gray-700">
+                  <td className={`px-5 py-3 text-right font-mono ${isDark ? 'text-gray-300' : 'text-[#4D453E]'}`}>
                     {formatEur(line.costes)}
                   </td>
                   <td
                     className={`px-5 py-3 text-right font-mono font-medium ${
-                      line.beneficio >= 0 ? 'text-gray-900' : 'text-red-600'
+                      line.beneficio >= 0
+                        ? isDark ? 'text-white' : 'text-[#2D2825]'
+                        : 'text-red-500'
                     }`}
                   >
                     {formatEur(line.beneficio)}
                   </td>
-                  <td className="px-5 py-3 text-right font-mono text-gray-700">
+                  <td className={`px-5 py-3 text-right font-mono ${isDark ? 'text-gray-300' : 'text-[#4D453E]'}`}>
                     {formatPct(line.margen)}
                   </td>
-                  <td className="px-5 py-3 text-right font-mono font-semibold text-blue-700">
+                  <td className={`px-5 py-3 text-right font-mono font-semibold ${isDark ? 'text-[#47D2BF]' : 'text-blue-700'}`}>
                     {formatMarkup(line.markup)}
                   </td>
                 </tr>
               ))}
               {/* TOTAL Row */}
-              <tr className="bg-gray-100/80 font-bold border-t-2 border-gray-300">
-                <td className="px-5 py-3.5 text-gray-900">TOTAL</td>
-                <td className="px-5 py-3.5 text-right font-mono text-gray-900">
+              <tr className={`font-bold border-t-2 ${
+                isDark
+                  ? 'bg-[#151226] border-[#2E2A48]'
+                  : 'bg-[#F4EEE4] border-[#D5C9B8]'
+              }`}>
+                <td className={`px-5 py-3.5 ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>TOTAL</td>
+                <td className={`px-5 py-3.5 text-right font-mono ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
                   {formatEur(results.totalRevenueMonth)}
                 </td>
-                <td className="px-5 py-3.5 text-right font-mono text-gray-900">
+                <td className={`px-5 py-3.5 text-right font-mono ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
                   {formatEur(results.totalCostMonth)}
                 </td>
                 <td
                   className={`px-5 py-3.5 text-right font-mono ${
-                    results.totalProfitMonth >= 0 ? 'text-emerald-700' : 'text-red-600'
+                    results.totalProfitMonth >= 0
+                      ? isDark
+                        ? 'text-[#47D2BF]'
+                        : 'text-emerald-700'
+                      : 'text-red-500'
                   }`}
                 >
                   {formatEur(results.totalProfitMonth)}
                 </td>
-                <td className="px-5 py-3.5 text-right font-mono text-gray-900">
+                <td className={`px-5 py-3.5 text-right font-mono ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
                   {formatPct(results.marginTotal)}
                 </td>
-                <td className="px-5 py-3.5 text-right font-mono font-extrabold text-blue-800">
+                <td className={`px-5 py-3.5 text-right font-mono font-extrabold ${isDark ? 'text-[#47D2BF]' : 'text-blue-800'}`}>
                   {formatMarkup(results.markupTotal)}
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
-        <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+        <div className={`mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
           {language === 'en' ? (
             <>
               <span>
-                <strong className="text-gray-700 font-medium">Margin (%):</strong> Profit over selling price = (Revenue - Cost) / Revenue
+                <strong className={`font-medium ${isDark ? 'text-gray-200' : 'text-[#2D2825]'}`}>Margin (%):</strong> Profit over selling price = (Revenue - Cost) / Revenue
               </span>
-              <span className="hidden sm:inline text-gray-300">•</span>
+              <span className={`hidden sm:inline ${isDark ? 'text-gray-600' : 'text-[#D5C9B8]'}`}>•</span>
               <span>
-                <strong className="text-blue-700 font-medium">Markup (%):</strong> Markup over cost = (Revenue - Cost) / Cost
+                <strong className={`font-medium ${isDark ? 'text-[#47D2BF]' : 'text-blue-700'}`}>Markup (%):</strong> Markup over cost = (Revenue - Cost) / Cost
               </span>
             </>
           ) : (
             <>
               <span>
-                <strong className="text-gray-700 font-medium">Margen (%):</strong> Beneficio sobre precio venta = (Ingreso - Coste) / Ingreso
+                <strong className={`font-medium ${isDark ? 'text-gray-200' : 'text-[#2D2825]'}`}>Margen (%):</strong> Beneficio sobre precio venta = (Ingreso - Coste) / Ingreso
               </span>
-              <span className="hidden sm:inline text-gray-300">•</span>
+              <span className={`hidden sm:inline ${isDark ? 'text-gray-600' : 'text-[#D5C9B8]'}`}>•</span>
               <span>
-                <strong className="text-blue-700 font-medium">Markup (%):</strong> Incremento sobre coste = (Ingreso - Coste) / Coste
+                <strong className={`font-medium ${isDark ? 'text-[#47D2BF]' : 'text-blue-700'}`}>Markup (%):</strong> Incremento sobre coste = (Ingreso - Coste) / Coste
               </span>
             </>
           )}
         </div>
       </div>
 
-      <hr className="border-gray-200" />
+      <hr className={isDark ? 'border-[#2E2A48]' : 'border-[#E5DDD0]'} />
 
       {/* 3. GRÁFICOS ANALÍTICOS (NUEVOS & ENRIQUECIDOS) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* GRÁFICO A: ESTRUCTURA Y REPARTO PORCENTUAL (DONUT CHART) */}
-        <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-xs flex flex-col justify-between">
+        <div className={`p-5 rounded-lg border shadow-xs flex flex-col justify-between ${
+          isDark ? 'bg-[#1E1B2E] border-[#2E2A48]' : 'bg-white border-[#E5DDD0]'
+        }`}>
           <div>
             <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
               <div className="flex items-center gap-2">
-                <PieIcon className="w-5 h-5 text-red-600" />
-                <h3 className="text-base font-bold text-gray-900">
+                <PieIcon className={`w-5 h-5 ${isDark ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`} />
+                <h3 className={`text-base font-bold ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
                   {language === 'en'
                     ? 'Operational Weight & Distribution'
                     : 'Estructura y Reparto Porcentual'}
@@ -331,33 +375,47 @@ export const DesgloseTab: React.FC<DesgloseTabProps> = ({ results }) => {
               </div>
 
               {/* Toggle Switcher */}
-              <div className="inline-flex rounded-md shadow-2xs bg-gray-100 p-0.5 text-xs font-semibold">
+              <div className={`inline-flex rounded-md shadow-2xs p-0.5 text-xs font-semibold border ${
+                isDark ? 'bg-[#151226] border-[#2E2A48]' : 'bg-[#FAF7F2] border-[#E5DDD0]'
+              }`}>
                 <button
                   onClick={() => setDistributionMode('costs')}
-                  className={`px-2.5 py-1 rounded transition-colors ${
+                  className={`px-2.5 py-1 rounded transition-colors cursor-pointer ${
                     distributionMode === 'costs'
-                      ? 'bg-white text-red-700 font-bold shadow-2xs'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? isDark
+                        ? 'bg-[#25203D] text-rose-300 font-bold shadow-2xs'
+                        : 'bg-white text-red-700 font-bold shadow-2xs'
+                      : isDark
+                      ? 'text-gray-400 hover:text-gray-200'
+                      : 'text-[#6D635B] hover:text-[#2D2825]'
                   }`}
                 >
                   {language === 'en' ? 'Costs' : 'Costes'}
                 </button>
                 <button
                   onClick={() => setDistributionMode('revenue')}
-                  className={`px-2.5 py-1 rounded transition-colors ${
+                  className={`px-2.5 py-1 rounded transition-colors cursor-pointer ${
                     distributionMode === 'revenue'
-                      ? 'bg-white text-blue-700 font-bold shadow-2xs'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? isDark
+                        ? 'bg-[#25203D] text-blue-300 font-bold shadow-2xs'
+                        : 'bg-white text-blue-700 font-bold shadow-2xs'
+                      : isDark
+                      ? 'text-gray-400 hover:text-gray-200'
+                      : 'text-[#6D635B] hover:text-[#2D2825]'
                   }`}
                 >
                   {language === 'en' ? 'Revenue' : 'Ingresos'}
                 </button>
                 <button
                   onClick={() => setDistributionMode('profit')}
-                  className={`px-2.5 py-1 rounded transition-colors ${
+                  className={`px-2.5 py-1 rounded transition-colors cursor-pointer ${
                     distributionMode === 'profit'
-                      ? 'bg-white text-emerald-700 font-bold shadow-2xs'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? isDark
+                        ? 'bg-[#25203D] text-[#47D2BF] font-bold shadow-2xs'
+                        : 'bg-white text-emerald-700 font-bold shadow-2xs'
+                      : isDark
+                      ? 'text-gray-400 hover:text-gray-200'
+                      : 'text-[#6D635B] hover:text-[#2D2825]'
                   }`}
                 >
                   {language === 'en' ? 'Profit' : 'Beneficio'}
@@ -365,7 +423,7 @@ export const DesgloseTab: React.FC<DesgloseTabProps> = ({ results }) => {
               </div>
             </div>
 
-            <p className="text-xs text-gray-500 mb-4">
+            <p className={`text-xs mb-4 ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
               {distributionMode === 'costs'
                 ? language === 'en'
                   ? 'Visual distribution of operational costs by service activity.'
@@ -391,12 +449,14 @@ export const DesgloseTab: React.FC<DesgloseTabProps> = ({ results }) => {
                       String(name),
                     ]}
                     contentStyle={{
-                      backgroundColor: '#ffffff',
-                      borderRadius: '6px',
-                      borderColor: '#e5e7eb',
+                      backgroundColor: tooltipBg,
+                      borderRadius: '8px',
+                      borderColor: tooltipBorder,
+                      color: tooltipTextColor,
                       boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                       fontSize: '12px',
                     }}
+                    itemStyle={{ color: tooltipTextColor }}
                   />
                   <Pie
                     data={donutData}
@@ -417,7 +477,7 @@ export const DesgloseTab: React.FC<DesgloseTabProps> = ({ results }) => {
 
               {/* Donut Center Metric */}
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-[11px] uppercase tracking-wider font-semibold text-gray-400">
+                <span className={`text-[11px] uppercase tracking-wider font-semibold ${isDark ? 'text-gray-400' : 'text-[#8C8278]'}`}>
                   {distributionMode === 'costs'
                     ? language === 'en'
                       ? 'Total Cost'
@@ -430,7 +490,7 @@ export const DesgloseTab: React.FC<DesgloseTabProps> = ({ results }) => {
                     ? 'Total Profit'
                     : 'Beneficio'}
                 </span>
-                <span className="text-sm font-bold font-mono text-gray-900">
+                <span className={`text-sm font-bold font-mono ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
                   {formatEur(currentDonutTotal)}
                 </span>
               </div>
@@ -438,19 +498,23 @@ export const DesgloseTab: React.FC<DesgloseTabProps> = ({ results }) => {
           </div>
 
           {/* Interactive Legend Grid */}
-          <div className="grid grid-cols-2 gap-1.5 pt-3 border-t border-gray-100 text-xs mt-2">
+          <div className={`grid grid-cols-2 gap-1.5 pt-3 border-t text-xs mt-2 ${
+            isDark ? 'border-[#2E2A48]' : 'border-[#EFE8DC]'
+          }`}>
             {donutData.map((item, idx) => (
-              <div key={idx} className="flex items-center justify-between text-[11px] p-1 rounded bg-gray-50/70">
+              <div key={idx} className={`flex items-center justify-between text-[11px] p-1.5 rounded border ${
+                isDark ? 'bg-[#151226] border-[#2E2A48]' : 'bg-[#FAF7F2] border-[#EFE8DC]'
+              }`}>
                 <div className="flex items-center gap-1.5 truncate mr-1">
                   <span
                     className="w-2.5 h-2.5 rounded-full shrink-0"
                     style={{ backgroundColor: item.color }}
                   />
-                  <span className="truncate text-gray-700 font-medium" title={item.name}>
+                  <span className={`truncate font-medium ${isDark ? 'text-gray-300' : 'text-[#4D453E]'}`} title={item.name}>
                     {item.name}
                   </span>
                 </div>
-                <div className="font-mono text-gray-900 shrink-0 font-semibold">
+                <div className={`font-mono shrink-0 font-semibold ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
                   {item.pct.toFixed(1)}%
                 </div>
               </div>
@@ -459,23 +523,29 @@ export const DesgloseTab: React.FC<DesgloseTabProps> = ({ results }) => {
         </div>
 
         {/* GRÁFICO B: APORTACIÓN AL BENEFICIO NETO POR LÍNEA */}
-        <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-xs flex flex-col justify-between">
+        <div className={`p-5 rounded-lg border shadow-xs flex flex-col justify-between ${
+          isDark ? 'bg-[#1E1B2E] border-[#2E2A48]' : 'bg-white border-[#E5DDD0]'
+        }`}>
           <div>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-emerald-600" />
-                <h3 className="text-base font-bold text-gray-900">
+                <BarChart3 className={`w-5 h-5 ${isDark ? 'text-[#47D2BF]' : 'text-emerald-600'}`} />
+                <h3 className={`text-base font-bold ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
                   {language === 'en'
                     ? `Net Profit Contribution by Line (${currencySymbol})`
                     : `Aportación al Beneficio Neto por Línea (${currencySymbol})`}
                 </h3>
               </div>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${
+                isDark
+                  ? 'bg-emerald-950/60 text-emerald-300 border-emerald-800/60'
+                  : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+              }`}>
                 {language === 'en' ? 'Margin Engine' : 'Motor de Rentabilidad'}
               </span>
             </div>
 
-            <p className="text-xs text-gray-500 mb-4">
+            <p className={`text-xs mb-4 ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
               {language === 'en'
                 ? `Absolute profit in ${currencySymbol} generated by each operational service.`
                 : `Beneficio absoluto en ${currencySymbol} generado por cada servicio operativo.`}
@@ -488,16 +558,16 @@ export const DesgloseTab: React.FC<DesgloseTabProps> = ({ results }) => {
                   layout="vertical"
                   margin={{ top: 10, right: 30, left: 40, bottom: 10 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e5e7eb" />
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={gridStroke} />
                   <XAxis
                     type="number"
-                    tick={{ fontSize: 11, fill: '#4b5563' }}
+                    tick={{ fontSize: 11, fill: axisTickColor }}
                     tickFormatter={(v) => `${v} ${currencySymbol}`}
                   />
                   <YAxis
                     type="category"
                     dataKey="name"
-                    tick={{ fontSize: 10, fill: '#374151' }}
+                    tick={{ fontSize: 10, fill: axisTickColor }}
                     width={95}
                   />
                   <Tooltip
@@ -509,18 +579,20 @@ export const DesgloseTab: React.FC<DesgloseTabProps> = ({ results }) => {
                       ];
                     }}
                     contentStyle={{
-                      backgroundColor: '#ffffff',
-                      borderRadius: '6px',
-                      borderColor: '#e5e7eb',
+                      backgroundColor: tooltipBg,
+                      borderRadius: '8px',
+                      borderColor: tooltipBorder,
+                      color: tooltipTextColor,
                       boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                       fontSize: '12px',
                     }}
+                    itemStyle={{ color: tooltipTextColor }}
                   />
                   <Bar dataKey="profit" name={language === 'en' ? 'Profit' : 'Beneficio'} radius={[0, 4, 4, 0]}>
                     {profitChartData.map((entry, index) => (
                       <Cell
                         key={`cell-profit-${index}`}
-                        fill={entry.profit >= 0 ? '#10b981' : '#ef4444'}
+                        fill={entry.profit >= 0 ? (isDark ? '#47D2BF' : '#10b981') : '#ef4444'}
                       />
                     ))}
                   </Bar>
@@ -529,16 +601,18 @@ export const DesgloseTab: React.FC<DesgloseTabProps> = ({ results }) => {
             </div>
           </div>
 
-          <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+          <div className={`pt-3 border-t flex items-center justify-between text-xs ${
+            isDark ? 'border-[#2E2A48] text-gray-400' : 'border-[#EFE8DC] text-[#6D635B]'
+          }`}>
             <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded bg-emerald-500 inline-block" />
+              <span className={`w-2.5 h-2.5 rounded inline-block ${isDark ? 'bg-[#47D2BF]' : 'bg-emerald-500'}`} />
               {language === 'en' ? `Positive Margin (${currencySymbol})` : `Margen positivo (${currencySymbol})`}
             </span>
             <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded bg-red-500 inline-block" />
               {language === 'en' ? 'Deficit / Cost' : 'Déficit / Coste'}
             </span>
-            <span className="font-mono text-gray-700 font-bold">
+            <span className={`font-mono font-bold ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
               Total: {formatEur(results.totalProfitMonth)}
             </span>
           </div>
@@ -548,31 +622,33 @@ export const DesgloseTab: React.FC<DesgloseTabProps> = ({ results }) => {
       {/* 4. COMPARATIVA DETALLADA: INGRESOS VS COSTES */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold text-gray-900">
+          <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
             {language === 'en' ? 'Revenue vs Costs by Line' : 'Comparativa: Ingresos vs Costes por Línea'}
           </h2>
-          <span className="text-xs text-gray-500">
+          <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
             {language === 'en' ? `Direct comparison (${currencySymbol})` : `Comparativa directa (${currencySymbol})`}
           </span>
         </div>
 
-        <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-xs">
+        <div className={`p-4 rounded-lg border shadow-xs ${
+          isDark ? 'bg-[#1E1B2E] border-[#2E2A48]' : 'bg-white border-[#E5DDD0]'
+        }`}>
           <div className="h-80 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={barChartData}
                 margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
               >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridStroke} />
                 <XAxis
                   dataKey="linea"
-                  tick={{ fontSize: 11, fill: '#4b5563' }}
+                  tick={{ fontSize: 11, fill: axisTickColor }}
                   angle={-25}
                   textAnchor="end"
                   interval={0}
                 />
                 <YAxis
-                  tick={{ fontSize: 12, fill: '#4b5563' }}
+                  tick={{ fontSize: 12, fill: axisTickColor }}
                   tickFormatter={(v) => `${v.toLocaleString(language === 'en' ? 'en-US' : 'es-ES')} ${currencySymbol}`}
                 />
                 <Tooltip
@@ -585,12 +661,14 @@ export const DesgloseTab: React.FC<DesgloseTabProps> = ({ results }) => {
                       : String(name),
                   ]}
                   contentStyle={{
-                    backgroundColor: '#ffffff',
-                    borderRadius: '6px',
-                    borderColor: '#e5e7eb',
+                    backgroundColor: tooltipBg,
+                    borderRadius: '8px',
+                    borderColor: tooltipBorder,
+                    color: tooltipTextColor,
                     boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                     fontSize: '13px',
                   }}
+                  itemStyle={{ color: tooltipTextColor }}
                 />
                 <Legend
                   verticalAlign="top"
@@ -606,13 +684,13 @@ export const DesgloseTab: React.FC<DesgloseTabProps> = ({ results }) => {
                 <Bar
                   dataKey="Ingresos"
                   name={language === 'en' ? 'Revenue' : 'Ingresos'}
-                  fill="#3b82f6"
+                  fill={isDark ? '#38bdf8' : '#3b82f6'}
                   radius={[3, 3, 0, 0]}
                 />
                 <Bar
                   dataKey="Costes"
                   name={language === 'en' ? 'Costs' : 'Costes'}
-                  fill="#ef4444"
+                  fill={isDark ? '#fb7185' : '#ef4444'}
                   radius={[3, 3, 0, 0]}
                 />
               </BarChart>
@@ -623,3 +701,4 @@ export const DesgloseTab: React.FC<DesgloseTabProps> = ({ results }) => {
     </div>
   );
 };
+
