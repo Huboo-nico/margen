@@ -174,6 +174,33 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
               <span className="text-[9px] text-gray-400 font-normal">Almacén & Picks</span>
             </div>
 
+            <div>
+              <div className="flex justify-between items-center text-[11px] font-medium text-gray-700 mb-0.5">
+                <span>{language === 'en' ? 'Picks / std shipment' : 'Picks x envío standard'}</span>
+                <span className="font-mono font-bold text-red-600 bg-red-50 px-1.5 py-0.2 rounded border border-red-200">
+                  {inputs.unitsPerOrder}
+                </span>
+              </div>
+              <CleanNumberInput
+                min={1.0}
+                max={50.0}
+                step={0.1}
+                decimals={1}
+                fallbackValue={1.0}
+                value={inputs.unitsPerOrder}
+                onChange={(val) => onChange({ unitsPerOrder: val })}
+                className="w-full border border-gray-300 rounded px-2 py-1 text-xs font-mono font-bold"
+                placeholder="1.0"
+              />
+              <span className="text-[9px] text-gray-400 block mt-0.5">
+                {inputs.unitsPerOrder === 1
+                  ? (language === 'en' ? '1st pick only (1 unit)' : 'Solo 1er pick (1 unidad)')
+                  : (language === 'en'
+                      ? `1st pick + ${(inputs.unitsPerOrder - 1).toFixed(1)} add.`
+                      : `1er pick + ${(inputs.unitsPerOrder - 1).toFixed(1)} adic.`)}
+              </span>
+            </div>
+
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-[11px] font-medium text-gray-700 mb-0.5">

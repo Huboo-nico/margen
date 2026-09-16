@@ -379,7 +379,46 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
             </span>
           </h4>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
+            {/* Cantidad de picks x envío standard */}
+            <div className={`p-3 rounded-lg border ${
+              isDark ? 'bg-[#151226] border-[#2E2A48]' : 'bg-[#FAF7F2] border-[#E5DDD0]'
+            }`}>
+              <div className="flex items-center justify-between mb-1">
+                <label className={`block text-xs font-semibold ${isDark ? 'text-gray-300' : 'text-[#2D2825]'}`}>
+                  {language === 'en' ? 'Picks / std shipment' : 'Picks x envío standard'}
+                </label>
+                <span className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded border ${
+                  isDark
+                    ? 'text-[#47D2BF] bg-[#25203D] border-[#47D2BF]/40'
+                    : 'text-[#6B4ABF] bg-white border-[#D5C9B8]'
+                }`}>
+                  {inputs.unitsPerOrder} {language === 'en' ? 'picks' : 'picks'}
+                </span>
+              </div>
+              <CleanNumberInput
+                min={1.0}
+                max={50.0}
+                step={0.1}
+                decimals={1}
+                fallbackValue={1.0}
+                value={inputs.unitsPerOrder}
+                onChange={(val) => onChange({ unitsPerOrder: val })}
+                className={`w-full border rounded-md px-2.5 py-1.5 text-xs font-mono font-bold ${
+                  isDark
+                    ? 'bg-[#120e26] border-[#2E2A48] text-white focus:border-[#47D2BF]'
+                    : 'bg-white border-[#E5DDD0] text-[#2D2825] focus:border-[#6B4ABF]'
+                }`}
+              />
+              <p className={`text-[10px] mt-1 ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
+                {inputs.unitsPerOrder === 1
+                  ? (language === 'en' ? '1 base pick included (1st Pick)' : '1 pick base incluido (1er Pick)')
+                  : (language === 'en'
+                      ? `1st Pick + ${(inputs.unitsPerOrder - 1).toFixed(1)} add. picks`
+                      : `1er Pick + ${(inputs.unitsPerOrder - 1).toFixed(1)} picks adic.`)}
+              </p>
+            </div>
+
             {/* Palet x week storage */}
             <div className={`p-3 rounded-lg border ${
               isDark ? 'bg-[#151226] border-[#2E2A48]' : 'bg-[#FAF7F2] border-[#E5DDD0]'
@@ -866,14 +905,14 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
           <div>
             <div className="flex justify-between items-center mb-1">
               <label className={`block text-xs font-medium ${isDark ? 'text-gray-300' : 'text-[#2D2825]'}`}>
-                {language === 'en' ? 'Units per order (Basket)' : 'Units por pedido (Órdenes)'}
+                {language === 'en' ? 'Picks / units per shipment (Basket)' : 'Picks / units x envío standard (Cesta)'}
               </label>
               <span className={`font-mono font-bold text-xs px-1.5 py-0.2 rounded border ${
                 isDark
                   ? 'text-[#47D2BF] bg-[#25203D] border-[#47D2BF]/40'
                   : 'text-[#6B4ABF] bg-[#FAF7F2] border-[#D5C9B8]'
               }`}>
-                {inputs.unitsPerOrder} {language === 'en' ? 'units' : 'uds'}
+                {inputs.unitsPerOrder} {language === 'en' ? 'picks' : 'picks'}
               </span>
             </div>
             <CleanNumberInput

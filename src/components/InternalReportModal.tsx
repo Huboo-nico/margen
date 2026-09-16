@@ -1443,6 +1443,12 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                   <strong className={isDarkReport ? 'text-white' : 'text-[#2D2825]'}>{formatEur(results.carrierCost)}</strong>
                 </div>
                 <div>
+                  {language === 'en' ? 'Picks / std shipment:' : 'Picks x envío standard:'}{' '}
+                  <strong className={isDarkReport ? 'text-white' : 'text-[#2D2825]'}>
+                    {inputs.unitsPerOrder} {language === 'en' ? 'picks' : 'picks'}
+                  </strong>
+                </div>
+                <div>
                   {language === 'en' ? 'Packaging:' : 'Packaging:'}{' '}
                   <strong className={isDarkReport ? 'text-white' : 'text-[#2D2825]'}>
                     {inputs.customPackaging
