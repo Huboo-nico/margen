@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { ClientProfile, CalculatorInputs } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
-import { Plus, Copy, Trash2, Check, Download, Users, Edit3, Tag } from 'lucide-react';
+import { Plus, Copy, Trash2, Check, Download, Users, Edit3, Tag, Warehouse, FileSpreadsheet } from 'lucide-react';
 import { formatEur } from '../utils/calculations';
 
 interface ClientManagerHeaderProps {
@@ -15,6 +15,7 @@ interface ClientManagerHeaderProps {
   onRenameClient: (name: string) => void;
   onUpdateNotes?: (notes: string) => void;
   currentInputs: CalculatorInputs;
+  onOpenGoogleSheets?: () => void;
 }
 
 export const ClientManagerHeader: React.FC<ClientManagerHeaderProps> = ({
@@ -27,6 +28,7 @@ export const ClientManagerHeader: React.FC<ClientManagerHeaderProps> = ({
   onRenameClient,
   onUpdateNotes,
   currentInputs,
+  onOpenGoogleSheets,
 }) => {
   const { t, language } = useLanguage();
   const { isDark } = useTheme();
@@ -48,7 +50,7 @@ export const ClientManagerHeader: React.FC<ClientManagerHeaderProps> = ({
 
     const text = language === 'en'
       ? `FULFILMENT QUOTATION - ${currentInputs.clientName}
-${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Channels/Tech: ${currentInputs.technologies.join(', ')}\n` : ''}Estimated volume: ${currentInputs.ordersMonth} orders/month (${currentInputs.unitsPerOrder} units/order)
+${currentInputs.warehouse ? `Warehouse / Origin: ${currentInputs.warehouse}\n` : ''}${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Channels/Tech: ${currentInputs.technologies.join(', ')}\n` : ''}Estimated volume: ${currentInputs.ordersMonth} orders/month (${currentInputs.unitsPerOrder} units/order)
 
 1. OPERATING RATES:
 - Base Preparation (Pack): ${formatEur(packPrice)} / order
@@ -59,7 +61,7 @@ ${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Channel
 - Storage: ${formatEur(currentInputs.storagePrice)} / pallet / week
 - Goods-in intake: ${formatEur(currentInputs.goodsInPrice)} / pallet`
       : `COTIZACIÓN FULFILMENT - ${currentInputs.clientName}
-${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Canales/Tecnología: ${currentInputs.technologies.join(', ')}\n` : ''}Volumen estimado: ${currentInputs.ordersMonth} pedidos/mes (${currentInputs.unitsPerOrder} units/pedido)
+${currentInputs.warehouse ? `Warehouse / Almacén: ${currentInputs.warehouse}\n` : ''}${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Canales/Tecnología: ${currentInputs.technologies.join(', ')}\n` : ''}Volumen estimado: ${currentInputs.ordersMonth} pedidos/mes (${currentInputs.unitsPerOrder} units/pedido)
 
 1. TARIFAS OPERATIVAS:
 - Preparación Base (Pack): ${formatEur(packPrice)} / pedido
@@ -102,7 +104,7 @@ ${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Canales
           <select
             value={activeClientId}
             onChange={(e) => onSelectClient(e.target.value)}
-            className={`rounded px-2.5 py-1 text-xs font-bold cursor-pointer max-w-[150px] sm:max-w-[180px] truncate transition ${
+            className={`rounded px-2.5 py-1 text-xs font-bold cursor-pointer max-w-[150px] sm:max-w-[200px] truncate transition ${
               isDark
                 ? 'bg-[#120e26] border border-[#2E2A48] text-white focus:ring-2 focus:ring-[#47D2BF]'
                 : 'border border-[#E5DDD0] bg-white text-[#2D2825] focus:ring-2 focus:ring-[#6B4ABF]'
@@ -110,7 +112,7 @@ ${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Canales
           >
             {clients.map((c) => (
               <option key={c.id} value={c.id} className={isDark ? 'bg-[#1E1B2E] text-white' : 'bg-white text-[#2D2825]'}>
-                {c.name}
+                {c.name} {c.inputs.warehouse ? `· ${c.inputs.warehouse}` : ''}
               </option>
             ))}
           </select>
@@ -138,6 +140,16 @@ ${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Canales
                 : 'bg-white border border-[#D5C9B8] text-[#2D2825] focus:ring-2 focus:ring-[#6B4ABF]'
             }`}
           />
+        </div>
+
+        {/* Origin Warehouse badge */}
+        <div className={`hidden sm:inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md border ${
+          isDark
+            ? 'bg-[#151226] text-[#47D2BF] border-[#2E2A48]'
+            : 'bg-[#FAF7F2] text-[#6B4ABF] border-[#D5C9B8]'
+        }`} title={language === 'en' ? 'Territory / Fulfillment Warehouse' : 'Territorio / Almacén de salida'}>
+          <Warehouse className="w-3.5 h-3.5" />
+          <span>{currentInputs.warehouse || 'Spain'}</span>
         </div>
 
         {/* Selected Technologies quick badges */}
@@ -244,10 +256,26 @@ ${currentInputs.technologies && currentInputs.technologies.length > 0 ? `Canales
       </div>
 
       {/* Right side: Quick stats & export */}
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2">
         <span className="text-[11px] text-gray-400 hidden md:inline">
           {clients.length} {language === 'en' ? (clients.length === 1 ? 'saved client' : 'saved clients') : (clients.length === 1 ? 'cliente guardado' : 'clientes guardados')}
         </span>
+
+        {onOpenGoogleSheets && (
+          <button
+            type="button"
+            onClick={onOpenGoogleSheets}
+            title={language === 'en' ? 'Sync or configure Google Sheet "Margen"' : 'Sincronizar o configurar Google Sheet "Margen"'}
+            className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded transition shadow-2xs border cursor-pointer ${
+              isDark
+                ? 'bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-400 border-emerald-700/50'
+                : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300'
+            }`}
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span className="hidden sm:inline">Google Sheets</span>
+          </button>
+        )}
 
         <button
           type="button"

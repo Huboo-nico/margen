@@ -10,6 +10,7 @@ import { PropuestaClienteTab } from './components/PropuestaClienteTab';
 import { ComparativaClientesTab } from './components/ComparativaClientesTab';
 import { RateCardTab } from './components/RateCardTab';
 import { AyudaTab } from './components/AyudaTab';
+import { GoogleSheetsModal } from './components/GoogleSheetsModal';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { CurrencySwitcher } from './components/CurrencySwitcher';
 import { ThemeSwitcher } from './components/ThemeSwitcher';
@@ -37,6 +38,7 @@ export const App: React.FC = () => {
   });
 
   const [activeClientId, setActiveClientId] = useState<string>(() => clients[0]?.id || 'client-1');
+  const [isGoogleSheetsOpen, setIsGoogleSheetsOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<
     'Resumen' | 'Precios & Margen' | 'Desglose' | 'Propuesta Cliente' | 'Comparativa' | 'Rate card' | 'Ayuda'
   >('Resumen');
@@ -241,6 +243,7 @@ export const App: React.FC = () => {
           onRenameClient={handleRenameActiveClient}
           onUpdateNotes={(notes) => handleUpdateNotes(activeClientId, notes)}
           currentInputs={inputs}
+          onOpenGoogleSheets={() => setIsGoogleSheetsOpen(true)}
         />
       </div>
 
@@ -301,12 +304,20 @@ export const App: React.FC = () => {
                 onRenameClient={handleRenameClientById}
                 onUpdateNotes={handleUpdateNotes}
                 onDeleteClient={handleDeleteClient}
+                onOpenGoogleSheets={() => setIsGoogleSheetsOpen(true)}
               />
             )}
             {activeTab === 'Rate card' && <RateCardTab />}
             {activeTab === 'Ayuda' && <AyudaTab />}
           </div>
         </main>
+
+      {/* Google Sheets Sync Modal */}
+      <GoogleSheetsModal
+        isOpen={isGoogleSheetsOpen}
+        onClose={() => setIsGoogleSheetsOpen(false)}
+        clients={clients}
+      />
     </div>
   );
 };

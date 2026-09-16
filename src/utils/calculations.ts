@@ -619,6 +619,7 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
 
   return {
     clientName,
+    warehouse: inputs.warehouse || 'Spain',
     technologies: inputs.technologies || [],
     tierName,
     skuMultiplier,

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ClientProfile } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { calculateAll, formatEur, formatPct, formatMarkup } from '../utils/calculations';
-import { ArrowRight, Plus, Edit2, Check, Trash2, Tag } from 'lucide-react';
+import { ArrowRight, Plus, Edit2, Check, Trash2, Tag, Warehouse, ArrowUpDown, Download, FileSpreadsheet } from 'lucide-react';
 
 interface ComparativaClientesTabProps {
   clients: ClientProfile[];
@@ -12,6 +12,7 @@ interface ComparativaClientesTabProps {
   onRenameClient: (id: string, newName: string) => void;
   onUpdateNotes: (id: string, notes: string) => void;
   onDeleteClient: (id: string) => void;
+  onOpenGoogleSheets?: () => void;
 }
 
 const productTypeLabels: Record<string, { es: string; en: string }> = {
@@ -36,17 +37,97 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
   onRenameClient,
   onUpdateNotes,
   onDeleteClient,
+  onOpenGoogleSheets,
 }) => {
   const { language } = useLanguage();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [tempName, setTempName] = useState<string>('');
   const [editingNotesId, setEditingNotesId] = useState<string | null>(null);
   const [tempNotes, setTempNotes] = useState<string>('');
+  const [sortBy, setSortBy] = useState<'name' | 'warehouse' | 'orders' | 'revenue' | 'profit'>('name');
+  const [sortAsc, setSortAsc] = useState<boolean>(true);
 
   const calculatedClients = clients.map((c) => ({
     profile: c,
     res: calculateAll(c.inputs),
   }));
+
+  const sortedClients = [...calculatedClients].sort((a, b) => {
+    let comp = 0;
+    if (sortBy === 'name') {
+      comp = a.profile.name.localeCompare(b.profile.name);
+    } else if (sortBy === 'warehouse') {
+      const wA = a.profile.inputs.warehouse || 'Spain';
+      const wB = b.profile.inputs.warehouse || 'Spain';
+      comp = wA.localeCompare(wB) || a.profile.name.localeCompare(b.profile.name);
+    } else if (sortBy === 'orders') {
+      comp = a.res.ordersMonth - b.res.ordersMonth;
+    } else if (sortBy === 'revenue') {
+      comp = a.res.totalRevenueMonth - b.res.totalRevenueMonth;
+    } else if (sortBy === 'profit') {
+      comp = a.res.totalProfitMonth - b.res.totalProfitMonth;
+    }
+    return sortAsc ? comp : -comp;
+  });
+
+  const handleSort = (field: 'name' | 'warehouse' | 'orders' | 'revenue' | 'profit') => {
+    if (sortBy === field) {
+      setSortAsc(!sortAsc);
+    } else {
+      setSortBy(field);
+      setSortAsc(true);
+    }
+  };
+
+  const exportToCsv = () => {
+    const headers = [
+      'ID',
+      'Cliente',
+      'Warehouse',
+      'Perfil',
+      'SKUs',
+      'Pedidos/mes',
+      'Picks x envio standard',
+      'Tarifa Pack (EUR)',
+      '1er Pick (EUR)',
+      'Pick Adicional (EUR)',
+      'Envio (EUR)',
+      'Ingresos/mes (EUR)',
+      'Margen (%)',
+      'Beneficio/mes (EUR)',
+      'Fecha Go-Live',
+      'Canales',
+      'Notas',
+    ];
+    const rows = sortedClients.map(({ profile, res }) => [
+      `"${profile.id}"`,
+      `"${profile.name.replace(/"/g, '""')}"`,
+      `"${(profile.inputs.warehouse || 'Spain').replace(/"/g, '""')}"`,
+      `"${profile.inputs.productType}"`,
+      profile.inputs.skuCount,
+      res.ordersMonth,
+      res.unitsPerOrder,
+      res.packPrice.toFixed(2),
+      res.firstPickPrice.toFixed(2),
+      res.additionalPickPrice.toFixed(2),
+      res.shippingPrice.toFixed(2),
+      res.totalRevenueMonth.toFixed(2),
+      res.marginTotal !== null ? (res.marginTotal * 100).toFixed(1) : '0.0',
+      res.totalProfitMonth.toFixed(2),
+      `"${res.goLiveDate}"`,
+      `"${(profile.inputs.technologies || []).join(', ')}"`,
+      `"${(profile.notes || '').replace(/"/g, '""')}"`,
+    ]);
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `huboo_clientes_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const startEditName = (id: string, currentName: string) => {
     setEditingId(id);
@@ -79,19 +160,44 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
           </h2>
           <p className="text-xs text-gray-500">
             {language === 'en'
-              ? 'Click on any client’s name or notes to edit directly.'
-              : 'Puedes hacer clic en el nombre o notas de cualquier cliente para editarlo directamente.'}
+              ? 'Click on any client’s name or notes to edit directly. Order by Name or Warehouse.'
+              : 'Haz clic en el nombre o notas para editar. Ordena por Nombre o Warehouse.'}
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={onCreateClient}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-2xs transition cursor-pointer self-start sm:self-auto"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>{language === 'en' ? 'Add new client' : 'Añadir nuevo cliente'}</span>
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Export to CSV / Google Sheets */}
+          <button
+            type="button"
+            onClick={exportToCsv}
+            title={language === 'en' ? 'Download CSV for Google Sheets' : 'Descargar CSV para importar en Google Sheets'}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg shadow-2xs transition cursor-pointer"
+          >
+            <Download className="w-3.5 h-3.5 text-emerald-600" />
+            <span>{language === 'en' ? 'Export CSV' : 'Exportar CSV'}</span>
+          </button>
+
+          {onOpenGoogleSheets && (
+            <button
+              type="button"
+              onClick={onOpenGoogleSheets}
+              title={language === 'en' ? 'Sync all clients to Google Sheet "Margen" by territory' : 'Sincronizar clientes con Google Sheet "Margen" por territorio'}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-2xs transition cursor-pointer"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span>{language === 'en' ? 'Google Sheets (Margen)' : 'Google Sheets (Margen)'}</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={onCreateClient}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-2xs transition cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>{language === 'en' ? 'Add new client' : 'Añadir nuevo cliente'}</span>
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-2xs">
@@ -99,22 +205,62 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
           <table className="w-full text-xs text-left">
             <thead className="bg-gray-50 border-b border-gray-200 text-[11px] font-bold text-gray-600 uppercase">
               <tr>
-                <th className="px-4 py-3 min-w-[200px]">
-                  {language === 'en' ? 'Client (Click to edit)' : 'Cliente (Nombre editable)'}
+                <th
+                  onClick={() => handleSort('name')}
+                  className="px-4 py-3 min-w-[200px] cursor-pointer hover:bg-gray-100 transition"
+                  title="Ordenar por nombre"
+                >
+                  <div className="flex items-center gap-1">
+                    <span>{language === 'en' ? 'Client (Click to edit)' : 'Cliente (Nombre editable)'}</span>
+                    <ArrowUpDown className={`w-3 h-3 ${sortBy === 'name' ? 'text-red-600' : 'text-gray-400'}`} />
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort('warehouse')}
+                  className="px-3 py-3 cursor-pointer hover:bg-gray-100 transition"
+                  title="Ordenar por Warehouse"
+                >
+                  <div className="flex items-center gap-1">
+                    <Warehouse className="w-3.5 h-3.5 text-[#6B4ABF]" />
+                    <span>{language === 'en' ? 'Territory' : 'Territorio'}</span>
+                    <ArrowUpDown className={`w-3 h-3 ${sortBy === 'warehouse' ? 'text-[#6B4ABF]' : 'text-gray-400'}`} />
+                  </div>
                 </th>
                 <th className="px-3 py-3">{language === 'en' ? 'Profile' : 'Perfil'}</th>
-                <th className="px-3 py-3 text-right">{language === 'en' ? 'Orders / mo' : 'Pedidos / mes'}</th>
+                <th
+                  onClick={() => handleSort('orders')}
+                  className="px-3 py-3 text-right cursor-pointer hover:bg-gray-100 transition"
+                >
+                  <div className="flex items-center justify-end gap-1">
+                    <span>{language === 'en' ? 'Orders / mo' : 'Pedidos / mes'}</span>
+                    <ArrowUpDown className={`w-3 h-3 ${sortBy === 'orders' ? 'text-red-600' : 'text-gray-400'}`} />
+                  </div>
+                </th>
                 <th className="px-3 py-3 text-right">{language === 'en' ? 'Units / order' : 'Units / order'}</th>
                 <th className="px-3 py-3 text-right bg-red-50/50 text-red-900">
                   {language === 'en' ? 'Prep. + 1st Pick' : 'Prep. + 1er Pick'}
                 </th>
                 <th className="px-3 py-3 text-right">{language === 'en' ? 'Add. Pick' : 'Pick adicional'}</th>
                 <th className="px-3 py-3 text-right">{language === 'en' ? 'Shipping' : 'Envío'}</th>
-                <th className="px-3 py-3 text-right">{language === 'en' ? 'Revenue / mo' : 'Ingresos / mes'}</th>
+                <th
+                  onClick={() => handleSort('revenue')}
+                  className="px-3 py-3 text-right cursor-pointer hover:bg-gray-100 transition"
+                >
+                  <div className="flex items-center justify-end gap-1">
+                    <span>{language === 'en' ? 'Revenue / mo' : 'Ingresos / mes'}</span>
+                    <ArrowUpDown className={`w-3 h-3 ${sortBy === 'revenue' ? 'text-red-600' : 'text-gray-400'}`} />
+                  </div>
+                </th>
                 <th className="px-3 py-3 text-right">{language === 'en' ? 'Margin' : 'Margen'}</th>
                 <th className="px-3 py-3 text-right text-blue-700">Markup</th>
-                <th className="px-3 py-3 text-right font-bold text-emerald-800">
-                  {language === 'en' ? 'Profit / mo' : 'Beneficio / mes'}
+                <th
+                  onClick={() => handleSort('profit')}
+                  className="px-3 py-3 text-right font-bold text-emerald-800 cursor-pointer hover:bg-gray-100 transition"
+                >
+                  <div className="flex items-center justify-end gap-1">
+                    <span>{language === 'en' ? 'Profit / mo' : 'Beneficio / mes'}</span>
+                    <ArrowUpDown className={`w-3 h-3 ${sortBy === 'profit' ? 'text-emerald-700' : 'text-gray-400'}`} />
+                  </div>
                 </th>
                 <th className="px-3 py-3 text-left">{language === 'en' ? 'Go-Live Target' : 'Fecha Go-Live'}</th>
                 <th className="px-3 py-3 text-right">{language === 'en' ? 'ARR (12m)' : 'ARR (12m)'}</th>
@@ -123,7 +269,7 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {calculatedClients.map(({ profile, res }) => {
+              {sortedClients.map(({ profile, res }) => {
                 const isActive = profile.id === activeClientId;
                 const isEditingThis = editingId === profile.id;
                 const isEditingNotesThis = editingNotesId === profile.id;
@@ -219,6 +365,14 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
                           <span>{profile.notes || (language === 'en' ? '+ Add note' : '+ Añadir nota')}</span>
                         </div>
                       )}
+                    </td>
+
+                    {/* Warehouse Hub */}
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#FAF7F2] text-[#6B4ABF] border border-[#D5C9B8]">
+                        <Warehouse className="w-3 h-3" />
+                        {profile.inputs.warehouse || 'Spain'}
+                      </span>
                     </td>
 
                     <td className="px-3 py-3 text-gray-600">

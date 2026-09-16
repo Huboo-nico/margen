@@ -36,6 +36,7 @@ export interface CalculatorInputs {
   clientName: string;
   clientNotes: string;
   technologies?: string[];
+  warehouse?: string; // Territory / Warehouse ('Spain', 'UK', 'USA')
   goLiveDate?: string; // Scheduled Go-Live Date (YYYY-MM-DD) for internal planning
   skuCount: number;
   productType: ProductType;
@@ -132,6 +133,7 @@ export interface OrderSummaryItem {
 export interface CalculationResults {
   // Client & metadata
   clientName: string;
+  warehouse: string;
   technologies: string[];
   tierName: string;
   skuMultiplier: number;

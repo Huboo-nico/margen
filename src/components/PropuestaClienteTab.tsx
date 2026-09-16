@@ -100,6 +100,7 @@ export const PropuestaClienteTab: React.FC<PropuestaClienteTabProps> = ({
     lines.push('================================================');
     lines.push(isEn ? 'ECONOMIC PROPOSAL FOR FULFILMENT SERVICES' : 'PROPUESTA ECONÓMICA DE SERVICIOS DE FULFILMENT');
     lines.push(`${isEn ? 'Client' : 'Cliente'}: ${results.clientName || (isEn ? 'Client' : 'Cliente')}`);
+    lines.push(`${isEn ? 'Territory / Warehouse' : 'Territorio / Warehouse'}: ${inputs.warehouse || 'Spain'}`);
     lines.push(`${isEn ? 'Date' : 'Fecha'}: ${new Date().toLocaleDateString(isEn ? 'en-US' : 'es-ES')}`);
     lines.push(`Ref: COT-${new Date().getFullYear()}-${inputs.skuCount}S`);
     if (inputs.technologies && inputs.technologies.length > 0) {
@@ -410,8 +411,8 @@ export const PropuestaClienteTab: React.FC<PropuestaClienteTabProps> = ({
             }`}>
               <span>
                 {language === 'en'
-                  ? `Profile: ${currentProductType} · ${inputs.skuCount} active SKUs`
-                  : `Perfil: ${currentProductType} · ${inputs.skuCount} SKUs activos`}
+                  ? `Profile: ${currentProductType} · Territory: ${inputs.warehouse || 'Spain'} · ${inputs.skuCount} active SKUs`
+                  : `Perfil: ${currentProductType} · Territorio: ${inputs.warehouse || 'Spain'} · ${inputs.skuCount} SKUs activos`}
               </span>
               {inputs.technologies && inputs.technologies.length > 0 && (
                 <span className="inline-flex items-center gap-1">

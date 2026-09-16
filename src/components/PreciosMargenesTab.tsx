@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CalculatorInputs, CalculationResults, ProductType } from '../types';
 import { PriceMarginRow } from './PriceMarginRow';
-import { PRODUCT_PROFILES, AVAILABLE_TECHNOLOGIES } from '../data/constants';
+import { PRODUCT_PROFILES, AVAILABLE_TECHNOLOGIES, AVAILABLE_WAREHOUSES } from '../data/constants';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 import { CleanNumberInput } from './CleanNumberInput';
@@ -19,6 +19,7 @@ import {
   Package,
   Truck,
   Globe,
+  Warehouse,
   Check,
   Plus,
   X,
@@ -292,7 +293,7 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Nombre Cliente */}
           <div>
             <label className={`block text-xs font-bold mb-1 ${isDark ? 'text-gray-300' : 'text-[#2D2825]'}`}>
@@ -311,6 +312,48 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
             />
             <p className={`text-[10px] mt-1 ${isDark ? 'text-gray-500' : 'text-[#8C8278]'}`}>
               {language === 'en' ? 'Appears on proposals and PDF reports.' : 'Aparece en presupuestos e informes PDF.'}
+            </p>
+          </div>
+
+          {/* Warehouse / Almacén de Salida */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className={`block text-xs font-bold flex items-center gap-1.5 ${isDark ? 'text-gray-300' : 'text-[#2D2825]'}`}>
+                <Warehouse className={`w-3.5 h-3.5 ${isDark ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`} />
+                <span>{language === 'en' ? 'Territory / Warehouse' : 'Territorio / Warehouse'}</span>
+              </label>
+              <span className={`text-[9.5px] font-bold px-1.5 py-0.2 rounded border ${
+                isDark
+                  ? 'text-[#47D2BF] bg-[#25203D] border-[#47D2BF]/40'
+                  : 'text-[#6B4ABF] bg-[#F4EEE4] border-[#D5C9B8]'
+              }`}>
+                {inputs.warehouse || 'Spain'}
+              </span>
+            </div>
+            <select
+              value={inputs.warehouse || 'Spain'}
+              onChange={(e) => onChange({ warehouse: e.target.value })}
+              className={`w-full border rounded-lg px-3 py-2 text-xs font-bold cursor-pointer focus:outline-none ${
+                isDark
+                  ? 'bg-[#120e26] border-[#2E2A48] text-white focus:border-[#47D2BF]'
+                  : 'bg-white border-[#E5DDD0] text-[#2D2825] focus:border-[#6B4ABF]'
+              }`}
+            >
+              {AVAILABLE_WAREHOUSES.map((wh) => (
+                <option key={wh} value={wh} className={isDark ? 'bg-[#120e26] text-white' : 'bg-white text-gray-900'}>
+                  {wh}
+                </option>
+              ))}
+              {inputs.warehouse && !AVAILABLE_WAREHOUSES.includes(inputs.warehouse) && (
+                <option value={inputs.warehouse} className={isDark ? 'bg-[#120e26] text-white' : 'bg-white text-gray-900'}>
+                  {inputs.warehouse} (Custom)
+                </option>
+              )}
+            </select>
+            <p className={`text-[10px] mt-1 ${isDark ? 'text-gray-500' : 'text-[#8C8278]'}`}>
+              {language === 'en'
+                ? 'Territory hub: Spain, UK, USA (informational · no rate impact)'
+                : 'Territorio de origen: Spain, UK, USA (informativo · no altera tarifas)'}
             </p>
           </div>
 

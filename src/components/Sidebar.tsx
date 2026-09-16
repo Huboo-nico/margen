@@ -4,8 +4,8 @@ import {
   CalculationResults,
   ProductType,
 } from '../types';
-import { PRODUCT_PROFILES } from '../data/constants';
-import { ChevronDown, ChevronRight, AlertCircle, Package, Truck, Layers, User } from 'lucide-react';
+import { PRODUCT_PROFILES, AVAILABLE_WAREHOUSES } from '../data/constants';
+import { ChevronDown, ChevronRight, AlertCircle, Package, Truck, Layers, User, Warehouse } from 'lucide-react';
 import { formatEur } from '../utils/calculations';
 import { CleanNumberInput } from './CleanNumberInput';
 import { useLanguage } from '../context/LanguageContext';
@@ -57,6 +57,37 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
               placeholder="Ej: Cliente Cosmética Bio"
               className="w-full bg-white border border-gray-300 rounded px-2.5 py-1.5 text-xs font-bold text-gray-900 focus:ring-2 focus:ring-red-500 focus:border-red-500 shadow-2xs"
             />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-medium text-gray-700 flex items-center gap-1">
+                <Warehouse className="w-3 h-3 text-[#6B4ABF]" />
+                <span>{language === 'en' ? 'Territory / Warehouse' : 'Territorio / Warehouse'}</span>
+              </label>
+              <span className="text-[9px] font-bold text-[#6B4ABF] bg-[#F4EEE4] px-1.5 py-0.2 rounded border border-[#D5C9B8]">
+                {inputs.warehouse || 'Spain'}
+              </span>
+            </div>
+            <select
+              value={inputs.warehouse || 'Spain'}
+              onChange={(e) => onChange({ warehouse: e.target.value })}
+              className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-red-500 bg-white font-medium"
+            >
+              {AVAILABLE_WAREHOUSES.map((wh) => (
+                <option key={wh} value={wh}>
+                  {wh}
+                </option>
+              ))}
+              {inputs.warehouse && !AVAILABLE_WAREHOUSES.includes(inputs.warehouse) && (
+                <option value={inputs.warehouse}>
+                  {inputs.warehouse} (Custom)
+                </option>
+              )}
+            </select>
+            <span className="text-[9px] text-gray-400 block mt-0.5">
+              {language === 'en' ? 'Territory (Spain, UK, USA)' : 'Territorio (Spain, UK, USA)'}
+            </span>
           </div>
 
           <div>

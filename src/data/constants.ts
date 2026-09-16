@@ -113,11 +113,19 @@ export const AVAILABLE_TECHNOLOGIES = [
   'Custom API / ERP',
 ];
 
+// Territorios / Hubs de fulfillment disponibles (informativo)
+export const AVAILABLE_WAREHOUSES = [
+  'Spain',
+  'UK',
+  'USA',
+];
+
 export const DEFAULT_INPUTS: CalculatorInputs = {
   // 1. Cliente
   clientName: 'Cliente Ejemplo A',
   clientNotes: 'Propuesta estándar e-commerce',
   technologies: ['Shopify'],
+  warehouse: 'Spain',
   goLiveDate: '2026-10-01',
   skuCount: 15,
   productType: 'Suplementos',
@@ -201,6 +209,7 @@ export const INITIAL_CLIENT_PROFILES: ClientProfile[] = [
     inputs: {
       ...DEFAULT_INPUTS,
       clientName: 'NutriLife (Suplementos)',
+      warehouse: 'Spain',
       technologies: ['Shopify', 'TikTok Shop'],
       goLiveDate: '2026-10-01',
     },
@@ -213,6 +222,7 @@ export const INITIAL_CLIENT_PROFILES: ClientProfile[] = [
     inputs: {
       ...DEFAULT_INPUTS,
       clientName: 'Aura Glow (Cosmética & Perfume)',
+      warehouse: 'UK',
       technologies: ['WooCommerce', 'PrestaShop', 'Temu'],
       goLiveDate: '2026-11-01',
       productType: 'Perfume + vidrio',

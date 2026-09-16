@@ -14,6 +14,7 @@ import {
   SlidersHorizontal,
   Globe,
   Clock,
+  Warehouse,
   PieChart as PieIcon,
   BarChart3,
   TrendingUp,
@@ -565,6 +566,14 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                   </span>
                   <span>
                     {language === 'en' ? 'Sector:' : 'Sector:'} <strong className={isDarkReport ? 'text-white' : 'text-[#2D2825]'}>{productTypeDisplay}</strong> ({inputs.skuCount} SKUs, Tier {results.tierName})
+                  </span>
+                  <span className={`flex items-center gap-1 font-semibold px-1.5 py-0.5 rounded ${
+                    isDarkReport
+                      ? 'bg-[#1E1B2E] border border-[#2E2A48] text-gray-200'
+                      : 'text-[#4D453E] bg-[#F6F0E8] border border-[#E6DCD0]'
+                  }`}>
+                    <Warehouse className={`w-3 h-3 ${isDarkReport ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`} />
+                    {language === 'en' ? 'Territory:' : 'Territorio:'} <strong className={isDarkReport ? 'text-white' : 'text-[#2D2825]'}>{results.warehouse || 'Spain'}</strong>
                   </span>
                   <span className={`flex items-center gap-1 font-semibold px-1.5 py-0.5 rounded ${
                     isDarkReport
@@ -1437,6 +1446,10 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                 <div>
                   {language === 'en' ? 'Pack mix:' : 'Mix de pack:'}{' '}
                   <strong className={isDarkReport ? 'text-white' : 'text-[#2D2825]'}>SPK {inputs.mixSpk}%, SPL {inputs.mixSpl}%, MPL {inputs.mixMpl}%, LPL {inputs.mixLpl}%</strong>
+                </div>
+                <div>
+                  {language === 'en' ? 'Territory / Warehouse:' : 'Territorio / Warehouse:'}{' '}
+                  <strong className={isDarkReport ? 'text-white' : 'text-[#2D2825]'}>{results.warehouse || 'Spain'}</strong>
                 </div>
                 <div>
                   {language === 'en' ? 'Base carrier cost:' : 'Coste carrier base:'}{' '}
