@@ -314,7 +314,6 @@ export const App: React.FC = () => {
           onRenameClient={handleRenameActiveClient}
           onUpdateNotes={(notes) => handleUpdateNotes(activeClientId, notes)}
           currentInputs={inputs}
-          onOpenGoogleSheets={() => setIsGoogleSheetsOpen(true)}
           onQuickSaveToSheets={handleQuickSaveCurrentClient}
           onQuickLoadFromSheets={handleQuickLoadClients}
           isSavingToSheets={isSavingToSheets}

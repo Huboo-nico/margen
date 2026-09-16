@@ -12,7 +12,6 @@ import {
   Edit3,
   Tag,
   Warehouse,
-  FileSpreadsheet,
   Save,
   RefreshCw,
   CheckCircle2,
@@ -29,7 +28,6 @@ interface ClientManagerHeaderProps {
   onRenameClient: (name: string) => void;
   onUpdateNotes?: (notes: string) => void;
   currentInputs: CalculatorInputs;
-  onOpenGoogleSheets?: () => void;
   onQuickSaveToSheets?: () => void;
   onQuickLoadFromSheets?: () => void;
   isSavingToSheets?: boolean;
@@ -47,7 +45,6 @@ export const ClientManagerHeader: React.FC<ClientManagerHeaderProps> = ({
   onRenameClient,
   onUpdateNotes,
   currentInputs,
-  onOpenGoogleSheets,
   onQuickSaveToSheets,
   onQuickLoadFromSheets,
   isSavingToSheets = false,
@@ -350,22 +347,6 @@ ${currentInputs.warehouse ? `Warehouse / Almacén: ${currentInputs.warehouse}\n`
                 ? 'Load Sheet'
                 : 'Cargar Sheet'}
             </span>
-          </button>
-        )}
-
-        {onOpenGoogleSheets && (
-          <button
-            type="button"
-            onClick={onOpenGoogleSheets}
-            title={language === 'en' ? 'Sync or configure Google Sheet "Margen"' : 'Configurar o sincronizar Google Sheet "Margen"'}
-            className={`flex items-center gap-1.5 px-2 py-1 text-xs font-semibold rounded-lg transition shadow-2xs border cursor-pointer ${
-              isDark
-                ? 'bg-[#1F1B33] hover:bg-[#282342] text-gray-300 border-[#2E2A48]'
-                : 'bg-[#F4EEE4] hover:bg-[#EAE2D5] text-[#4D453E] border-[#E5DDD0]'
-            }`}
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-500" />
-            <span className="hidden md:inline">{language === 'en' ? 'Config' : 'Config Sheet'}</span>
           </button>
         )}
 
