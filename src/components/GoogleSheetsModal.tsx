@@ -18,6 +18,8 @@ import {
   Download,
   CheckCircle2,
   ShieldCheck,
+  Globe,
+  RotateCcw,
 } from 'lucide-react';
 import {
   GOOGLE_APPS_SCRIPT_CODE,
@@ -29,6 +31,9 @@ import {
   fetchClientsFromGoogleSheets,
   testGoogleSheetsConnection,
   SyncResponse,
+  VERCEL_ENV_GOOGLE_SHEETS_URL,
+  hasVercelEnvGoogleSheetsUrl,
+  resetGoogleSheetsUrlToEnv,
 } from '../utils/googleSheets';
 
 interface GoogleSheetsModalProps {
@@ -65,6 +70,11 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
   const [loadingClients, setLoadingClients] = useState(false);
   const [loadResult, setLoadResult] = useState<{ success: boolean; message: string; count?: number } | null>(null);
 
+  const [copiedVarName, setCopiedVarName] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+
+  const isEnvConfigured = hasVercelEnvGoogleSheetsUrl();
+
   useEffect(() => {
     if (isOpen) {
       const saved = getSavedGoogleSheetsUrl();
@@ -88,6 +98,32 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
     navigator.clipboard.writeText(GOOGLE_APPS_SCRIPT_CODE);
     setCopiedCode(true);
     setTimeout(() => setCopiedCode(false), 2500);
+  };
+
+  const handleCopyVarName = () => {
+    navigator.clipboard.writeText('VITE_GOOGLE_SHEETS_WEBAPP_URL');
+    setCopiedVarName(true);
+    setTimeout(() => setCopiedVarName(false), 2500);
+  };
+
+  const handleCopyCurrentUrl = () => {
+    if (url) {
+      navigator.clipboard.writeText(url);
+      setCopiedUrl(true);
+      setTimeout(() => setCopiedUrl(false), 2500);
+    }
+  };
+
+  const handleResetToVercelEnv = () => {
+    const envUrl = resetGoogleSheetsUrlToEnv();
+    setUrl(envUrl);
+    setTestResult({
+      success: true,
+      message:
+        language === 'en'
+          ? 'Reverted to URL defined in Vercel environment'
+          : 'Restablecido a la URL configurada en la variable de entorno de Vercel',
+    });
   };
 
   const handleSaveUrl = () => {
@@ -568,17 +604,26 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
                   isDark ? 'bg-[#1C1833] border-[#2E2A48]' : 'bg-gray-50 border-gray-200'
                 }`}
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <label className="text-xs font-bold uppercase text-gray-400 flex items-center gap-1.5">
                     <ExternalLink className="w-3.5 h-3.5 text-emerald-500" />
                     <span>{language === 'en' ? 'Google Apps Script Webhook URL' : 'URL del Webhook de Apps Script'}</span>
                   </label>
-                  {url && (
-                    <span className="text-[11px] text-emerald-500 font-semibold flex items-center gap-1">
-                      <Check className="w-3 h-3" />
-                      {language === 'en' ? 'Saved' : 'Guardado'}
-                    </span>
-                  )}
+
+                  <div className="flex items-center gap-2">
+                    {isEnvConfigured && (
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-medium flex items-center gap-1">
+                        <Globe className="w-3 h-3" />
+                        <span>Vercel ENV</span>
+                      </span>
+                    )}
+                    {url && (
+                      <span className="text-[11px] text-emerald-500 font-semibold flex items-center gap-1">
+                        <Check className="w-3 h-3" />
+                        {language === 'en' ? 'Saved' : 'Guardado'}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -594,6 +639,19 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
                         : 'bg-white border-gray-300 text-gray-900 focus:border-emerald-600'
                     }`}
                   />
+
+                  {url && (
+                    <button
+                      type="button"
+                      onClick={handleCopyCurrentUrl}
+                      title={language === 'en' ? 'Copy URL to clipboard' : 'Copiar URL al portapapeles'}
+                      className="px-2.5 py-2 text-xs font-semibold bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-lg transition border border-gray-700 cursor-pointer flex items-center gap-1"
+                    >
+                      {copiedUrl ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span className="hidden sm:inline">{copiedUrl ? (language === 'en' ? 'Copied' : 'Copiada') : (language === 'en' ? 'Copy' : 'Copiar')}</span>
+                    </button>
+                  )}
+
                   <button
                     type="button"
                     onClick={handleTestConnection}
@@ -604,6 +662,24 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
                     <span>{language === 'en' ? 'Test' : 'Probar'}</span>
                   </button>
                 </div>
+
+                {isEnvConfigured && url !== VERCEL_ENV_GOOGLE_SHEETS_URL && (
+                  <div className="flex items-center justify-between text-xs px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-300">
+                    <span>
+                      {language === 'en'
+                        ? 'You modified the URL locally (different from Vercel ENV)'
+                        : 'Has modificado la URL en este navegador (difiere de la configurada en Vercel)'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleResetToVercelEnv}
+                      className="flex items-center gap-1 underline font-bold hover:text-amber-200 cursor-pointer ml-2"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>{language === 'en' ? 'Reset to Vercel ENV' : 'Revertir a Vercel ENV'}</span>
+                    </button>
+                  </div>
+                )}
 
                 {testResult && (
                   <div
@@ -848,6 +924,102 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Vercel Environment Variable Card */}
+              <div
+                className={`p-4 rounded-xl border space-y-3 ${
+                  isDark ? 'bg-[#18142e] border-purple-500/30' : 'bg-purple-50/60 border-purple-200'
+                }`}
+              >
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-purple-400" />
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-purple-300">
+                      {language === 'en'
+                        ? 'Global Vercel Integration (https://margen-beige.vercel.app/)'
+                        : 'Integración Global en Vercel (https://margen-beige.vercel.app/)'}
+                    </h4>
+                  </div>
+                  {isEnvConfigured ? (
+                    <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      {language === 'en' ? 'Active in current build' : 'Activa en esta compilación'}
+                    </span>
+                  ) : (
+                    <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">
+                      {language === 'en' ? 'Pending Vercel setup' : 'Pendiente configurar en Vercel'}
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-xs text-gray-300 leading-relaxed">
+                  {language === 'en'
+                    ? 'To share https://margen-beige.vercel.app/ with your team so everyone can save and load quotes without pasting URLs manually, add this environment variable to your Vercel project.'
+                    : 'Para que al compartir https://margen-beige.vercel.app/ con tu equipo todos puedan cargar y guardar cotizaciones inmediatamente sin tener que pegar la URL a mano, añade esta variable en tu proyecto de Vercel:'}
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div
+                    className={`p-3 rounded-lg border flex flex-col justify-between ${
+                      isDark ? 'bg-[#110D24] border-purple-500/20' : 'bg-white border-purple-200'
+                    }`}
+                  >
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-gray-400">1. Variable Name (Key)</span>
+                      <p className="text-xs font-mono font-bold text-purple-300 mt-1 select-all">
+                        VITE_GOOGLE_SHEETS_WEBAPP_URL
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCopyVarName}
+                      className="mt-2.5 w-full py-1.5 px-2.5 text-xs font-semibold bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 rounded border border-purple-500/30 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      {copiedVarName ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedVarName ? '¡Nombre Copiado!' : 'Copiar Nombre Variable'}</span>
+                    </button>
+                  </div>
+
+                  <div
+                    className={`p-3 rounded-lg border flex flex-col justify-between ${
+                      isDark ? 'bg-[#110D24] border-purple-500/20' : 'bg-white border-purple-200'
+                    }`}
+                  >
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-gray-400">2. Variable Value (URL)</span>
+                      <p className="text-xs font-mono text-emerald-400 mt-1 truncate">
+                        {url || 'https://script.google.com/macros/s/.../exec'}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCopyCurrentUrl}
+                      disabled={!url}
+                      className="mt-2.5 w-full py-1.5 px-2.5 text-xs font-semibold bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-200 rounded border border-emerald-500/30 transition flex items-center justify-center gap-1.5 disabled:opacity-40 cursor-pointer"
+                    >
+                      {copiedUrl ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedUrl ? '¡URL Copiada!' : 'Copiar URL para Vercel'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div
+                  className={`p-3 rounded-lg text-xs space-y-1.5 ${
+                    isDark ? 'bg-[#0E0A1E] text-gray-300' : 'bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  <p className="font-bold text-gray-200 flex items-center gap-1.5">
+                    <span>🚀 Pasos en Vercel (1 minuto):</span>
+                  </p>
+                  <ol className="list-decimal list-inside space-y-1 text-[11px] text-gray-400">
+                    <li>Entra en tu panel de <strong>Vercel</strong> y selecciona el proyecto <strong>margen-beige</strong>.</li>
+                    <li>Ve a <strong>Settings</strong> → <strong>Environment Variables</strong>.</li>
+                    <li>En <strong>Key</strong> escribe <code className="text-purple-300">VITE_GOOGLE_SHEETS_WEBAPP_URL</code> y en <strong>Value</strong> pega tu URL que termina en <code className="text-emerald-300">/exec</code>.</li>
+                    <li>Pulsa <strong>Save</strong>.</li>
+                    <li>Ve a la pestaña <strong>Deployments</strong>, haz clic en los 3 puntos del último deploy y pulsa <strong>Redeploy</strong> (o haz un nuevo commit).</li>
+                  </ol>
+                </div>
               </div>
 
               {/* Informative Architecture & Vercel Help Card */}

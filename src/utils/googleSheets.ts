@@ -416,12 +416,42 @@ function setupInitialSheets() {
   SpreadsheetApp.getUi().alert("✅ Pestañas preparadas: Spain, UK, USA y Resumen General creadas correctamente.");
 }`;
 
+// URL configurada en Vercel Dashboard -> Settings -> Environment Variables (VITE_GOOGLE_SHEETS_WEBAPP_URL)
+export const VERCEL_ENV_GOOGLE_SHEETS_URL: string = (
+  (import.meta.env.VITE_GOOGLE_SHEETS_WEBAPP_URL as string | undefined) ||
+  (import.meta.env.VITE_GOOGLE_SHEETS_URL as string | undefined) ||
+  ''
+).trim();
+
+export function hasVercelEnvGoogleSheetsUrl(): boolean {
+  return (
+    VERCEL_ENV_GOOGLE_SHEETS_URL.length > 0 &&
+    VERCEL_ENV_GOOGLE_SHEETS_URL.startsWith('https://script.google.com/')
+  );
+}
+
+export function isUsingVercelEnvUrl(): boolean {
+  try {
+    const local = localStorage.getItem(GOOGLE_SHEETS_STORAGE_KEY);
+    if (!local || local.trim().length === 0) {
+      return hasVercelEnvGoogleSheetsUrl();
+    }
+    return local.trim() === VERCEL_ENV_GOOGLE_SHEETS_URL;
+  } catch {
+    return hasVercelEnvGoogleSheetsUrl();
+  }
+}
+
 export function getSavedGoogleSheetsUrl(): string {
   try {
-    return localStorage.getItem(GOOGLE_SHEETS_STORAGE_KEY) || '';
+    const local = localStorage.getItem(GOOGLE_SHEETS_STORAGE_KEY);
+    if (local && local.trim().length > 0) {
+      return local.trim();
+    }
   } catch {
-    return '';
+    // ignore
   }
+  return VERCEL_ENV_GOOGLE_SHEETS_URL;
 }
 
 export function saveGoogleSheetsUrl(url: string): void {
@@ -430,6 +460,15 @@ export function saveGoogleSheetsUrl(url: string): void {
   } catch {
     // ignore
   }
+}
+
+export function resetGoogleSheetsUrlToEnv(): string {
+  try {
+    localStorage.removeItem(GOOGLE_SHEETS_STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+  return VERCEL_ENV_GOOGLE_SHEETS_URL;
 }
 
 export interface SyncResponse {
