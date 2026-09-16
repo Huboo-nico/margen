@@ -31,11 +31,15 @@ export const GOOGLE_APPS_SCRIPT_CODE = `/**
  * ====================================================================
  * HUBOO CALCULADORA DE MARGEN - SINCRONIZADOR GOOGLE SHEETS
  * Hoja: "Margen"
- * Pestañas creadas automáticamente por Territorio:
+ * Pestañas automáticas:
  *   - "Spain"
  *   - "UK"
  *   - "USA"
  *   - "Resumen General"
+ * Soporta:
+ *   - GET: Cargar clientes desde Google Sheet a la calculadora
+ *   - POST (save_client): Guardar/Actualizar el cliente actual que estás cotizando
+ *   - POST (sync_all): Sincronizar todos los clientes de una vez
  * ====================================================================
  */
 
@@ -63,23 +67,86 @@ var COLUMNS = [
   "Última Actualización"
 ];
 
+// GET: Cargar clientes desde la hoja hacia la aplicación web
 function doGet(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Resumen General");
+    if (!sheet) {
+      sheet = ss.getSheets()[0];
+    }
+
+    var lastRow = sheet.getLastRow();
+    var clients = [];
+
+    if (lastRow > 1) {
+      var data = sheet.getRange(2, 1, lastRow - 1, COLUMNS.length).getValues();
+      clients = data.map(function(row, index) {
+        var clientId = String(row[0] || ("client-" + (index + 1)));
+        var clientName = String(row[1] || ("Cliente " + (index + 1)));
+        var warehouse = String(row[2] || "Spain");
+        var productType = String(row[3] || "Suplementos");
+        var skuCount = Number(row[4]) || 1;
+        var ordersMonth = Number(row[5]) || 100;
+        var unitsPerOrder = Number(row[6]) || 1;
+        var packPrice = Number(row[7]) || 0;
+        var firstPickPrice = Number(row[8]) || 0;
+        var addPickPrice = Number(row[9]) || 0;
+        var shippingPrice = Number(row[10]) || 0;
+        var goLiveDate = String(row[17] || "");
+        var techs = row[18] ? String(row[18]).split(",").map(function(s) { return s.trim(); }).filter(Boolean) : [];
+        var notes = String(row[19] || "");
+        var updatedAt = String(row[20] || new Date().toISOString());
+
+        return {
+          id: clientId,
+          name: clientName,
+          notes: notes,
+          updatedAt: updatedAt,
+          inputs: {
+            clientName: clientName,
+            warehouse: warehouse,
+            productType: productType,
+            skuCount: skuCount,
+            ordersMonth: ordersMonth,
+            unitsPerOrder: unitsPerOrder,
+            packCostSource: "Calculadora (negociado)",
+            volumeMode: "Pedidos/mes",
+            workingDays: 22,
+            ordersPerDay: Math.round(ordersMonth / 22),
+            mixSpk: 40,
+            mixSpl: 40,
+            mixMpl: 15,
+            mixLpl: 5,
+            packPriceManual: packPrice,
+            firstPickPriceManual: firstPickPrice,
+            additionalPickPriceManual: addPickPrice,
+            shippingPriceManual: shippingPrice,
+            goLiveDate: goLiveDate,
+            technologies: techs,
+            clientNotes: notes
+          }
+        };
+      });
+    }
+
     return ContentService.createTextOutput(JSON.stringify({
       status: "success",
       sheetName: ss.getName(),
-      sheets: ss.getSheets().map(function(s) { return s.getName(); }),
-      message: "Conexión activa con Google Sheet: " + ss.getName()
+      totalClients: clients.length,
+      clients: clients,
+      message: "Cargados " + clients.length + " clientes desde " + ss.getName()
     })).setMimeType(ContentService.MimeType.JSON);
+
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({
       status: "error",
-      message: err.toString()
+      message: "Error al leer clientes: " + err.toString()
     })).setMimeType(ContentService.MimeType.JSON);
   }
 }
 
+// POST: Guardar cliente cotizado o sincronizar todo
 function doPost(e) {
   try {
     var raw = e.postData ? e.postData.contents : "";
@@ -91,52 +158,155 @@ function doPost(e) {
     }
 
     var payload = JSON.parse(raw);
-    var clients = payload.clients || [];
+    var action = payload.action || "save_client";
     var ss = SpreadsheetApp.getActiveSpreadsheet();
 
-    // Territorios definidos
+    // 1. Guardar / Actualizar cliente individual (en tiempo real mientras cotizas)
+    if (action === "save_client" && payload.client) {
+      var item = payload.client;
+      var p = item.profile || item;
+      var inp = p.inputs || {};
+      var territory = inp.warehouse || "Spain";
+
+      // Asegurar pestañas
+      var tSheet = ensureSheet(ss, territory, "#2563EB");
+      var rSheet = ensureSheet(ss, "Resumen General", "#6B4ABF");
+
+      // Actualizar o insertar en su territorio y en resumen general
+      upsertClientInSheet(tSheet, item);
+      upsertClientInSheet(rSheet, item);
+
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        action: "save_client",
+        clientName: p.name || inp.clientName,
+        territory: territory,
+        message: "Cliente '" + (p.name || inp.clientName) + "' guardado y actualizado en pestañas '" + territory + "' y 'Resumen General'."
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 2. Sincronizar todos los clientes
+    var clients = payload.clients || [];
     var territories = ["Spain", "UK", "USA"];
 
-    // 1. Sincronizar cada pestaña de territorio
     territories.forEach(function(territory) {
-      var filteredClients = clients.filter(function(c) {
+      var filtered = clients.filter(function(c) {
         var w = (c.inputs && c.inputs.warehouse) || "Spain";
         return w.toLowerCase().trim() === territory.toLowerCase().trim();
       });
-      syncSheet(ss, territory, filteredClients, "#2563EB");
+      syncFullSheet(ss, territory, filtered, "#2563EB");
     });
 
-    // 2. Sincronizar pestaña Resumen General con todos los clientes
-    syncSheet(ss, "Resumen General", clients, "#6B4ABF");
-
-    var spainCount = clients.filter(function(c) { return ((c.inputs && c.inputs.warehouse) || "Spain").toLowerCase() === "spain"; }).length;
-    var ukCount = clients.filter(function(c) { return ((c.inputs && c.inputs.warehouse) || "").toLowerCase() === "uk"; }).length;
-    var usaCount = clients.filter(function(c) { return ((c.inputs && c.inputs.warehouse) || "").toLowerCase() === "usa"; }).length;
+    syncFullSheet(ss, "Resumen General", clients, "#6B4ABF");
 
     return ContentService.createTextOutput(JSON.stringify({
       status: "success",
-      message: "Datos sincronizados correctamente en la hoja Margen.",
+      action: "sync_all",
       totalClients: clients.length,
-      spainCount: spainCount,
-      ukCount: ukCount,
-      usaCount: usaCount,
-      timestamp: new Date().toISOString()
+      message: "Todos los " + clients.length + " clientes sincronizados correctamente en la hoja Margen."
     })).setMimeType(ContentService.MimeType.JSON);
 
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({
       status: "error",
-      message: "Error al procesar los datos: " + err.toString()
+      message: "Error al guardar: " + err.toString()
     })).setMimeType(ContentService.MimeType.JSON);
   }
 }
 
-function syncSheet(ss, sheetName, clientsList, headerBgColor) {
+function ensureSheet(ss, name, headerBgColor) {
+  var s = ss.getSheetByName(name);
+  if (!s) {
+    s = ss.insertSheet(name);
+    s.getRange(1, 1, 1, COLUMNS.length).setValues([COLUMNS]);
+    var r = s.getRange(1, 1, 1, COLUMNS.length);
+    r.setBackground(headerBgColor);
+    r.setFontColor("#FFFFFF");
+    r.setFontWeight("bold");
+    r.setFontFamily("Arial");
+    r.setFontSize(10);
+    r.setHorizontalAlignment("center");
+    s.setFrozenRows(1);
+    s.autoResizeColumns(1, COLUMNS.length);
+  }
+  return s;
+}
+
+function upsertClientInSheet(sheet, item) {
+  var p = item.profile || item;
+  var inp = p.inputs || {};
+  var res = item.results || {};
+  var channels = (inp.technologies && inp.technologies.length > 0) ? inp.technologies.join(", ") : "";
+  var marginPct = res.marginTotal !== null && res.marginTotal !== undefined ? res.marginTotal : 0;
+
+  var rowData = [
+    p.id || "",
+    p.name || inp.clientName || "",
+    inp.warehouse || "Spain",
+    inp.productType || "",
+    inp.skuCount || 0,
+    res.ordersMonth || inp.ordersMonth || 0,
+    res.unitsPerOrder || inp.unitsPerOrder || 1,
+    res.packPrice || inp.packPriceManual || 0,
+    res.firstPickPrice || inp.firstPickPriceManual || 0,
+    res.additionalPickPrice || inp.additionalPickPriceManual || 0,
+    res.shippingPrice || 0,
+    res.totalRevenueMonth || 0,
+    res.totalCostMonth || 0,
+    marginPct,
+    res.markupAverage || 0,
+    res.totalProfitMonth || 0,
+    res.annualRunRate || ((res.totalRevenueMonth || 0) * 12),
+    res.goLiveDate || inp.goLiveDate || "",
+    channels,
+    p.notes || inp.clientNotes || "",
+    new Date().toLocaleString()
+  ];
+
+  var lastRow = sheet.getLastRow();
+  var targetRow = -1;
+
+  if (lastRow > 1) {
+    var ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    var names = sheet.getRange(2, 2, lastRow - 1, 1).getValues();
+    for (var i = 0; i < ids.length; i++) {
+      if ((p.id && String(ids[i][0]) === String(p.id)) ||
+          (p.name && String(names[i][0]).toLowerCase().trim() === String(p.name).toLowerCase().trim())) {
+        targetRow = i + 2;
+        break;
+      }
+    }
+  }
+
+  if (targetRow > 1) {
+    sheet.getRange(targetRow, 1, 1, COLUMNS.length).setValues([rowData]);
+  } else {
+    targetRow = Math.max(lastRow + 1, 2);
+    sheet.getRange(targetRow, 1, 1, COLUMNS.length).setValues([rowData]);
+  }
+
+  // Estilos
+  sheet.getRange(targetRow, 1, 1, COLUMNS.length).setFontFamily("Arial").setFontSize(10);
+  [8, 9, 10, 11, 12, 13, 16, 17].forEach(function(colIndex) {
+    sheet.getRange(targetRow, colIndex).setNumberFormat("€#,##0.00");
+  });
+  sheet.getRange(targetRow, 14).setNumberFormat("0.0%");
+  sheet.getRange(targetRow, 5).setNumberFormat("#,##0");
+  sheet.getRange(targetRow, 6).setNumberFormat("#,##0");
+  sheet.getRange(targetRow, 7).setNumberFormat("0.0");
+  sheet.getRange(targetRow, 15).setNumberFormat("0.00");
+  sheet.getRange(targetRow, 1).setHorizontalAlignment("center");
+  sheet.getRange(targetRow, 3).setHorizontalAlignment("center");
+  sheet.getRange(targetRow, 18).setHorizontalAlignment("center");
+  sheet.getRange(targetRow, 21).setHorizontalAlignment("center");
+  sheet.autoResizeColumns(1, COLUMNS.length);
+}
+
+function syncFullSheet(ss, sheetName, clientsList, headerBgColor) {
   var sheet = ss.getSheetByName(sheetName);
   if (!sheet) {
     sheet = ss.insertSheet(sheetName);
   }
-
   sheet.clear();
 
   // Cabecera
@@ -155,12 +325,10 @@ function syncSheet(ss, sheetName, clientsList, headerBgColor) {
     return;
   }
 
-  // Filas de datos
   var rows = clientsList.map(function(item) {
     var p = item.profile || item;
     var inp = p.inputs || {};
     var res = item.results || {};
-
     var channels = (inp.technologies && inp.technologies.length > 0) ? inp.technologies.join(", ") : "";
     var marginPct = res.marginTotal !== null && res.marginTotal !== undefined ? res.marginTotal : 0;
 
@@ -194,26 +362,18 @@ function syncSheet(ss, sheetName, clientsList, headerBgColor) {
   dataRange.setFontFamily("Arial");
   dataRange.setFontSize(10);
 
-  // Formato de moneda (€): columnas 8, 9, 10, 11, 12, 13, 16, 17
   [8, 9, 10, 11, 12, 13, 16, 17].forEach(function(colIndex) {
     sheet.getRange(2, colIndex, rows.length, 1).setNumberFormat("€#,##0.00");
   });
-
-  // Formato de porcentaje (%): columna 14 (Margen)
   sheet.getRange(2, 14, rows.length, 1).setNumberFormat("0.0%");
-
-  // Formato numérico: SKUs (5), Pedidos (6), Picks/ord (7), Markup (15)
   sheet.getRange(2, 5, rows.length, 1).setNumberFormat("#,##0");
   sheet.getRange(2, 6, rows.length, 1).setNumberFormat("#,##0");
   sheet.getRange(2, 7, rows.length, 1).setNumberFormat("0.0");
   sheet.getRange(2, 15, rows.length, 1).setNumberFormat("0.00");
-
-  // Alineación
-  sheet.getRange(2, 1, rows.length, 1).setHorizontalAlignment("center"); // ID
-  sheet.getRange(2, 3, rows.length, 1).setHorizontalAlignment("center"); // Territorio
-  sheet.getRange(2, 18, rows.length, 1).setHorizontalAlignment("center"); // Go-Live
-  sheet.getRange(2, 21, rows.length, 1).setHorizontalAlignment("center"); // Updated
-
+  sheet.getRange(2, 1, rows.length, 1).setHorizontalAlignment("center");
+  sheet.getRange(2, 3, rows.length, 1).setHorizontalAlignment("center");
+  sheet.getRange(2, 18, rows.length, 1).setHorizontalAlignment("center");
+  sheet.getRange(2, 21, rows.length, 1).setHorizontalAlignment("center");
   sheet.autoResizeColumns(1, COLUMNS.length);
 }
 
@@ -280,6 +440,74 @@ export interface SyncResponse {
   ukCount?: number;
   usaCount?: number;
   timestamp?: string;
+  clientName?: string;
+  territory?: string;
+}
+
+export async function saveSingleClientToGoogleSheets(
+  client: ClientProfile,
+  webhookUrl: string
+): Promise<{ status: 'success' | 'error'; message: string; clientName?: string; territory?: string }> {
+  if (!webhookUrl || !webhookUrl.startsWith('https://script.google.com/')) {
+    throw new Error('La URL de Google Apps Script debe comenzar con https://script.google.com/...');
+  }
+
+  const enrichedClient = {
+    profile: client,
+    inputs: client.inputs,
+    results: calculateAll(client.inputs),
+  };
+
+  const payload = {
+    action: 'save_client',
+    client: enrichedClient,
+    exportedAt: new Date().toISOString(),
+  };
+
+  const response = await fetch(webhookUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'text/plain;charset=utf-8',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Error en el servidor de Google (${response.status}): ${response.statusText}`);
+  }
+
+  return await response.json();
+}
+
+export async function fetchClientsFromGoogleSheets(webhookUrl: string): Promise<{
+  success: boolean;
+  message: string;
+  clients: ClientProfile[];
+  sheetName?: string;
+}> {
+  if (!webhookUrl || !webhookUrl.startsWith('https://script.google.com/')) {
+    throw new Error('La URL de Google Apps Script debe comenzar con https://script.google.com/...');
+  }
+
+  const response = await fetch(webhookUrl, {
+    method: 'GET',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Error HTTP (${response.status}): ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  if (data.status === 'success' && Array.isArray(data.clients)) {
+    return {
+      success: true,
+      message: data.message || `Cargados ${data.clients.length} clientes`,
+      clients: data.clients,
+      sheetName: data.sheetName,
+    };
+  }
+
+  throw new Error(data.message || 'Respuesta inválida al cargar clientes de Google Sheet');
 }
 
 export async function syncClientsToGoogleSheets(

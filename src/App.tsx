@@ -16,7 +16,12 @@ import { CurrencySwitcher } from './components/CurrencySwitcher';
 import { ThemeSwitcher } from './components/ThemeSwitcher';
 import { useLanguage } from './context/LanguageContext';
 import { useTheme } from './context/ThemeContext';
-import { PackageCheck } from 'lucide-react';
+import { PackageCheck, CheckCircle2, AlertCircle } from 'lucide-react';
+import {
+  getSavedGoogleSheetsUrl,
+  saveSingleClientToGoogleSheets,
+  fetchClientsFromGoogleSheets,
+} from './utils/googleSheets';
 
 const STORAGE_KEY = 'fulfilment_calculator_clients_v2';
 
@@ -39,6 +44,11 @@ export const App: React.FC = () => {
 
   const [activeClientId, setActiveClientId] = useState<string>(() => clients[0]?.id || 'client-1');
   const [isGoogleSheetsOpen, setIsGoogleSheetsOpen] = useState<boolean>(false);
+  const [isSavingToSheets, setIsSavingToSheets] = useState<boolean>(false);
+  const [isLoadingFromSheets, setIsLoadingFromSheets] = useState<boolean>(false);
+  const [saveToSheetsSuccess, setSaveToSheetsSuccess] = useState<boolean>(false);
+  const [toastMessage, setToastMessage] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
   const [activeTab, setActiveTab] = useState<
     'Resumen' | 'Precios & Margen' | 'Desglose' | 'Propuesta Cliente' | 'Comparativa' | 'Rate card' | 'Ayuda'
   >('Resumen');
@@ -46,6 +56,67 @@ export const App: React.FC = () => {
   // Active client & inputs
   const currentClient = clients.find((c) => c.id === activeClientId) || clients[0];
   const [inputs, setInputs] = useState<CalculatorInputs>(currentClient.inputs);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToastMessage({ message, type });
+    setTimeout(() => {
+      setToastMessage((cur) => (cur?.message === message ? null : cur));
+    }, 4500);
+  };
+
+  const handleQuickSaveCurrentClient = async () => {
+    const url = getSavedGoogleSheetsUrl();
+    if (!url) {
+      setIsGoogleSheetsOpen(true);
+      return;
+    }
+
+    const clientToSave = clients.find((c) => c.id === activeClientId) || clients[0];
+    if (!clientToSave) return;
+
+    setIsSavingToSheets(true);
+    try {
+      const res = await saveSingleClientToGoogleSheets(clientToSave, url);
+      if (res.status === 'success') {
+        setSaveToSheetsSuccess(true);
+        showToast(res.message || `Cliente "${clientToSave.name}" guardado en Google Sheet.`, 'success');
+        setTimeout(() => setSaveToSheetsSuccess(false), 3000);
+      } else {
+        showToast(res.message || 'Error al guardar en Google Sheet', 'error');
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      showToast(`Error al guardar en Sheet: ${msg}`, 'error');
+    } finally {
+      setIsSavingToSheets(false);
+    }
+  };
+
+  const handleQuickLoadClients = async () => {
+    const url = getSavedGoogleSheetsUrl();
+    if (!url) {
+      setIsGoogleSheetsOpen(true);
+      return;
+    }
+
+    setIsLoadingFromSheets(true);
+    try {
+      const res = await fetchClientsFromGoogleSheets(url);
+      if (res.success && res.clients.length > 0) {
+        setClients(res.clients);
+        setActiveClientId(res.clients[0].id);
+        setInputs(res.clients[0].inputs);
+        showToast(`Cargados ${res.clients.length} clientes desde Google Sheet ("${res.sheetName || 'Margen'}").`, 'success');
+      } else {
+        showToast('No se encontraron clientes en Google Sheet.', 'error');
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      showToast(`Error al cargar desde Sheet: ${msg}`, 'error');
+    } finally {
+      setIsLoadingFromSheets(false);
+    }
+  };
 
   // When activeClientId changes, update inputs
   useEffect(() => {
@@ -244,6 +315,11 @@ export const App: React.FC = () => {
           onUpdateNotes={(notes) => handleUpdateNotes(activeClientId, notes)}
           currentInputs={inputs}
           onOpenGoogleSheets={() => setIsGoogleSheetsOpen(true)}
+          onQuickSaveToSheets={handleQuickSaveCurrentClient}
+          onQuickLoadFromSheets={handleQuickLoadClients}
+          isSavingToSheets={isSavingToSheets}
+          isLoadingFromSheets={isLoadingFromSheets}
+          saveToSheetsSuccess={saveToSheetsSuccess}
         />
       </div>
 
@@ -317,7 +393,35 @@ export const App: React.FC = () => {
         isOpen={isGoogleSheetsOpen}
         onClose={() => setIsGoogleSheetsOpen(false)}
         clients={clients}
+        activeClient={currentClient}
+        onLoadClients={(loadedClients) => {
+          setClients(loadedClients);
+          if (loadedClients.length > 0) {
+            setActiveClientId(loadedClients[0].id);
+            setInputs(loadedClients[0].inputs);
+          }
+        }}
       />
+
+      {/* Floating Action Toast */}
+      {toastMessage && (
+        <div className="fixed bottom-5 right-5 z-50 animate-in fade-in slide-in-from-bottom-3 duration-300">
+          <div
+            className={`flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border text-xs font-semibold ${
+              toastMessage.type === 'success'
+                ? 'bg-[#121B17] text-emerald-300 border-emerald-500/40 shadow-emerald-950/40'
+                : 'bg-[#221316] text-red-300 border-red-500/40 shadow-red-950/40'
+            }`}
+          >
+            {toastMessage.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+            )}
+            <span>{toastMessage.message}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -2,7 +2,21 @@ import React, { useState, useRef } from 'react';
 import { ClientProfile, CalculatorInputs } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
-import { Plus, Copy, Trash2, Check, Download, Users, Edit3, Tag, Warehouse, FileSpreadsheet } from 'lucide-react';
+import {
+  Plus,
+  Copy,
+  Trash2,
+  Check,
+  Download,
+  Users,
+  Edit3,
+  Tag,
+  Warehouse,
+  FileSpreadsheet,
+  Save,
+  RefreshCw,
+  CheckCircle2,
+} from 'lucide-react';
 import { formatEur } from '../utils/calculations';
 
 interface ClientManagerHeaderProps {
@@ -16,6 +30,11 @@ interface ClientManagerHeaderProps {
   onUpdateNotes?: (notes: string) => void;
   currentInputs: CalculatorInputs;
   onOpenGoogleSheets?: () => void;
+  onQuickSaveToSheets?: () => void;
+  onQuickLoadFromSheets?: () => void;
+  isSavingToSheets?: boolean;
+  isLoadingFromSheets?: boolean;
+  saveToSheetsSuccess?: boolean;
 }
 
 export const ClientManagerHeader: React.FC<ClientManagerHeaderProps> = ({
@@ -29,6 +48,11 @@ export const ClientManagerHeader: React.FC<ClientManagerHeaderProps> = ({
   onUpdateNotes,
   currentInputs,
   onOpenGoogleSheets,
+  onQuickSaveToSheets,
+  onQuickLoadFromSheets,
+  isSavingToSheets = false,
+  isLoadingFromSheets = false,
+  saveToSheetsSuccess = false,
 }) => {
   const { t, language } = useLanguage();
   const { isDark } = useTheme();
@@ -257,23 +281,91 @@ ${currentInputs.warehouse ? `Warehouse / Almacén: ${currentInputs.warehouse}\n`
 
       {/* Right side: Quick stats & export */}
       <div className="flex items-center gap-2">
-        <span className="text-[11px] text-gray-400 hidden md:inline">
-          {clients.length} {language === 'en' ? (clients.length === 1 ? 'saved client' : 'saved clients') : (clients.length === 1 ? 'cliente guardado' : 'clientes guardados')}
+        <span className="text-[11px] text-gray-400 hidden lg:inline">
+          {clients.length} {language === 'en' ? (clients.length === 1 ? 'saved client' : 'saved clients') : (clients.length === 1 ? 'cliente' : 'clientes')}
         </span>
+
+        {/* Botón: Guardar / Actualizar cliente que se está cotizando en Google Sheets */}
+        {onQuickSaveToSheets && (
+          <button
+            type="button"
+            onClick={onQuickSaveToSheets}
+            disabled={isSavingToSheets}
+            title={
+              language === 'en'
+                ? `Save or update "${currentInputs.clientName}" in Google Sheet "Margen"`
+                : `Guardar o actualizar "${currentInputs.clientName}" en la hoja Google Sheet "Margen"`
+            }
+            className={`flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-lg transition shadow-2xs border cursor-pointer ${
+              saveToSheetsSuccess
+                ? 'bg-emerald-500 text-white border-emerald-400'
+                : isDark
+                ? 'bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border-emerald-700/60'
+                : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700'
+            }`}
+          >
+            {isSavingToSheets ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <span>{language === 'en' ? 'Saving...' : 'Guardando...'}</span>
+              </>
+            ) : saveToSheetsSuccess ? (
+              <>
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>{language === 'en' ? 'Saved to Sheet!' : '¡Guardado en Sheet!'}</span>
+              </>
+            ) : (
+              <>
+                <Save className="w-3.5 h-3.5" />
+                <span>{language === 'en' ? 'Save to Sheet' : 'Guardar en Sheet'}</span>
+              </>
+            )}
+          </button>
+        )}
+
+        {/* Botón: Cargar clientes desde Google Sheet */}
+        {onQuickLoadFromSheets && (
+          <button
+            type="button"
+            onClick={onQuickLoadFromSheets}
+            disabled={isLoadingFromSheets}
+            title={
+              language === 'en'
+                ? 'Fetch and load saved clients from Google Sheet'
+                : 'Descargar y cargar los clientes guardados en Google Sheet'
+            }
+            className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg transition shadow-2xs border cursor-pointer ${
+              isDark
+                ? 'bg-[#252238] hover:bg-[#2e2a44] text-purple-300 border-purple-500/30'
+                : 'bg-white hover:bg-purple-50 text-purple-700 border-purple-200'
+            }`}
+          >
+            <Download className={`w-3.5 h-3.5 text-purple-500 ${isLoadingFromSheets ? 'animate-bounce' : ''}`} />
+            <span className="hidden sm:inline">
+              {isLoadingFromSheets
+                ? language === 'en'
+                  ? 'Loading...'
+                  : 'Cargando...'
+                : language === 'en'
+                ? 'Load Sheet'
+                : 'Cargar Sheet'}
+            </span>
+          </button>
+        )}
 
         {onOpenGoogleSheets && (
           <button
             type="button"
             onClick={onOpenGoogleSheets}
-            title={language === 'en' ? 'Sync or configure Google Sheet "Margen"' : 'Sincronizar o configurar Google Sheet "Margen"'}
-            className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded transition shadow-2xs border cursor-pointer ${
+            title={language === 'en' ? 'Sync or configure Google Sheet "Margen"' : 'Configurar o sincronizar Google Sheet "Margen"'}
+            className={`flex items-center gap-1.5 px-2 py-1 text-xs font-semibold rounded-lg transition shadow-2xs border cursor-pointer ${
               isDark
-                ? 'bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-400 border-emerald-700/50'
-                : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300'
+                ? 'bg-[#1F1B33] hover:bg-[#282342] text-gray-300 border-[#2E2A48]'
+                : 'bg-[#F4EEE4] hover:bg-[#EAE2D5] text-[#4D453E] border-[#E5DDD0]'
             }`}
           >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span className="hidden sm:inline">Google Sheets</span>
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-500" />
+            <span className="hidden md:inline">{language === 'en' ? 'Config' : 'Config Sheet'}</span>
           </button>
         )}
 

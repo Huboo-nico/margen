@@ -14,6 +14,10 @@ import {
   AlertCircle,
   Table,
   Code2,
+  Save,
+  Download,
+  CheckCircle2,
+  ShieldCheck,
 } from 'lucide-react';
 import {
   GOOGLE_APPS_SCRIPT_CODE,
@@ -21,6 +25,8 @@ import {
   getSavedGoogleSheetsUrl,
   saveGoogleSheetsUrl,
   syncClientsToGoogleSheets,
+  saveSingleClientToGoogleSheets,
+  fetchClientsFromGoogleSheets,
   testGoogleSheetsConnection,
   SyncResponse,
 } from '../utils/googleSheets';
@@ -29,12 +35,16 @@ interface GoogleSheetsModalProps {
   isOpen: boolean;
   onClose: () => void;
   clients: ClientProfile[];
+  activeClient?: ClientProfile;
+  onLoadClients?: (loadedClients: ClientProfile[]) => void;
 }
 
 export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
   isOpen,
   onClose,
   clients,
+  activeClient,
+  onLoadClients,
 }) => {
   const { language } = useLanguage();
   const { isDark } = useTheme();
@@ -49,6 +59,12 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
   const [syncResult, setSyncResult] = useState<SyncResponse | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
 
+  const [savingSingle, setSavingSingle] = useState(false);
+  const [singleResult, setSingleResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const [loadingClients, setLoadingClients] = useState(false);
+  const [loadResult, setLoadResult] = useState<{ success: boolean; message: string; count?: number } | null>(null);
+
   useEffect(() => {
     if (isOpen) {
       const saved = getSavedGoogleSheetsUrl();
@@ -56,6 +72,8 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
       setTestResult(null);
       setSyncResult(null);
       setSyncError(null);
+      setSingleResult(null);
+      setLoadResult(null);
       if (saved) {
         setActiveTab('sync');
       } else {
@@ -131,6 +149,81 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
       setSyncing(false);
     }
   };
+
+  const handleSaveCurrentClient = async () => {
+    if (!url) {
+      setSingleResult({
+        success: false,
+        message: 'Introduce primero la URL de la Web App en la configuración.',
+      });
+      return;
+    }
+    const target = activeClient || clients[0];
+    if (!target) return;
+
+    setSavingSingle(true);
+    setSingleResult(null);
+
+    try {
+      saveGoogleSheetsUrl(url);
+      const res = await saveSingleClientToGoogleSheets(target, url);
+      setSingleResult({
+        success: res.status === 'success',
+        message: res.message || `Cliente "${target.name}" guardado exitosamente.`,
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setSingleResult({
+        success: false,
+        message: msg,
+      });
+    } finally {
+      setSavingSingle(false);
+    }
+  };
+
+  const handleFetchClientsFromSheets = async () => {
+    if (!url) {
+      setLoadResult({
+        success: false,
+        message: 'Introduce primero la URL de la Web App de Apps Script.',
+      });
+      return;
+    }
+
+    setLoadingClients(true);
+    setLoadResult(null);
+
+    try {
+      saveGoogleSheetsUrl(url);
+      const res = await fetchClientsFromGoogleSheets(url);
+      if (res.success && res.clients.length > 0) {
+        if (onLoadClients) {
+          onLoadClients(res.clients);
+        }
+        setLoadResult({
+          success: true,
+          message: `Se cargaron ${res.clients.length} clientes desde la hoja "${res.sheetName || 'Margen'}".`,
+          count: res.clients.length,
+        });
+      } else {
+        setLoadResult({
+          success: false,
+          message: 'No se encontraron clientes en la hoja (la tabla de datos está vacía).',
+        });
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setLoadResult({
+        success: false,
+        message: msg,
+      });
+    } finally {
+      setLoadingClients(false);
+    }
+  };
+
+  const currentTargetClient = activeClient || clients[0];
 
   // Stats by territory
   const spainCount = clients.filter(
@@ -579,7 +672,134 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
                 </div>
               </div>
 
-              {/* Sync Action Button */}
+              {/* Direct Action Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* ACTION 1: Guardar cliente actual que se está cotizando */}
+                <div
+                  className={`p-5 rounded-2xl border flex flex-col justify-between ${
+                    isDark ? 'bg-[#1C1833] border-[#2E2A48]' : 'bg-white border-gray-200'
+                  }`}
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                        <Save className="w-3.5 h-3.5" />
+                        {language === 'en' ? 'Quote in progress' : 'Cotización en curso'}
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                        {currentTargetClient?.inputs.warehouse || 'Spain'}
+                      </span>
+                    </div>
+
+                    <h4 className="text-sm font-bold truncate">
+                      {currentTargetClient ? currentTargetClient.name : 'Cliente actual'}
+                    </h4>
+
+                    <p className="text-xs text-gray-400 leading-relaxed">
+                      {language === 'en'
+                        ? 'Save or update this client’s row in its territory sheet and the General Summary sheet.'
+                        : 'Guarda o actualiza la fila de este cliente en la pestaña de su territorio y en Resumen General.'}
+                    </p>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-800 space-y-2">
+                    <button
+                      type="button"
+                      onClick={handleSaveCurrentClient}
+                      disabled={savingSingle || !url}
+                      className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                    >
+                      <Save className={`w-3.5 h-3.5 ${savingSingle ? 'animate-spin' : ''}`} />
+                      <span>
+                        {savingSingle
+                          ? language === 'en'
+                            ? 'Saving...'
+                            : 'Guardando en Sheet...'
+                          : language === 'en'
+                          ? `💾 Save "${currentTargetClient?.name || 'Client'}" to Sheet`
+                          : `💾 Guardar "${currentTargetClient?.name || 'Cliente'}" en Sheet`}
+                      </span>
+                    </button>
+
+                    {singleResult && (
+                      <div
+                        className={`p-2.5 rounded-lg text-xs flex items-center gap-2 ${
+                          singleResult.success
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-red-500/10 text-red-400 border border-red-500/30'
+                        }`}
+                      >
+                        {singleResult.success ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+                        <span className="truncate">{singleResult.message}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* ACTION 2: Cargar clientes desde Google Sheet */}
+                <div
+                  className={`p-5 rounded-2xl border flex flex-col justify-between ${
+                    isDark ? 'bg-[#1C1833] border-[#2E2A48]' : 'bg-white border-gray-200'
+                  }`}
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-purple-400 flex items-center gap-1.5">
+                        <Download className="w-3.5 h-3.5" />
+                        {language === 'en' ? 'Import / Pull' : 'Cargar desde Sheet'}
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                        GET Request
+                      </span>
+                    </div>
+
+                    <h4 className="text-sm font-bold">
+                      {language === 'en' ? 'Load saved clients into App' : 'Descargar clientes guardados'}
+                    </h4>
+
+                    <p className="text-xs text-gray-400 leading-relaxed">
+                      {language === 'en'
+                        ? 'Fetches the rows from "Resumen General" in Google Sheets and updates your calculator client list.'
+                        : 'Lee las filas de "Resumen General" en Google Sheet e importa los clientes a tu calculadora.'}
+                    </p>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-800 space-y-2">
+                    <button
+                      type="button"
+                      onClick={handleFetchClientsFromSheets}
+                      disabled={loadingClients || !url}
+                      className="w-full py-2.5 px-4 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                    >
+                      <Download className={`w-3.5 h-3.5 ${loadingClients ? 'animate-spin' : ''}`} />
+                      <span>
+                        {loadingClients
+                          ? language === 'en'
+                            ? 'Loading from Sheet...'
+                            : 'Cargando de Sheet...'
+                          : language === 'en'
+                          ? '📥 Load Clients from Google Sheet'
+                          : '📥 Cargar Clientes desde Google Sheet'}
+                      </span>
+                    </button>
+
+                    {loadResult && (
+                      <div
+                        className={`p-2.5 rounded-lg text-xs flex items-center gap-2 ${
+                          loadResult.success
+                            ? 'bg-purple-500/10 text-purple-300 border border-purple-500/30'
+                            : 'bg-red-500/10 text-red-400 border border-red-500/30'
+                        }`}
+                      >
+                        {loadResult.success ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+                        <span className="truncate">{loadResult.message}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Sync All Button */}
               <div className="flex flex-col items-center justify-center p-6 rounded-2xl border bg-gradient-to-b from-emerald-950/20 to-transparent border-emerald-500/20 space-y-3">
                 <button
                   type="button"
@@ -628,6 +848,54 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Informative Architecture & Vercel Help Card */}
+              <div
+                className={`p-4 rounded-xl border text-xs space-y-2.5 ${
+                  isDark ? 'bg-[#151129] border-[#2E2A48]' : 'bg-gray-50 border-gray-200'
+                }`}
+              >
+                <div className="flex items-center gap-2 font-bold text-emerald-400">
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>
+                    {language === 'en'
+                      ? 'Architecture FAQs: Google Console, APIs and Vercel'
+                      : 'Preguntas Frecuentes: Google Cloud Console, APIs y Despliegue en Vercel'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 text-[11px] text-gray-400">
+                  <div className="space-y-1">
+                    <p className="font-bold text-gray-200">
+                      {language === 'en' ? '1. Do I need Google Cloud Console?' : '1. ¿Necesito Google Console?'}
+                    </p>
+                    <p>
+                      {language === 'en'
+                        ? 'No! Apps Script executes as your own Google account natively. You do not need API Keys, service accounts or Google Cloud OAuth screens.'
+                        : '¡No! Apps Script se ejecuta con tus permisos de propietario de la hoja directamente. No necesitas crear proyectos ni habilitar APIs en Google Console.'}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-bold text-gray-200">
+                      {language === 'en' ? '2. Does it work on Vercel?' : '2. ¿Funciona en Vercel?'}
+                    </p>
+                    <p>
+                      {language === 'en'
+                        ? 'Yes, 100%. The Web App URL is a public HTTPS webhook endpoint. When deployed to Vercel, requests flow seamlessly.'
+                        : 'Sí, 100%. La URL de la Web App es un endpoint HTTPS directo. Al desplegar en Vercel funciona igual de rápido sin configuraciones adicionales.'}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-bold text-gray-200">
+                      {language === 'en' ? '3. Is the sheet public to anyone?' : '3. ¿Debo hacer pública la hoja?'}
+                    </p>
+                    <p>
+                      {language === 'en'
+                        ? 'No. The sheet itself remains private in your Google Drive. Only your Apps Script endpoint accepts GET and POST calls.'
+                        : 'No. Tu archivo en Drive sigue siendo privado. Solo el script que publicaste atiende las peticiones GET (cargar) y POST (guardar).'}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           )}
