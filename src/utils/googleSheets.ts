@@ -39,9 +39,10 @@ export const GOOGLE_APPS_SCRIPT_CODE = `/**
  *   - "USA"
  *   - "Resumen General"
  * Soporta:
- *   - GET: Cargar clientes desde Google Sheet a la calculadora
- *   - POST (save_client): Guardar/Actualizar el cliente actual que estás cotizando
- *   - POST (sync_all): Sincronizar todos los clientes de una vez
+ *   - GET: Cargar clientes desde Google Sheet a cualquier ordenador
+ *   - POST (load_clients): Cargar clientes sin bloqueos de red
+ *   - POST (save_client): Guardar/actualizar cliente individual en tiempo real
+ *   - POST (sync_all): Sincronizar toda la cartera de clientes
  * ====================================================================
  */
 
@@ -70,23 +71,48 @@ var COLUMNS = [
   "Datos Completos (JSON)"
 ];
 
-// Función universal de lectura de clientes
+// Función universal de lectura de clientes desde Google Sheet
 function readClientsFromSpreadsheet(ss) {
-  var sheet = ss.getSheetByName("Resumen General");
+  if (!ss) {
+    throw new Error("No hay hoja de cálculo vinculada activa.");
+  }
+
+  // Buscar la hoja con datos más completa
+  var targetSheets = ["Resumen General", "Margen", "Spain", "UK", "USA"];
+  var sheet = null;
+
+  for (var s = 0; s < targetSheets.length; s++) {
+    var cand = ss.getSheetByName(targetSheets[s]);
+    if (cand && cand.getLastRow() > 1) {
+      sheet = cand;
+      break;
+    }
+  }
+
   if (!sheet) {
-    sheet = ss.getSheets()[0];
+    var all = ss.getSheets();
+    for (var i = 0; i < all.length; i++) {
+      if (all[i].getLastRow() > 1) {
+        sheet = all[i];
+        break;
+      }
+    }
+  }
+
+  if (!sheet) {
+    sheet = ss.getSheetByName("Resumen General") || ss.getSheets()[0];
   }
 
   var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
   var clients = [];
 
-  if (lastRow > 1) {
-    var maxCols = Math.max(sheet.getLastColumn(), COLUMNS.length);
-    var data = sheet.getRange(2, 1, lastRow - 1, maxCols).getValues();
+  if (lastRow > 1 && lastCol >= 1) {
+    var data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
 
     clients = data.map(function(row, index) {
       // 1. Si existe JSON completo en la columna 22 (índice 21), cargarlo directamente para 100% de precisión
-      var jsonStr = row[21];
+      var jsonStr = (row.length > 21) ? row[21] : null;
       if (jsonStr && typeof jsonStr === "string" && jsonStr.trim().charAt(0) === "{") {
         try {
           var parsed = JSON.parse(jsonStr);
@@ -97,7 +123,7 @@ function readClientsFromSpreadsheet(ss) {
             }
           }
         } catch (e) {
-          // fallback
+          // fallback a columnas individuales
         }
       }
 
@@ -114,7 +140,7 @@ function readClientsFromSpreadsheet(ss) {
       var addPickPrice = Number(row[9]) || 0;
       var shippingPrice = Number(row[10]) || 0;
       var goLiveDate = String(row[17] || "");
-      var techs = row[18] ? String(row[18]).split(",").map(function(s) { return s.trim(); }).filter(Boolean) : [];
+      var techs = row[18] ? String(row[18]).split(",").map(function(item) { return item.trim(); }).filter(Boolean) : [];
       var notes = String(row[19] || "");
       var updatedAt = String(row[20] || new Date().toISOString());
 
@@ -153,16 +179,35 @@ function readClientsFromSpreadsheet(ss) {
   return {
     status: "success",
     sheetName: ss.getName(),
+    currentSheet: sheet.getName(),
     totalClients: clients.length,
     clients: clients,
-    message: "Cargados " + clients.length + " clientes desde " + ss.getName()
+    supportsLoadClients: true,
+    message: "Cargados " + clients.length + " clientes desde " + ss.getName() + " (" + sheet.getName() + ")"
   };
 }
 
-// GET: Cargar clientes desde la hoja hacia la aplicación web
+// GET: Cargar clientes o verificar conexión
 function doGet(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (!ss) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "error",
+        message: "No se encontró la hoja activa vinculada. Abre tu hoja 'Margen' y ve a Extensiones > Apps Script."
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var paramAction = (e && e.parameter && e.parameter.action) || "";
+    if (paramAction === "ping" || paramAction === "status" || paramAction === "test") {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        sheetName: ss.getName(),
+        supportsLoadClients: true,
+        message: "Conexión activa con Google Sheet: " + ss.getName()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     var result = readClientsFromSpreadsheet(ss);
     return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
@@ -173,30 +218,47 @@ function doGet(e) {
   }
 }
 
-// POST: Guardar cliente cotizado, sincronizar todo o cargar clientes (evita bloqueos CORS entre ordenadores)
+// POST: Guardar, sincronizar o leer clientes sin bloqueos de red
 function doPost(e) {
   try {
     var raw = e.postData ? e.postData.contents : "";
-    if (!raw) {
+    var payload = {};
+    if (raw) {
+      try {
+        payload = JSON.parse(raw);
+      } catch (err) {
+        payload = {};
+      }
+    }
+
+    var action = payload.action || (e && e.parameter && e.parameter.action) || "save_client";
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (!ss) {
       return ContentService.createTextOutput(JSON.stringify({
         status: "error",
-        message: "No se recibieron datos en el cuerpo de la petición."
+        message: "No se encontró la hoja vinculada. Crea el script desde Extensiones > Apps Script en tu hoja."
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    var payload = JSON.parse(raw);
-    var action = payload.action || "save_client";
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-
-    // Cargar clientes vía POST (100% fiable desde cualquier ordenador sin redirección ni bloqueos)
-    if (action === "load_clients" || action === "get_clients") {
+    // 1. Cargar clientes vía POST
+    if (action === "load_clients" || action === "get_clients" || action === "read") {
       var loadResult = readClientsFromSpreadsheet(ss);
       return ContentService.createTextOutput(JSON.stringify(loadResult)).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // 1. Guardar / Actualizar cliente individual (en tiempo real mientras cotizas)
-    if (action === "save_client" && payload.client) {
-      var item = payload.client;
+    // 2. Ping de verificación
+    if (action === "ping" || action === "status" || action === "test") {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        sheetName: ss.getName(),
+        supportsLoadClients: true,
+        message: "Conexión activa con Google Sheet: " + ss.getName()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 3. Guardar / Actualizar cliente individual
+    if ((action === "save_client" || !payload.clients) && (payload.client || (payload.clients && payload.clients.length === 1))) {
+      var item = payload.client || (payload.clients && payload.clients[0]);
       var p = item.profile || item;
       var inp = p.inputs || {};
       var territory = inp.warehouse || "Spain";
@@ -205,7 +267,6 @@ function doPost(e) {
       var tSheet = ensureSheet(ss, territory, "#2563EB");
       var rSheet = ensureSheet(ss, "Resumen General", "#6B4ABF");
 
-      // Actualizar o insertar en su territorio y en resumen general
       upsertClientInSheet(tSheet, item);
       upsertClientInSheet(rSheet, item);
 
@@ -218,15 +279,22 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // 2. Sincronizar todos los clientes
+    // 4. Sincronizar todos los clientes
     var clients = payload.clients || [];
+    if (payload.client && clients.length === 0) {
+      clients = [payload.client];
+    }
+
     var territories = ["Spain", "UK", "USA"];
+    var territoryCounts = {};
 
     territories.forEach(function(territory) {
       var filtered = clients.filter(function(c) {
-        var w = (c.inputs && c.inputs.warehouse) || "Spain";
+        var prof = c.profile || c;
+        var w = (prof.inputs && prof.inputs.warehouse) || "Spain";
         return w.toLowerCase().trim() === territory.toLowerCase().trim();
       });
+      territoryCounts[territory] = filtered.length;
       syncFullSheet(ss, territory, filtered, "#2563EB");
     });
 
@@ -236,13 +304,17 @@ function doPost(e) {
       status: "success",
       action: "sync_all",
       totalClients: clients.length,
+      spainCount: territoryCounts["Spain"] || 0,
+      ukCount: territoryCounts["UK"] || 0,
+      usaCount: territoryCounts["USA"] || 0,
+      timestamp: new Date().toISOString(),
       message: "Todos los " + clients.length + " clientes sincronizados correctamente en la hoja Margen."
     })).setMimeType(ContentService.MimeType.JSON);
 
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({
       status: "error",
-      message: "Error al guardar: " + err.toString()
+      message: "Error en Google Sheet: " + err.toString()
     })).setMimeType(ContentService.MimeType.JSON);
   }
 }
@@ -251,6 +323,11 @@ function ensureSheet(ss, name, headerBgColor) {
   var s = ss.getSheetByName(name);
   if (!s) {
     s = ss.insertSheet(name);
+  }
+  if (s.getMaxColumns() < COLUMNS.length) {
+    s.insertColumnsAfter(s.getMaxColumns(), COLUMNS.length - s.getMaxColumns());
+  }
+  if (s.getLastRow() === 0) {
     s.getRange(1, 1, 1, COLUMNS.length).setValues([COLUMNS]);
     var r = s.getRange(1, 1, 1, COLUMNS.length);
     r.setBackground(headerBgColor);
@@ -266,6 +343,10 @@ function ensureSheet(ss, name, headerBgColor) {
 }
 
 function upsertClientInSheet(sheet, item) {
+  if (sheet.getMaxColumns() < COLUMNS.length) {
+    sheet.insertColumnsAfter(sheet.getMaxColumns(), COLUMNS.length - sheet.getMaxColumns());
+  }
+
   var p = item.profile || item;
   var inp = p.inputs || {};
   var res = item.results || {};
@@ -319,7 +400,6 @@ function upsertClientInSheet(sheet, item) {
     sheet.getRange(targetRow, 1, 1, COLUMNS.length).setValues([rowData]);
   }
 
-  // Estilos
   sheet.getRange(targetRow, 1, 1, COLUMNS.length).setFontFamily("Arial").setFontSize(10);
   [8, 9, 10, 11, 12, 13, 16, 17].forEach(function(colIndex) {
     sheet.getRange(targetRow, colIndex).setNumberFormat("€#,##0.00");
@@ -343,7 +423,10 @@ function syncFullSheet(ss, sheetName, clientsList, headerBgColor) {
   }
   sheet.clear();
 
-  // Cabecera
+  if (sheet.getMaxColumns() < COLUMNS.length) {
+    sheet.insertColumnsAfter(sheet.getMaxColumns(), COLUMNS.length - sheet.getMaxColumns());
+  }
+
   sheet.getRange(1, 1, 1, COLUMNS.length).setValues([COLUMNS]);
   var headerRange = sheet.getRange(1, 1, 1, COLUMNS.length);
   headerRange.setBackground(headerBgColor);
@@ -426,29 +509,35 @@ function setupInitialSheets() {
     var s = ss.getSheetByName(t);
     if (!s) {
       s = ss.insertSheet(t);
-      s.getRange(1, 1, 1, COLUMNS.length).setValues([COLUMNS]);
-      var r = s.getRange(1, 1, 1, COLUMNS.length);
-      r.setBackground("#2563EB");
-      r.setFontColor("#FFFFFF");
-      r.setFontWeight("bold");
-      s.setFrozenRows(1);
-      s.autoResizeColumns(1, COLUMNS.length);
     }
+    if (s.getMaxColumns() < COLUMNS.length) {
+      s.insertColumnsAfter(s.getMaxColumns(), COLUMNS.length - s.getMaxColumns());
+    }
+    s.getRange(1, 1, 1, COLUMNS.length).setValues([COLUMNS]);
+    var r = s.getRange(1, 1, 1, COLUMNS.length);
+    r.setBackground("#2563EB");
+    r.setFontColor("#FFFFFF");
+    r.setFontWeight("bold");
+    s.setFrozenRows(1);
+    s.autoResizeColumns(1, COLUMNS.length);
   });
 
   var res = ss.getSheetByName("Resumen General");
   if (!res) {
     res = ss.insertSheet("Resumen General");
-    res.getRange(1, 1, 1, COLUMNS.length).setValues([COLUMNS]);
-    var r2 = res.getRange(1, 1, 1, COLUMNS.length);
-    r2.setBackground("#6B4ABF");
-    r2.setFontColor("#FFFFFF");
-    r2.setFontWeight("bold");
-    res.setFrozenRows(1);
-    res.autoResizeColumns(1, COLUMNS.length);
   }
+  if (res.getMaxColumns() < COLUMNS.length) {
+    res.insertColumnsAfter(res.getMaxColumns(), COLUMNS.length - res.getMaxColumns());
+  }
+  res.getRange(1, 1, 1, COLUMNS.length).setValues([COLUMNS]);
+  var r2 = res.getRange(1, 1, 1, COLUMNS.length);
+  r2.setBackground("#6B4ABF");
+  r2.setFontColor("#FFFFFF");
+  r2.setFontWeight("bold");
+  res.setFrozenRows(1);
+  res.autoResizeColumns(1, COLUMNS.length);
 
-  SpreadsheetApp.getUi().alert("✅ Pestañas preparadas: Spain, UK, USA y Resumen General creadas correctamente.");
+  SpreadsheetApp.getUi().alert("✅ Pestañas preparadas: Spain, UK, USA y Resumen General listas para sincronizar.");
 }`;
 
 export interface ServerStatusResponse {
@@ -456,23 +545,27 @@ export interface ServerStatusResponse {
   isServerEnv?: boolean;
   connected?: boolean;
   sheetName?: string;
+  supportsLoadClients?: boolean;
+  needsScriptUpdate?: boolean;
+  errorType?: string;
   message?: string;
   error?: string;
 }
 
-export async function checkServerSheetsStatus(): Promise<ServerStatusResponse> {
+export async function checkServerSheetsStatus(customUrl?: string): Promise<ServerStatusResponse> {
   try {
-    const res = await fetch('/api/sheets?action=status');
+    const query = customUrl ? `?action=status&webhookUrl=${encodeURIComponent(customUrl)}` : '?action=status';
+    const res = await fetch(`/api/sheets${query}`);
     if (res.ok) {
       return await res.json();
     }
   } catch {
-    // API endpoint not reachable yet
+    // API endpoint not reachable
   }
   return { configured: false, message: 'API no disponible' };
 }
 
-// URL configurada en Vercel Dashboard -> Settings -> Environment Variables (VITE_GOOGLE_SHEETS_WEBAPP_URL)
+// URL configurada en Vercel Dashboard -> Settings -> Environment Variables
 export const VERCEL_ENV_GOOGLE_SHEETS_URL: string = (
   (import.meta.env.VITE_GOOGLE_SHEETS_WEBAPP_URL as string | undefined) ||
   (import.meta.env.VITE_GOOGLE_SHEETS_URL as string | undefined) ||
@@ -594,11 +687,12 @@ export async function saveSingleClientToGoogleSheets(
   const payload = {
     action: 'save_client',
     client: enrichedClient,
+    clients: [enrichedClient], // Retrocompatibilidad para scripts previos
     exportedAt: new Date().toISOString(),
     webhookUrl: effectiveUrl,
   };
 
-  // 1. Intentar primero a través de la API segura del servidor /api/sheets
+  // 1. Intentar a través de la API segura del servidor /api/sheets
   try {
     const apiResp = await fetch('/api/sheets', {
       method: 'POST',
@@ -613,12 +707,22 @@ export async function saveSingleClientToGoogleSheets(
       if (data && (data.status === 'success' || data.success)) {
         return data;
       }
+      if (data && data.message) {
+        throw new Error(data.message);
+      }
+    } else {
+      const errData = await apiResp.json().catch(() => null);
+      if (errData && errData.message) {
+        throw new Error(errData.message);
+      }
     }
-  } catch (apiErr) {
-    console.warn('API /api/sheets no disponible, intentando conexión directa:', apiErr);
+  } catch (apiErr: any) {
+    if (apiErr.message && !apiErr.message.includes('Failed to fetch')) {
+      throw apiErr;
+    }
   }
 
-  // 2. Fallback a llamada directa al Webhook si se proporcionó una URL válida en el cliente
+  // 2. Fallback a llamada directa si se tiene una URL directa en el navegador
   if (effectiveUrl && effectiveUrl.startsWith('https://script.google.com/')) {
     const response = await fetch(effectiveUrl, {
       method: 'POST',
@@ -635,7 +739,7 @@ export async function saveSingleClientToGoogleSheets(
     return await response.json();
   }
 
-  throw new Error('Configura la variable GOOGLE_SHEETS_WEBAPP_URL en Vercel o introduce la URL en la aplicación.');
+  throw new Error('Configura GOOGLE_SHEETS_WEBAPP_URL en Vercel o introduce la URL en la aplicación.');
 }
 
 export async function fetchClientsFromGoogleSheets(webhookUrl?: string): Promise<{
@@ -644,11 +748,11 @@ export async function fetchClientsFromGoogleSheets(webhookUrl?: string): Promise
   clients: ClientProfile[];
   sheetName?: string;
   isServerEnv?: boolean;
+  needsScriptUpdate?: boolean;
 }> {
   const effectiveUrl = (webhookUrl || getSavedGoogleSheetsUrl()).trim();
 
-  // 1. Intentar primero a través de la API segura del servidor /api/sheets
-  // Esto elimina problemas de CORS y lee directamente GOOGLE_SHEETS_WEBAPP_URL de Vercel
+  // 1. Intentar a través de la API segura del servidor /api/sheets
   try {
     const apiResp = await fetch('/api/sheets', {
       method: 'POST',
@@ -670,11 +774,22 @@ export async function fetchClientsFromGoogleSheets(webhookUrl?: string): Promise
           clients: sanitizeClientList(apiData.clients),
           sheetName: apiData.sheetName || 'Margen',
           isServerEnv: Boolean(apiData.isServerEnv),
+          needsScriptUpdate: Boolean(apiData.needsScriptUpdate),
         };
       }
+      if (apiData && apiData.message) {
+        throw new Error(apiData.message);
+      }
+    } else {
+      const errData = await apiResp.json().catch(() => null);
+      if (errData && errData.message) {
+        throw new Error(errData.message);
+      }
     }
-  } catch (apiErr) {
-    console.warn('API /api/sheets no disponible o falló, intentando conexión directa:', apiErr);
+  } catch (apiErr: any) {
+    if (apiErr.message && !apiErr.message.includes('Failed to fetch')) {
+      throw apiErr;
+    }
   }
 
   // 2. Fallback a llamada directa si se tiene una URL en el navegador
@@ -754,7 +869,7 @@ export async function syncClientsToGoogleSheets(
     webhookUrl: effectiveUrl,
   };
 
-  // 1. Intentar primero a través de la API segura del servidor /api/sheets
+  // 1. Intentar a través de la API segura del servidor /api/sheets
   try {
     const apiResp = await fetch('/api/sheets', {
       method: 'POST',
@@ -769,9 +884,19 @@ export async function syncClientsToGoogleSheets(
       if (result && (result.status === 'success' || (result as any).success)) {
         return result;
       }
+      if (result && result.message) {
+        throw new Error(result.message);
+      }
+    } else {
+      const errData = await apiResp.json().catch(() => null);
+      if (errData && errData.message) {
+        throw new Error(errData.message);
+      }
     }
-  } catch (apiErr) {
-    console.warn('API /api/sheets no disponible, intentando conexión directa:', apiErr);
+  } catch (apiErr: any) {
+    if (apiErr.message && !apiErr.message.includes('Failed to fetch')) {
+      throw apiErr;
+    }
   }
 
   // 2. Fallback a llamada directa
@@ -799,6 +924,9 @@ export async function testGoogleSheetsConnection(webhookUrl?: string): Promise<{
   message: string;
   sheetName?: string;
   isServerEnv?: boolean;
+  needsScriptUpdate?: boolean;
+  supportsLoadClients?: boolean;
+  errorType?: string;
 }> {
   const effectiveUrl = (webhookUrl || getSavedGoogleSheetsUrl()).trim();
 
@@ -815,12 +943,24 @@ export async function testGoogleSheetsConnection(webhookUrl?: string): Promise<{
           message: statusData.message || 'Conexión con Google Sheet exitosa vía API Segura',
           sheetName: statusData.sheetName || 'Margen',
           isServerEnv: Boolean(statusData.isServerEnv),
+          needsScriptUpdate: Boolean(statusData.needsScriptUpdate),
+          supportsLoadClients: Boolean(statusData.supportsLoadClients),
         };
       } else if (statusData.configured && !statusData.connected) {
         return {
           success: false,
           message: statusData.message || 'Error al conectar con Google Sheets',
           isServerEnv: Boolean(statusData.isServerEnv),
+          errorType: statusData.errorType,
+        };
+      }
+    } else {
+      const errData = await apiResp.json().catch(() => null);
+      if (errData && errData.message) {
+        return {
+          success: false,
+          message: errData.message,
+          errorType: errData.errorType,
         };
       }
     }
@@ -853,6 +993,7 @@ export async function testGoogleSheetsConnection(webhookUrl?: string): Promise<{
         success: true,
         message: data.message || 'Conexión exitosa',
         sheetName: data.sheetName,
+        supportsLoadClients: Boolean(data.supportsLoadClients || Array.isArray(data.clients)),
       };
     } else {
       return {

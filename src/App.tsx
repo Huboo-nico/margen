@@ -82,12 +82,7 @@ export const App: React.FC = () => {
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      if (!url) {
-        showToast('Configura GOOGLE_SHEETS_WEBAPP_URL en Vercel o introduce la URL para sincronizar.', 'info');
-        setIsGoogleSheetsOpen(true);
-      } else {
-        showToast(`Error al guardar en Sheet: ${msg}`, 'error');
-      }
+      showToast(`Error al guardar en Sheet: ${msg}`, 'error');
     } finally {
       setIsSavingToSheets(false);
     }
@@ -110,12 +105,7 @@ export const App: React.FC = () => {
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      if (!url) {
-        showToast('Configura GOOGLE_SHEETS_WEBAPP_URL en Vercel o introduce la URL para sincronizar.', 'info');
-        setIsGoogleSheetsOpen(true);
-      } else {
-        showToast(`Error al cargar desde Sheet: ${msg}`, 'error');
-      }
+      showToast(`Error al cargar desde Sheet: ${msg}`, 'error');
     } finally {
       setIsLoadingFromSheets(false);
     }

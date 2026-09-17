@@ -13,7 +13,7 @@ export function getBackendGoogleSheetsUrl(): string {
 }
 
 export async function handleSheetsRequest(req: Request | any, res: Response | any) {
-  // Configurar cabeceras CORS por si Vercel Serverless Function es llamada desde distintos orígenes
+  // Configurar cabeceras CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-custom-webhook-url');
@@ -24,38 +24,123 @@ export async function handleSheetsRequest(req: Request | any, res: Response | an
 
   const configuredUrl = getBackendGoogleSheetsUrl();
 
-  // Permitir URL opcional enviada en header o body solo si no está configurada en el servidor (para pruebas locales)
-  const fallbackUrl = (
+  // Permitir URL opcional enviada en header o body para pruebas específicas
+  const requestedUrl = (
     (req.headers && (req.headers['x-custom-webhook-url'] as string)) ||
     (req.body && (req.body.webhookUrl as string)) ||
     (req.query && (req.query.webhookUrl as string)) ||
     ''
   ).trim();
 
-  const targetUrl = configuredUrl || fallbackUrl;
+  // Si se solicita status con una URL específica en query, probar esa URL; si no, usar la del servidor
+  const targetUrl = (req.query?.action === 'status' && requestedUrl)
+    ? requestedUrl
+    : (configuredUrl || requestedUrl);
 
-  // Manejar acción de estado / verificación
   const action = (req.query?.action as string) || (req.body?.action as string) || 'load_clients';
 
+  // 1. Verificación de formato básico de URL
+  if (targetUrl) {
+    if (targetUrl.includes('docs.google.com/spreadsheets')) {
+      return res.status(400).json({
+        status: 'error',
+        success: false,
+        configured: true,
+        errorType: 'IS_SPREADSHEET_URL',
+        message:
+          'Has configurado la URL de la hoja de cálculo de Google (docs.google.com/spreadsheets/...) en lugar de la URL de la Web App de Apps Script (script.google.com/macros/s/.../exec). Abre tu hoja de cálculo > Extensiones > Apps Script > Implementar > Nueva implementación > Tipo: Aplicación web > Copiar URL.',
+      });
+    }
+
+    if (targetUrl.endsWith('/dev')) {
+      return res.status(400).json({
+        status: 'error',
+        success: false,
+        configured: true,
+        errorType: 'IS_DEV_URL',
+        message:
+          'La URL termina en /dev. Las URLs de desarrollo de Google Apps Script requieren inicio de sesión de desarrollador. En Apps Script haz clic en: Implementar > Administrar implementaciones y copia la URL terminada en /exec.',
+      });
+    }
+  }
+
+  // 2. Acción STATUS / DIAGNÓSTICO
   if (action === 'status') {
     if (!targetUrl) {
       return res.status(200).json({
         configured: false,
-        message: 'Variable GOOGLE_SHEETS_WEBAPP_URL no configurada en las variables de entorno de Vercel.',
+        connected: false,
+        message:
+          'Variable GOOGLE_SHEETS_WEBAPP_URL no configurada en Vercel ni URL local ingresada.',
       });
     }
 
     try {
+      // Probar GET inicial
       const pingResponse = await fetch(targetUrl, {
         method: 'GET',
+        redirect: 'follow',
       });
-      const pingData: any = await pingResponse.json();
+
+      const text = await pingResponse.text();
+
+      // Detección de bloqueo de Google Accounts (HTML Login)
+      if (text.includes('<!DOCTYPE') || text.includes('accounts.google.com') || text.includes('ServiceLogin')) {
+        return res.status(200).json({
+          configured: true,
+          isServerEnv: Boolean(configuredUrl),
+          connected: false,
+          errorType: 'AUTH_REQUIRED',
+          message:
+            'Google Apps Script solicita inicio de sesión. La Web App no está abierta al público: en Google Apps Script ve a Implementar > Administrar implementaciones > Editar > Quién tiene acceso > cambia a "Cualquier persona" (Anyone) > Implementar.',
+        });
+      }
+
+      let pingData: any = {};
+      try {
+        pingData = JSON.parse(text);
+      } catch {
+        return res.status(200).json({
+          configured: true,
+          isServerEnv: Boolean(configuredUrl),
+          connected: false,
+          errorType: 'INVALID_JSON',
+          message: `Google Apps Script respondió con un formato no válido: ${text.slice(0, 150)}`,
+        });
+      }
+
+      // Probar si el script soporta lectura de clientes (load_clients)
+      let supportsLoadClients = false;
+      try {
+        const testLoad = await fetch(targetUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'load_clients' }),
+          redirect: 'follow',
+        });
+        const loadText = await testLoad.text();
+        const loadJson = JSON.parse(loadText);
+        if (loadJson && loadJson.status === 'success' && Array.isArray(loadJson.clients)) {
+          supportsLoadClients = true;
+        }
+      } catch {
+        supportsLoadClients = false;
+      }
+
+      const isConnected = pingData.status === 'success';
+
       return res.status(200).json({
         configured: true,
         isServerEnv: Boolean(configuredUrl),
-        connected: pingData.status === 'success',
+        connected: isConnected,
         sheetName: pingData.sheetName || 'Margen',
-        message: pingData.message || 'Conexión exitosa con Google Sheet',
+        supportsLoadClients,
+        needsScriptUpdate: isConnected && !supportsLoadClients,
+        message: isConnected
+          ? supportsLoadClients
+            ? `Conexión activa con Google Sheet: "${pingData.sheetName || 'Margen'}" (Lectura y Escritura operativas).`
+            : `Conexión detectada con "${pingData.sheetName || 'Margen'}", pero el script en Google Apps Script necesita actualizarse a la nueva versión para permitir leer clientes en otros ordenadores.`
+          : pingData.message || 'Error de conexión con el script de Google',
       });
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -79,68 +164,102 @@ export async function handleSheetsRequest(req: Request | any, res: Response | an
     });
   }
 
-  try {
-    // Si la acción es load_clients (tanto por GET como por POST)
-    if (action === 'load' || action === 'load_clients') {
-      // 1. Intentar POST con { action: 'load_clients' } (Node sigue los 302 de Google transparentemente)
-      let googleData: any = null;
-      let postError: string | null = null;
+  // 3. Acción LOAD / LOAD_CLIENTS
+  if (action === 'load' || action === 'load_clients') {
+    let googleData: any = null;
+    let postError: string | null = null;
 
+    // A) Intentar vía POST con { action: 'load_clients' }
+    try {
+      const postResp = await fetch(targetUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8',
+        },
+        body: JSON.stringify({ action: 'load_clients' }),
+        redirect: 'follow',
+      });
+
+      const postText = await postResp.text();
+      if (!postText.includes('<!DOCTYPE')) {
+        const parsed = JSON.parse(postText);
+        if (parsed && parsed.status === 'success' && Array.isArray(parsed.clients)) {
+          googleData = parsed;
+        }
+      }
+    } catch (err: unknown) {
+      postError = err instanceof Error ? err.message : String(err);
+    }
+
+    // B) Fallback a GET si el script responde por doGet
+    if (!googleData || !Array.isArray(googleData.clients)) {
       try {
-        const postResp = await fetch(targetUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'text/plain;charset=utf-8',
-          },
-          body: JSON.stringify({ action: 'load_clients' }),
+        const getResp = await fetch(targetUrl, {
+          method: 'GET',
+          redirect: 'follow',
         });
+        const getText = await getResp.text();
 
-        if (postResp.ok) {
-          const parsed = await postResp.json();
-          if (parsed && parsed.status === 'success' && Array.isArray(parsed.clients)) {
-            googleData = parsed;
-          }
+        if (getText.includes('<!DOCTYPE') || getText.includes('accounts.google.com')) {
+          return res.status(403).json({
+            status: 'error',
+            success: false,
+            errorType: 'AUTH_REQUIRED',
+            message:
+              'Google Apps Script solicita inicio de sesión. Cambia "Quién tiene acceso" a "Cualquier persona" (Anyone) en Administrar implementaciones.',
+          });
         }
-      } catch (err: unknown) {
-        postError = err instanceof Error ? err.message : String(err);
-      }
 
-      // 2. Fallback a GET si el script responde por doGet
-      if (!googleData || !Array.isArray(googleData.clients)) {
-        try {
-          const getResp = await fetch(targetUrl, { method: 'GET' });
-          if (getResp.ok) {
-            googleData = await getResp.json();
-          }
-        } catch (getErr: unknown) {
-          const getMsg = getErr instanceof Error ? getErr.message : String(getErr);
-          throw new Error(`Fallo en GET: ${getMsg}. ${postError ? `(Fallo en POST: ${postError})` : ''}`);
+        const parsed = JSON.parse(getText);
+        if (parsed && parsed.status === 'success') {
+          googleData = parsed;
         }
-      }
-
-      if (googleData && googleData.status === 'success') {
-        return res.status(200).json({
-          status: 'success',
-          success: true,
-          configured: true,
-          isServerEnv: Boolean(configuredUrl),
-          clients: googleData.clients || [],
-          sheetName: googleData.sheetName || 'Margen',
-          message: googleData.message || 'Clientes recuperados con éxito',
+      } catch (getErr: unknown) {
+        const getMsg = getErr instanceof Error ? getErr.message : String(getErr);
+        return res.status(500).json({
+          status: 'error',
+          success: false,
+          message: `Error al leer clientes desde Google Sheets: ${getMsg}. ${postError ? `(POST también falló: ${postError})` : ''}`,
         });
       }
+    }
 
-      return res.status(500).json({
-        status: 'error',
-        success: false,
-        message: googleData?.message || 'Respuesta inválida desde Google Sheets',
+    if (googleData && googleData.status === 'success') {
+      const clientsList = Array.isArray(googleData.clients) ? googleData.clients : [];
+      return res.status(200).json({
+        status: 'success',
+        success: true,
+        configured: true,
+        isServerEnv: Boolean(configuredUrl),
+        clients: clientsList,
+        totalClients: clientsList.length,
+        sheetName: googleData.sheetName || 'Margen',
+        needsScriptUpdate: !Array.isArray(googleData.clients),
+        message: googleData.message || `Recuperados ${clientsList.length} clientes desde Google Sheets`,
       });
     }
 
-    // Si es save_client o sync_all (enviar datos al script)
+    return res.status(500).json({
+      status: 'error',
+      success: false,
+      message: googleData?.message || 'Respuesta inválida desde Google Sheets al cargar clientes',
+    });
+  }
+
+  // 4. Acción SAVE_CLIENT o SYNC_ALL
+  try {
+    const rawBody = req.body || {};
+    
+    // Retrocompatibilidad total: enviamos tanto `client` como `clients`
+    const client = rawBody.client;
+    const clients = rawBody.clients || (client ? [client] : []);
+
     const payload = {
-      ...req.body,
-      exportedAt: req.body?.exportedAt || new Date().toISOString(),
+      ...rawBody,
+      action: rawBody.action || (client ? 'save_client' : 'sync_all'),
+      client: client,
+      clients: clients,
+      exportedAt: rawBody.exportedAt || new Date().toISOString(),
     };
 
     const googleResp = await fetch(targetUrl, {
@@ -149,21 +268,38 @@ export async function handleSheetsRequest(req: Request | any, res: Response | an
         'Content-Type': 'text/plain;charset=utf-8',
       },
       body: JSON.stringify(payload),
+      redirect: 'follow',
     });
 
-    if (!googleResp.ok) {
-      throw new Error(`Google Apps Script devolvió código ${googleResp.status}: ${googleResp.statusText}`);
+    const respText = await googleResp.text();
+
+    if (respText.includes('<!DOCTYPE') || respText.includes('accounts.google.com')) {
+      return res.status(403).json({
+        status: 'error',
+        success: false,
+        errorType: 'AUTH_REQUIRED',
+        message:
+          'Google Apps Script requiere inicio de sesión. Cambia "Quién tiene acceso" a "Cualquier persona" (Anyone) en Administrar implementaciones.',
+      });
     }
 
-    const result = await googleResp.json();
-    return res.status(200).json(result);
+    try {
+      const result = JSON.parse(respText);
+      return res.status(200).json(result);
+    } catch {
+      return res.status(500).json({
+        status: 'error',
+        success: false,
+        message: `Google Apps Script respondió con un formato inesperado: ${respText.slice(0, 200)}`,
+      });
+    }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     console.error('Error en /api/sheets proxy:', message);
     return res.status(500).json({
       status: 'error',
       success: false,
-      message: `Error en la API de sincronización con Google Sheets: ${message}`,
+      message: `Error al comunicar con Google Sheets: ${message}`,
     });
   }
 }

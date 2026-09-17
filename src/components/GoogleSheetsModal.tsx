@@ -21,6 +21,7 @@ import {
   Globe,
   RotateCcw,
   Lock,
+  AlertTriangle,
 } from 'lucide-react';
 import {
   GOOGLE_APPS_SCRIPT_CODE,
@@ -162,6 +163,13 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
         success: res.success,
         message: res.message + (res.sheetName ? ` (${res.sheetName})` : ''),
       });
+      if (res.needsScriptUpdate !== undefined) {
+        setServerStatus((prev) =>
+          prev
+            ? { ...prev, needsScriptUpdate: res.needsScriptUpdate, supportsLoadClients: res.supportsLoadClients }
+            : prev
+        );
+      }
       if (res.success && url) {
         saveGoogleSheetsUrl(url);
       }
@@ -289,6 +297,8 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
   const usaCount = clients.filter(
     (c) => ((c.inputs && c.inputs.warehouse) || '').toLowerCase() === 'usa'
   ).length;
+
+  const canOperate = Boolean(url || serverStatus?.configured);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
@@ -563,7 +573,11 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
                       value={url}
                       onChange={(e) => setUrl(e.target.value)}
                       onBlur={handleSaveUrl}
-                      placeholder="https://script.google.com/macros/s/.../exec"
+                      placeholder={
+                        serverStatus?.configured
+                          ? 'Configurado en Vercel Backend (GOOGLE_SHEETS_WEBAPP_URL)'
+                          : 'https://script.google.com/macros/s/.../exec'
+                      }
                       className={`w-full px-3 py-2 text-xs rounded-lg font-mono border focus:outline-none ${
                         isDark
                           ? 'bg-[#120e26] border-[#2E2A48] text-white focus:border-emerald-500'
@@ -574,7 +588,7 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
                       <button
                         type="button"
                         onClick={handleTestConnection}
-                        disabled={testingConnection || !url}
+                        disabled={testingConnection || !canOperate}
                         className="px-3 py-1.5 text-xs font-semibold bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition disabled:opacity-50 cursor-pointer flex items-center gap-1"
                       >
                         <RefreshCw className={`w-3.5 h-3.5 ${testingConnection ? 'animate-spin' : ''}`} />
@@ -587,7 +601,7 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
                           handleSaveUrl();
                           setActiveTab('sync');
                         }}
-                        disabled={!url}
+                        disabled={!canOperate}
                         className="px-4 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition disabled:opacity-50 cursor-pointer flex items-center gap-1"
                       >
                         <Send className="w-3.5 h-3.5" />
@@ -665,7 +679,11 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     onBlur={handleSaveUrl}
-                    placeholder="https://script.google.com/macros/s/.../exec"
+                    placeholder={
+                      serverStatus?.configured
+                        ? 'Configurado en Vercel Backend (GOOGLE_SHEETS_WEBAPP_URL)'
+                        : 'https://script.google.com/macros/s/.../exec'
+                    }
                     className={`flex-1 px-3 py-2 text-xs rounded-lg font-mono border focus:outline-none ${
                       isDark
                         ? 'bg-[#120e26] border-[#2E2A48] text-white focus:border-emerald-500'
@@ -688,13 +706,38 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
                   <button
                     type="button"
                     onClick={handleTestConnection}
-                    disabled={testingConnection || !url}
+                    disabled={testingConnection || !canOperate}
                     className="px-3 py-2 text-xs font-semibold bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition disabled:opacity-50 cursor-pointer flex items-center gap-1"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${testingConnection ? 'animate-spin' : ''}`} />
                     <span>{language === 'en' ? 'Test' : 'Probar'}</span>
                   </button>
                 </div>
+
+                {serverStatus?.needsScriptUpdate && (
+                  <div className="p-4 rounded-xl border border-amber-500/60 bg-amber-500/10 text-amber-200 space-y-2">
+                    <div className="flex items-center gap-2 font-bold text-amber-400">
+                      <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>¡Actualización de Script necesaria para sincronizar entre ordenadores!</span>
+                    </div>
+                    <p className="text-[11.5px] leading-relaxed text-amber-100">
+                      Tu Google Sheet responde, pero tu Google Apps Script tiene la versión antigua que no puede enviar los clientes a otros ordenadores.
+                    </p>
+                    <div className="text-[11px] space-y-1 pl-3 border-l-2 border-amber-500/50 text-gray-300">
+                      <p>1. En tu hoja Google Sheet &gt; <strong>Extensiones &gt; Apps Script</strong>.</p>
+                      <p>2. Reemplaza todo el código en <em>Código.gs</em> con el nuevo script.</p>
+                      <p>3. <strong>Paso clave:</strong> Haz clic en <strong>Implementar &gt; Administrar implementaciones &gt; Editar (icono lápiz) &gt; Versión: "Nueva versión" &gt; Implementar</strong>.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCopyScript}
+                      className="mt-1 inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-semibold cursor-pointer transition"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>{copiedCode ? '¡Script Copiado!' : 'Copiar Código del Script Actualizado'}</span>
+                    </button>
+                  </div>
+                )}
 
                 {isEnvConfigured && url !== VERCEL_ENV_GOOGLE_SHEETS_URL && (
                   <div className="flex items-center justify-between text-xs px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-300">
@@ -866,7 +909,7 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
                     <button
                       type="button"
                       onClick={handleSaveCurrentClient}
-                      disabled={savingSingle || !url}
+                      disabled={savingSingle || !canOperate}
                       className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                     >
                       <Save className={`w-3.5 h-3.5 ${savingSingle ? 'animate-spin' : ''}`} />
@@ -928,7 +971,7 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
                     <button
                       type="button"
                       onClick={handleFetchClientsFromSheets}
-                      disabled={loadingClients || !url}
+                      disabled={loadingClients || !canOperate}
                       className="w-full py-2.5 px-4 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                     >
                       <Download className={`w-3.5 h-3.5 ${loadingClients ? 'animate-spin' : ''}`} />
@@ -964,7 +1007,7 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
                 <button
                   type="button"
                   onClick={handleSyncNow}
-                  disabled={syncing || !url}
+                  disabled={syncing || !canOperate}
                   className="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-xl shadow-lg transition flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
