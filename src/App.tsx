@@ -21,6 +21,7 @@ import {
   getSavedGoogleSheetsUrl,
   saveSingleClientToGoogleSheets,
   fetchClientsFromGoogleSheets,
+  checkServerSheetsStatus,
 } from './utils/googleSheets';
 
 const STORAGE_KEY = 'fulfilment_calculator_clients_v2';
@@ -66,19 +67,13 @@ export const App: React.FC = () => {
 
   const handleQuickSaveCurrentClient = async () => {
     const url = getSavedGoogleSheetsUrl();
-    if (!url) {
-      showToast('Introduce la URL de tu Web App de Google Apps Script para guardar en este ordenador.', 'info');
-      setIsGoogleSheetsOpen(true);
-      return;
-    }
-
     const clientToSave = clients.find((c) => c.id === activeClientId) || clients[0];
     if (!clientToSave) return;
 
     setIsSavingToSheets(true);
     try {
-      const res = await saveSingleClientToGoogleSheets(clientToSave, url);
-      if (res.status === 'success') {
+      const res = await saveSingleClientToGoogleSheets(clientToSave, url || undefined);
+      if (res.status === 'success' || (res as any).success) {
         setSaveToSheetsSuccess(true);
         showToast(res.message || `Cliente "${clientToSave.name}" guardado en Google Sheet.`, 'success');
         setTimeout(() => setSaveToSheetsSuccess(false), 3000);
@@ -87,7 +82,12 @@ export const App: React.FC = () => {
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      showToast(`Error al guardar en Sheet: ${msg}`, 'error');
+      if (!url) {
+        showToast('Configura GOOGLE_SHEETS_WEBAPP_URL en Vercel o introduce la URL para sincronizar.', 'info');
+        setIsGoogleSheetsOpen(true);
+      } else {
+        showToast(`Error al guardar en Sheet: ${msg}`, 'error');
+      }
     } finally {
       setIsSavingToSheets(false);
     }
@@ -95,15 +95,9 @@ export const App: React.FC = () => {
 
   const handleQuickLoadClients = async () => {
     const url = getSavedGoogleSheetsUrl();
-    if (!url) {
-      showToast('Introduce la URL de tu Web App de Google Apps Script para cargar los datos en este ordenador.', 'info');
-      setIsGoogleSheetsOpen(true);
-      return;
-    }
-
     setIsLoadingFromSheets(true);
     try {
-      const res = await fetchClientsFromGoogleSheets(url);
+      const res = await fetchClientsFromGoogleSheets(url || undefined);
       if (res.success && res.clients.length > 0) {
         setClients(res.clients);
         setActiveClientId(res.clients[0].id);
@@ -116,11 +110,41 @@ export const App: React.FC = () => {
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      showToast(`Error al cargar desde Sheet: ${msg}`, 'error');
+      if (!url) {
+        showToast('Configura GOOGLE_SHEETS_WEBAPP_URL en Vercel o introduce la URL para sincronizar.', 'info');
+        setIsGoogleSheetsOpen(true);
+      } else {
+        showToast(`Error al cargar desde Sheet: ${msg}`, 'error');
+      }
     } finally {
       setIsLoadingFromSheets(false);
     }
   };
+
+  // Carga automática inicial desde Google Sheet si la API del servidor tiene GOOGLE_SHEETS_WEBAPP_URL configurada
+  useEffect(() => {
+    let active = true;
+    checkServerSheetsStatus()
+      .then(async (st) => {
+        if (st.configured && active) {
+          try {
+            const res = await fetchClientsFromGoogleSheets();
+            if (res.success && res.clients.length > 0 && active) {
+              setClients(res.clients);
+              setActiveClientId(res.clients[0].id);
+              setInputs(res.clients[0].inputs);
+            }
+          } catch {
+            // Silencioso al inicio para no interrumpir si no hay conexión
+          }
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // When activeClientId changes, update inputs
   useEffect(() => {

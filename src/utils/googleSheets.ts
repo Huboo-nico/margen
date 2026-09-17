@@ -451,6 +451,27 @@ function setupInitialSheets() {
   SpreadsheetApp.getUi().alert("✅ Pestañas preparadas: Spain, UK, USA y Resumen General creadas correctamente.");
 }`;
 
+export interface ServerStatusResponse {
+  configured: boolean;
+  isServerEnv?: boolean;
+  connected?: boolean;
+  sheetName?: string;
+  message?: string;
+  error?: string;
+}
+
+export async function checkServerSheetsStatus(): Promise<ServerStatusResponse> {
+  try {
+    const res = await fetch('/api/sheets?action=status');
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch {
+    // API endpoint not reachable yet
+  }
+  return { configured: false, message: 'API no disponible' };
+}
+
 // URL configurada en Vercel Dashboard -> Settings -> Environment Variables (VITE_GOOGLE_SHEETS_WEBAPP_URL)
 export const VERCEL_ENV_GOOGLE_SHEETS_URL: string = (
   (import.meta.env.VITE_GOOGLE_SHEETS_WEBAPP_URL as string | undefined) ||
@@ -516,15 +537,53 @@ export interface SyncResponse {
   timestamp?: string;
   clientName?: string;
   territory?: string;
+  isServerEnv?: boolean;
+}
+
+function sanitizeClientList(rawList: any[]): ClientProfile[] {
+  return rawList.map((c: any, idx: number) => {
+    const id = String(c.id || `client-${Date.now()}-${idx}`);
+    const name = String(c.name || (c.inputs && c.inputs.clientName) || `Cliente ${idx + 1}`);
+    const rawInputs = c.inputs || {};
+
+    return {
+      id,
+      name,
+      notes: String(c.notes || rawInputs.clientNotes || ''),
+      updatedAt: String(c.updatedAt || new Date().toISOString()),
+      inputs: {
+        ...DEFAULT_INPUTS,
+        ...rawInputs,
+        clientName: name,
+        ordersMonth: Number(rawInputs.ordersMonth) || DEFAULT_INPUTS.ordersMonth,
+        unitsPerOrder: Number(rawInputs.unitsPerOrder) || DEFAULT_INPUTS.unitsPerOrder,
+        skuCount: Number(rawInputs.skuCount) || DEFAULT_INPUTS.skuCount,
+        workingDays: Number(rawInputs.workingDays) || DEFAULT_INPUTS.workingDays,
+        ordersPerDay:
+          Number(rawInputs.ordersPerDay) ||
+          Math.round(
+            (Number(rawInputs.ordersMonth) || DEFAULT_INPUTS.ordersMonth) /
+              (Number(rawInputs.workingDays) || 22)
+          ),
+        mixSpk: Number(rawInputs.mixSpk) ?? DEFAULT_INPUTS.mixSpk,
+        mixSpl: Number(rawInputs.mixSpl) ?? DEFAULT_INPUTS.mixSpl,
+        mixMpl: Number(rawInputs.mixMpl) ?? DEFAULT_INPUTS.mixMpl,
+        mixLpl: Number(rawInputs.mixLpl) ?? DEFAULT_INPUTS.mixLpl,
+        packPriceManual: Number(rawInputs.packPriceManual) || 0,
+        firstPickPriceManual: Number(rawInputs.firstPickPriceManual) || 0,
+        additionalPickPriceManual: Number(rawInputs.additionalPickPriceManual) || 0,
+        shippingPriceManual: Number(rawInputs.shippingPriceManual) || 0,
+        technologies: Array.isArray(rawInputs.technologies) ? rawInputs.technologies : [],
+      },
+    };
+  });
 }
 
 export async function saveSingleClientToGoogleSheets(
   client: ClientProfile,
-  webhookUrl: string
+  webhookUrl?: string
 ): Promise<{ status: 'success' | 'error'; message: string; clientName?: string; territory?: string }> {
-  if (!webhookUrl || !webhookUrl.startsWith('https://script.google.com/')) {
-    throw new Error('La URL de Google Apps Script debe comenzar con https://script.google.com/...');
-  }
+  const effectiveUrl = (webhookUrl || getSavedGoogleSheetsUrl()).trim();
 
   const enrichedClient = {
     profile: client,
@@ -536,40 +595,100 @@ export async function saveSingleClientToGoogleSheets(
     action: 'save_client',
     client: enrichedClient,
     exportedAt: new Date().toISOString(),
+    webhookUrl: effectiveUrl,
   };
 
-  const response = await fetch(webhookUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'text/plain;charset=utf-8',
-    },
-    body: JSON.stringify(payload),
-  });
+  // 1. Intentar primero a través de la API segura del servidor /api/sheets
+  try {
+    const apiResp = await fetch('/api/sheets', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
 
-  if (!response.ok) {
-    throw new Error(`Error en el servidor de Google (${response.status}): ${response.statusText}`);
+    if (apiResp.ok) {
+      const data = await apiResp.json();
+      if (data && (data.status === 'success' || data.success)) {
+        return data;
+      }
+    }
+  } catch (apiErr) {
+    console.warn('API /api/sheets no disponible, intentando conexión directa:', apiErr);
   }
 
-  return await response.json();
+  // 2. Fallback a llamada directa al Webhook si se proporcionó una URL válida en el cliente
+  if (effectiveUrl && effectiveUrl.startsWith('https://script.google.com/')) {
+    const response = await fetch(effectiveUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error en el servidor de Google (${response.status}): ${response.statusText}`);
+    }
+
+    return await response.json();
+  }
+
+  throw new Error('Configura la variable GOOGLE_SHEETS_WEBAPP_URL en Vercel o introduce la URL en la aplicación.');
 }
 
-export async function fetchClientsFromGoogleSheets(webhookUrl: string): Promise<{
+export async function fetchClientsFromGoogleSheets(webhookUrl?: string): Promise<{
   success: boolean;
   message: string;
   clients: ClientProfile[];
   sheetName?: string;
+  isServerEnv?: boolean;
 }> {
-  if (!webhookUrl || !webhookUrl.startsWith('https://script.google.com/')) {
-    throw new Error('La URL de Google Apps Script debe comenzar con https://script.google.com/...');
+  const effectiveUrl = (webhookUrl || getSavedGoogleSheetsUrl()).trim();
+
+  // 1. Intentar primero a través de la API segura del servidor /api/sheets
+  // Esto elimina problemas de CORS y lee directamente GOOGLE_SHEETS_WEBAPP_URL de Vercel
+  try {
+    const apiResp = await fetch('/api/sheets', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'load_clients',
+        webhookUrl: effectiveUrl,
+      }),
+    });
+
+    if (apiResp.ok) {
+      const apiData = await apiResp.json();
+      if (apiData && (apiData.status === 'success' || apiData.success) && Array.isArray(apiData.clients)) {
+        return {
+          success: true,
+          message: apiData.message || `Cargados ${apiData.clients.length} clientes`,
+          clients: sanitizeClientList(apiData.clients),
+          sheetName: apiData.sheetName || 'Margen',
+          isServerEnv: Boolean(apiData.isServerEnv),
+        };
+      }
+    }
+  } catch (apiErr) {
+    console.warn('API /api/sheets no disponible o falló, intentando conexión directa:', apiErr);
   }
 
-  // 1. Intentar primero con POST (acción 'load_clients')
-  // Usar text/plain evita bloqueos CORS preflight y problemas de cookies de redirección 302 en diferentes ordenadores
+  // 2. Fallback a llamada directa si se tiene una URL en el navegador
+  if (!effectiveUrl || !effectiveUrl.startsWith('https://script.google.com/')) {
+    throw new Error(
+      'Para que todos los ordenadores carguen los datos automáticamente, configura GOOGLE_SHEETS_WEBAPP_URL en las variables de entorno de Vercel.'
+    );
+  }
+
   let data: any = null;
   let fetchError: Error | null = null;
 
   try {
-    const postResponse = await fetch(webhookUrl, {
+    const postResponse = await fetch(effectiveUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'text/plain;charset=utf-8',
@@ -587,10 +706,9 @@ export async function fetchClientsFromGoogleSheets(webhookUrl: string): Promise<
     fetchError = err instanceof Error ? err : new Error(String(err));
   }
 
-  // 2. Fallback a GET si POST no devolvió clientes (ej: script antiguo que solo tiene doGet)
   if (!data || !Array.isArray(data.clients)) {
     try {
-      const getResponse = await fetch(webhookUrl, {
+      const getResponse = await fetch(effectiveUrl, {
         method: 'GET',
       });
 
@@ -606,43 +724,10 @@ export async function fetchClientsFromGoogleSheets(webhookUrl: string): Promise<
   }
 
   if (data && data.status === 'success' && Array.isArray(data.clients)) {
-    // Sanitizar y validar cada cliente asegurando valores por defecto
-    const sanitizedClients: ClientProfile[] = data.clients.map((c: any, idx: number) => {
-      const id = String(c.id || `client-${Date.now()}-${idx}`);
-      const name = String(c.name || (c.inputs && c.inputs.clientName) || `Cliente ${idx + 1}`);
-      const rawInputs = c.inputs || {};
-
-      return {
-        id,
-        name,
-        notes: String(c.notes || rawInputs.clientNotes || ''),
-        updatedAt: String(c.updatedAt || new Date().toISOString()),
-        inputs: {
-          ...DEFAULT_INPUTS,
-          ...rawInputs,
-          clientName: name,
-          ordersMonth: Number(rawInputs.ordersMonth) || DEFAULT_INPUTS.ordersMonth,
-          unitsPerOrder: Number(rawInputs.unitsPerOrder) || DEFAULT_INPUTS.unitsPerOrder,
-          skuCount: Number(rawInputs.skuCount) || DEFAULT_INPUTS.skuCount,
-          workingDays: Number(rawInputs.workingDays) || DEFAULT_INPUTS.workingDays,
-          ordersPerDay: Number(rawInputs.ordersPerDay) || Math.round((Number(rawInputs.ordersMonth) || DEFAULT_INPUTS.ordersMonth) / (Number(rawInputs.workingDays) || 22)),
-          mixSpk: Number(rawInputs.mixSpk) ?? DEFAULT_INPUTS.mixSpk,
-          mixSpl: Number(rawInputs.mixSpl) ?? DEFAULT_INPUTS.mixSpl,
-          mixMpl: Number(rawInputs.mixMpl) ?? DEFAULT_INPUTS.mixMpl,
-          mixLpl: Number(rawInputs.mixLpl) ?? DEFAULT_INPUTS.mixLpl,
-          packPriceManual: Number(rawInputs.packPriceManual) || 0,
-          firstPickPriceManual: Number(rawInputs.firstPickPriceManual) || 0,
-          additionalPickPriceManual: Number(rawInputs.additionalPickPriceManual) || 0,
-          shippingPriceManual: Number(rawInputs.shippingPriceManual) || 0,
-          technologies: Array.isArray(rawInputs.technologies) ? rawInputs.technologies : [],
-        },
-      };
-    });
-
     return {
       success: true,
-      message: data.message || `Cargados ${sanitizedClients.length} clientes`,
-      clients: sanitizedClients,
+      message: data.message || `Cargados ${data.clients.length} clientes`,
+      clients: sanitizeClientList(data.clients),
       sheetName: data.sheetName,
     };
   }
@@ -652,13 +737,10 @@ export async function fetchClientsFromGoogleSheets(webhookUrl: string): Promise<
 
 export async function syncClientsToGoogleSheets(
   clients: ClientProfile[],
-  webhookUrl: string
+  webhookUrl?: string
 ): Promise<SyncResponse> {
-  if (!webhookUrl || !webhookUrl.startsWith('https://script.google.com/')) {
-    throw new Error('La URL de Google Apps Script debe comenzar con https://script.google.com/...');
-  }
+  const effectiveUrl = (webhookUrl || getSavedGoogleSheetsUrl()).trim();
 
-  // Empaquetar clientes con sus resultados calculados
   const enrichedClients = clients.map((c) => ({
     profile: c,
     inputs: c.inputs,
@@ -669,31 +751,84 @@ export async function syncClientsToGoogleSheets(
     action: 'sync_all',
     clients: enrichedClients,
     exportedAt: new Date().toISOString(),
+    webhookUrl: effectiveUrl,
   };
 
-  // Usamos text/plain para evitar problemas de CORS preflight con Google Apps Script
-  const response = await fetch(webhookUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'text/plain;charset=utf-8',
-    },
-    body: JSON.stringify(payload),
-  });
+  // 1. Intentar primero a través de la API segura del servidor /api/sheets
+  try {
+    const apiResp = await fetch('/api/sheets', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
 
-  if (!response.ok) {
-    throw new Error(`Error en el servidor de Google (${response.status}): ${response.statusText}`);
+    if (apiResp.ok) {
+      const result: SyncResponse = await apiResp.json();
+      if (result && (result.status === 'success' || (result as any).success)) {
+        return result;
+      }
+    }
+  } catch (apiErr) {
+    console.warn('API /api/sheets no disponible, intentando conexión directa:', apiErr);
   }
 
-  const result: SyncResponse = await response.json();
-  return result;
+  // 2. Fallback a llamada directa
+  if (effectiveUrl && effectiveUrl.startsWith('https://script.google.com/')) {
+    const response = await fetch(effectiveUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error en el servidor de Google (${response.status}): ${response.statusText}`);
+    }
+
+    return await response.json();
+  }
+
+  throw new Error('Configura GOOGLE_SHEETS_WEBAPP_URL en Vercel o introduce la URL en la calculadora.');
 }
 
-export async function testGoogleSheetsConnection(webhookUrl: string): Promise<{
+export async function testGoogleSheetsConnection(webhookUrl?: string): Promise<{
   success: boolean;
   message: string;
   sheetName?: string;
+  isServerEnv?: boolean;
 }> {
-  if (!webhookUrl || !webhookUrl.startsWith('https://script.google.com/')) {
+  const effectiveUrl = (webhookUrl || getSavedGoogleSheetsUrl()).trim();
+
+  // 1. Verificar estado a través de la API
+  try {
+    const apiResp = await fetch(
+      `/api/sheets?action=status${effectiveUrl ? `&webhookUrl=${encodeURIComponent(effectiveUrl)}` : ''}`
+    );
+    if (apiResp.ok) {
+      const statusData = await apiResp.json();
+      if (statusData.configured && statusData.connected) {
+        return {
+          success: true,
+          message: statusData.message || 'Conexión con Google Sheet exitosa vía API Segura',
+          sheetName: statusData.sheetName || 'Margen',
+          isServerEnv: Boolean(statusData.isServerEnv),
+        };
+      } else if (statusData.configured && !statusData.connected) {
+        return {
+          success: false,
+          message: statusData.message || 'Error al conectar con Google Sheets',
+          isServerEnv: Boolean(statusData.isServerEnv),
+        };
+      }
+    }
+  } catch {
+    // fallback to direct check
+  }
+
+  if (!effectiveUrl || !effectiveUrl.startsWith('https://script.google.com/')) {
     return {
       success: false,
       message: 'La URL no tiene el formato de Google Apps Script (https://script.google.com/...)',
@@ -701,7 +836,7 @@ export async function testGoogleSheetsConnection(webhookUrl: string): Promise<{
   }
 
   try {
-    const response = await fetch(webhookUrl, {
+    const response = await fetch(effectiveUrl, {
       method: 'GET',
     });
 

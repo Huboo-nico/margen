@@ -20,6 +20,7 @@ import {
   ShieldCheck,
   Globe,
   RotateCcw,
+  Lock,
 } from 'lucide-react';
 import {
   GOOGLE_APPS_SCRIPT_CODE,
@@ -34,6 +35,8 @@ import {
   VERCEL_ENV_GOOGLE_SHEETS_URL,
   hasVercelEnvGoogleSheetsUrl,
   resetGoogleSheetsUrlToEnv,
+  checkServerSheetsStatus,
+  ServerStatusResponse,
 } from '../utils/googleSheets';
 
 interface GoogleSheetsModalProps {
@@ -72,8 +75,9 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
 
   const [copiedVarName, setCopiedVarName] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
+  const [serverStatus, setServerStatus] = useState<ServerStatusResponse | null>(null);
 
-  const isEnvConfigured = hasVercelEnvGoogleSheetsUrl();
+  const isEnvConfigured = Boolean(serverStatus?.configured || hasVercelEnvGoogleSheetsUrl());
 
   useEffect(() => {
     if (isOpen) {
@@ -84,11 +88,20 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
       setSyncError(null);
       setSingleResult(null);
       setLoadResult(null);
-      if (saved) {
-        setActiveTab('sync');
-      } else {
-        setActiveTab('setup');
-      }
+
+      checkServerSheetsStatus()
+        .then((st) => {
+          setServerStatus(st);
+          if (st.configured || saved) {
+            setActiveTab('sync');
+          } else {
+            setActiveTab('setup');
+          }
+        })
+        .catch(() => {
+          if (saved) setActiveTab('sync');
+          else setActiveTab('setup');
+        });
     }
   }, [isOpen]);
 
@@ -101,7 +114,7 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
   };
 
   const handleCopyVarName = () => {
-    navigator.clipboard.writeText('VITE_GOOGLE_SHEETS_WEBAPP_URL');
+    navigator.clipboard.writeText('GOOGLE_SHEETS_WEBAPP_URL');
     setCopiedVarName(true);
     setTimeout(() => setCopiedVarName(false), 2500);
   };
@@ -131,22 +144,25 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
   };
 
   const handleTestConnection = async () => {
-    if (!url) {
+    if (!url && !serverStatus?.configured) {
       setTestResult({
         success: false,
-        message: language === 'en' ? 'Please enter a valid URL first.' : 'Por favor ingresa primero la URL de Apps Script.',
+        message:
+          language === 'en'
+            ? 'Please enter a valid URL or configure GOOGLE_SHEETS_WEBAPP_URL in Vercel first.'
+            : 'Por favor ingresa primero la URL o configura GOOGLE_SHEETS_WEBAPP_URL en Vercel.',
       });
       return;
     }
     setTestingConnection(true);
     setTestResult(null);
     try {
-      const res = await testGoogleSheetsConnection(url);
+      const res = await testGoogleSheetsConnection(url || undefined);
       setTestResult({
         success: res.success,
         message: res.message + (res.sheetName ? ` (${res.sheetName})` : ''),
       });
-      if (res.success) {
+      if (res.success && url) {
         saveGoogleSheetsUrl(url);
       }
     } catch (err: unknown) {
@@ -161,11 +177,11 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
   };
 
   const handleSyncNow = async () => {
-    if (!url) {
+    if (!url && !serverStatus?.configured) {
       setSyncError(
         language === 'en'
-          ? 'Enter your Google Apps Script Web App URL first.'
-          : 'Introduce primero la URL de la aplicación web de Google Apps Script.'
+          ? 'Enter your Google Apps Script Web App URL first or configure GOOGLE_SHEETS_WEBAPP_URL in Vercel.'
+          : 'Introduce primero la URL de la aplicación web o configura GOOGLE_SHEETS_WEBAPP_URL en Vercel.'
       );
       return;
     }
@@ -175,8 +191,8 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
     setSyncError(null);
 
     try {
-      saveGoogleSheetsUrl(url);
-      const res = await syncClientsToGoogleSheets(clients, url);
+      if (url) saveGoogleSheetsUrl(url);
+      const res = await syncClientsToGoogleSheets(clients, url || undefined);
       setSyncResult(res);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -187,10 +203,11 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
   };
 
   const handleSaveCurrentClient = async () => {
-    if (!url) {
+    if (!url && !serverStatus?.configured) {
       setSingleResult({
         success: false,
-        message: 'Introduce primero la URL de la Web App en la configuración.',
+        message:
+          'Introduce primero la URL de la Web App en la configuración o configura GOOGLE_SHEETS_WEBAPP_URL en Vercel.',
       });
       return;
     }
@@ -201,8 +218,8 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
     setSingleResult(null);
 
     try {
-      saveGoogleSheetsUrl(url);
-      const res = await saveSingleClientToGoogleSheets(target, url);
+      if (url) saveGoogleSheetsUrl(url);
+      const res = await saveSingleClientToGoogleSheets(target, url || undefined);
       setSingleResult({
         success: res.status === 'success',
         message: res.message || `Cliente "${target.name}" guardado exitosamente.`,
@@ -219,10 +236,11 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
   };
 
   const handleFetchClientsFromSheets = async () => {
-    if (!url) {
+    if (!url && !serverStatus?.configured) {
       setLoadResult({
         success: false,
-        message: 'Introduce primero la URL de la Web App de Apps Script.',
+        message:
+          'Introduce primero la URL de la Web App de Apps Script o configura GOOGLE_SHEETS_WEBAPP_URL en Vercel.',
       });
       return;
     }
@@ -231,8 +249,8 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
     setLoadResult(null);
 
     try {
-      saveGoogleSheetsUrl(url);
-      const res = await fetchClientsFromGoogleSheets(url);
+      if (url) saveGoogleSheetsUrl(url);
+      const res = await fetchClientsFromGoogleSheets(url || undefined);
       if (res.success && res.clients.length > 0) {
         if (onLoadClients) {
           onLoadClients(res.clients);
@@ -611,11 +629,26 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
                   </label>
 
                   <div className="flex items-center gap-2">
-                    {isEnvConfigured && (
+                    {serverStatus?.configured ? (
+                      <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/40 font-semibold flex items-center gap-1.5 shadow-xs">
+                        <Lock className="w-3 h-3 text-emerald-400" />
+                        <span>API Segura Vercel Activa</span>
+                      </span>
+                    ) : isEnvConfigured ? (
                       <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-medium flex items-center gap-1">
                         <Globe className="w-3 h-3" />
                         <span>Vercel ENV</span>
                       </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleCopyVarName}
+                        className="text-[11px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/30 font-medium flex items-center gap-1 hover:bg-blue-500/20 transition cursor-pointer"
+                        title="Haz clic para copiar el nombre de la variable para Vercel"
+                      >
+                        <Copy className="w-3 h-3" />
+                        <span>{copiedVarName ? '¡Copiado!' : 'GOOGLE_SHEETS_WEBAPP_URL'}</span>
+                      </button>
                     )}
                     {url && (
                       <span className="text-[11px] text-emerald-500 font-semibold flex items-center gap-1">
@@ -697,21 +730,53 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
 
               {/* Multi-computer synchronization callout */}
               <div
-                className={`p-3.5 rounded-xl border text-xs space-y-1.5 ${
-                  isDark
+                className={`p-4 rounded-xl border text-xs space-y-2.5 ${
+                  serverStatus?.configured
+                    ? isDark
+                      ? 'bg-emerald-950/20 border-emerald-500/40 text-emerald-200'
+                      : 'bg-emerald-50 border-emerald-300 text-emerald-950'
+                    : isDark
                     ? 'bg-[#18142e] border-[#2E2A48] text-gray-300'
                     : 'bg-[#F9F7F2] border-[#E8E1D3] text-[#4D453E]'
                 }`}
               >
-                <div className="flex items-center gap-1.5 font-bold text-emerald-500">
-                  <Globe className="w-3.5 h-3.5" />
-                  <span>{language === 'en' ? 'Sincronización entre varios ordenadores' : '¿Usas la app desde varios ordenadores?'}</span>
-                </div>
-                <p className="text-[11.5px] leading-relaxed">
-                  {language === 'en'
-                    ? '1. Save your Web App URL here on each computer, OR 2. Configure VITE_GOOGLE_SHEETS_WEBAPP_URL in your Vercel Project Settings so all computers and team members connect automatically without configuring anything.'
-                    : '1. Guarda tu URL del Webhook aquí en cada ordenador al abrirlo por primera vez, O 2. Configura la variable VITE_GOOGLE_SHEETS_WEBAPP_URL en tu panel de Vercel (Project Settings > Environment Variables) para que cualquier ordenador o dispositivo se conecte automáticamente siempre.'}
-                </p>
+                {serverStatus?.configured ? (
+                  <>
+                    <div className="flex items-center gap-2 font-bold text-emerald-400">
+                      <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Sincronización Centralizada Activa vía API Vercel</span>
+                    </div>
+                    <p className="text-[11.5px] leading-relaxed">
+                      La variable <code className="px-1.5 py-0.5 rounded bg-emerald-500/20 font-mono font-bold text-emerald-300">GOOGLE_SHEETS_WEBAPP_URL</code> está activa en el servidor. Todos los ordenadores y miembros de tu equipo acceden y guardan cotizaciones en Google Sheets automáticamente y de forma 100% segura sin exponer la URL en el navegador.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-1.5 font-bold text-emerald-500">
+                        <Lock className="w-3.5 h-3.5" />
+                        <span>Sincronización Segura en Todos los Ordenadores (API Backend Vercel)</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleCopyVarName}
+                        className="px-2.5 py-1 text-[11px] font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-md transition cursor-pointer flex items-center gap-1"
+                      >
+                        <Copy className="w-3 h-3" />
+                        <span>{copiedVarName ? '¡Nombre Copiado!' : 'Copiar GOOGLE_SHEETS_WEBAPP_URL'}</span>
+                      </button>
+                    </div>
+                    <p className="text-[11.5px] leading-relaxed">
+                      Para que cualquier ordenador cargue las cotizaciones automáticamente sin tener que ingresar la URL cada vez:
+                    </p>
+                    <ol className="list-decimal list-inside text-[11px] space-y-1 pl-1 text-gray-400">
+                      <li>Abre tu panel en <strong className="text-white">Vercel &gt; Proyecto (margen-beige) &gt; Settings &gt; Environment Variables</strong>.</li>
+                      <li>Añade la variable: <code className="px-1 py-0.5 rounded bg-black/40 font-mono text-emerald-300 font-bold">GOOGLE_SHEETS_WEBAPP_URL</code> (sin prefijo VITE, 100% privada).</li>
+                      <li>Pega el valor de tu URL de Web App de Google Apps Script (terminada en <span className="font-mono">/exec</span>) y guarda.</li>
+                      <li>Despliega un nuevo commit o pulsa <em>Redeploy</em> en Vercel. ¡A partir de ese instante todos tus ordenadores cargarán los clientes al abrir la web!</li>
+                    </ol>
+                  </>
+                )}
               </div>
 
               {/* Partition Summary */}
