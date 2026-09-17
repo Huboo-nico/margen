@@ -16,7 +16,7 @@ import { CurrencySwitcher } from './components/CurrencySwitcher';
 import { ThemeSwitcher } from './components/ThemeSwitcher';
 import { useLanguage } from './context/LanguageContext';
 import { useTheme } from './context/ThemeContext';
-import { PackageCheck, CheckCircle2, AlertCircle } from 'lucide-react';
+import { PackageCheck, CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import {
   getSavedGoogleSheetsUrl,
   saveSingleClientToGoogleSheets,
@@ -47,7 +47,7 @@ export const App: React.FC = () => {
   const [isSavingToSheets, setIsSavingToSheets] = useState<boolean>(false);
   const [isLoadingFromSheets, setIsLoadingFromSheets] = useState<boolean>(false);
   const [saveToSheetsSuccess, setSaveToSheetsSuccess] = useState<boolean>(false);
-  const [toastMessage, setToastMessage] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [toastMessage, setToastMessage] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   const [activeTab, setActiveTab] = useState<
     'Resumen' | 'Precios & Margen' | 'Desglose' | 'Propuesta Cliente' | 'Comparativa' | 'Rate card' | 'Ayuda'
@@ -57,7 +57,7 @@ export const App: React.FC = () => {
   const currentClient = clients.find((c) => c.id === activeClientId) || clients[0];
   const [inputs, setInputs] = useState<CalculatorInputs>(currentClient.inputs);
 
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToastMessage({ message, type });
     setTimeout(() => {
       setToastMessage((cur) => (cur?.message === message ? null : cur));
@@ -67,6 +67,7 @@ export const App: React.FC = () => {
   const handleQuickSaveCurrentClient = async () => {
     const url = getSavedGoogleSheetsUrl();
     if (!url) {
+      showToast('Introduce la URL de tu Web App de Google Apps Script para guardar en este ordenador.', 'info');
       setIsGoogleSheetsOpen(true);
       return;
     }
@@ -95,6 +96,7 @@ export const App: React.FC = () => {
   const handleQuickLoadClients = async () => {
     const url = getSavedGoogleSheetsUrl();
     if (!url) {
+      showToast('Introduce la URL de tu Web App de Google Apps Script para cargar los datos en este ordenador.', 'info');
       setIsGoogleSheetsOpen(true);
       return;
     }
@@ -107,8 +109,10 @@ export const App: React.FC = () => {
         setActiveClientId(res.clients[0].id);
         setInputs(res.clients[0].inputs);
         showToast(`Cargados ${res.clients.length} clientes desde Google Sheet ("${res.sheetName || 'Margen'}").`, 'success');
+      } else if (res.success && res.clients.length === 0) {
+        showToast('Conexión con Google Sheet exitosa, pero la hoja no tiene clientes guardados aún. Guarda algún cliente primero con "Guardar en Sheet".', 'info');
       } else {
-        showToast('No se encontraron clientes en Google Sheet.', 'error');
+        showToast(res.message || 'No se pudieron recuperar clientes de Google Sheet.', 'error');
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -379,7 +383,6 @@ export const App: React.FC = () => {
                 onRenameClient={handleRenameClientById}
                 onUpdateNotes={handleUpdateNotes}
                 onDeleteClient={handleDeleteClient}
-                onOpenGoogleSheets={() => setIsGoogleSheetsOpen(true)}
               />
             )}
             {activeTab === 'Rate card' && <RateCardTab />}
@@ -404,16 +407,20 @@ export const App: React.FC = () => {
 
       {/* Floating Action Toast */}
       {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 animate-in fade-in slide-in-from-bottom-3 duration-300">
+        <div className="fixed bottom-5 right-5 z-50 animate-in fade-in slide-in-from-bottom-3 duration-300 max-w-md">
           <div
             className={`flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border text-xs font-semibold ${
               toastMessage.type === 'success'
                 ? 'bg-[#121B17] text-emerald-300 border-emerald-500/40 shadow-emerald-950/40'
+                : toastMessage.type === 'info'
+                ? 'bg-[#141A29] text-blue-300 border-blue-500/40 shadow-blue-950/40'
                 : 'bg-[#221316] text-red-300 border-red-500/40 shadow-red-950/40'
             }`}
           >
             {toastMessage.type === 'success' ? (
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            ) : toastMessage.type === 'info' ? (
+              <Info className="w-4 h-4 text-blue-400 shrink-0" />
             ) : (
               <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
             )}

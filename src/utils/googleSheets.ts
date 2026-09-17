@@ -1,5 +1,6 @@
 import { ClientProfile } from '../types';
 import { calculateAll } from './calculations';
+import { DEFAULT_INPUTS } from '../data/constants';
 
 export const GOOGLE_SHEETS_STORAGE_KEY = 'huboo_google_sheets_webapp_url_v1';
 
@@ -25,6 +26,7 @@ export const GOOGLE_SHEET_COLUMNS = [
   'Canales / Integraciones',
   'Notas Comerciales',
   'Última Actualización',
+  'Datos Completos (JSON)',
 ];
 
 export const GOOGLE_APPS_SCRIPT_CODE = `/**
@@ -64,80 +66,105 @@ var COLUMNS = [
   "Fecha Go-Live",
   "Canales / Integraciones",
   "Notas Comerciales",
-  "Última Actualización"
+  "Última Actualización",
+  "Datos Completos (JSON)"
 ];
+
+// Función universal de lectura de clientes
+function readClientsFromSpreadsheet(ss) {
+  var sheet = ss.getSheetByName("Resumen General");
+  if (!sheet) {
+    sheet = ss.getSheets()[0];
+  }
+
+  var lastRow = sheet.getLastRow();
+  var clients = [];
+
+  if (lastRow > 1) {
+    var maxCols = Math.max(sheet.getLastColumn(), COLUMNS.length);
+    var data = sheet.getRange(2, 1, lastRow - 1, maxCols).getValues();
+
+    clients = data.map(function(row, index) {
+      // 1. Si existe JSON completo en la columna 22 (índice 21), cargarlo directamente para 100% de precisión
+      var jsonStr = row[21];
+      if (jsonStr && typeof jsonStr === "string" && jsonStr.trim().charAt(0) === "{") {
+        try {
+          var parsed = JSON.parse(jsonStr);
+          if (parsed) {
+            var profile = parsed.profile || parsed;
+            if (profile && (profile.inputs || profile.name)) {
+              return profile;
+            }
+          }
+        } catch (e) {
+          // fallback
+        }
+      }
+
+      // 2. Reconstrucción por columnas individuales
+      var clientId = String(row[0] || ("client-" + (index + 1)));
+      var clientName = String(row[1] || ("Cliente " + (index + 1)));
+      var warehouse = String(row[2] || "Spain");
+      var productType = String(row[3] || "Suplementos");
+      var skuCount = Number(row[4]) || 1;
+      var ordersMonth = Number(row[5]) || 100;
+      var unitsPerOrder = Number(row[6]) || 1;
+      var packPrice = Number(row[7]) || 0;
+      var firstPickPrice = Number(row[8]) || 0;
+      var addPickPrice = Number(row[9]) || 0;
+      var shippingPrice = Number(row[10]) || 0;
+      var goLiveDate = String(row[17] || "");
+      var techs = row[18] ? String(row[18]).split(",").map(function(s) { return s.trim(); }).filter(Boolean) : [];
+      var notes = String(row[19] || "");
+      var updatedAt = String(row[20] || new Date().toISOString());
+
+      return {
+        id: clientId,
+        name: clientName,
+        notes: notes,
+        updatedAt: updatedAt,
+        inputs: {
+          clientName: clientName,
+          warehouse: warehouse,
+          productType: productType,
+          skuCount: skuCount,
+          ordersMonth: ordersMonth,
+          unitsPerOrder: unitsPerOrder,
+          packCostSource: "Calculadora (negociado)",
+          volumeMode: "Pedidos/mes",
+          workingDays: 22,
+          ordersPerDay: Math.round(ordersMonth / 22),
+          mixSpk: 40,
+          mixSpl: 40,
+          mixMpl: 15,
+          mixLpl: 5,
+          packPriceManual: packPrice,
+          firstPickPriceManual: firstPickPrice,
+          additionalPickPriceManual: addPickPrice,
+          shippingPriceManual: shippingPrice,
+          goLiveDate: goLiveDate,
+          technologies: techs,
+          clientNotes: notes
+        }
+      };
+    });
+  }
+
+  return {
+    status: "success",
+    sheetName: ss.getName(),
+    totalClients: clients.length,
+    clients: clients,
+    message: "Cargados " + clients.length + " clientes desde " + ss.getName()
+  };
+}
 
 // GET: Cargar clientes desde la hoja hacia la aplicación web
 function doGet(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName("Resumen General");
-    if (!sheet) {
-      sheet = ss.getSheets()[0];
-    }
-
-    var lastRow = sheet.getLastRow();
-    var clients = [];
-
-    if (lastRow > 1) {
-      var data = sheet.getRange(2, 1, lastRow - 1, COLUMNS.length).getValues();
-      clients = data.map(function(row, index) {
-        var clientId = String(row[0] || ("client-" + (index + 1)));
-        var clientName = String(row[1] || ("Cliente " + (index + 1)));
-        var warehouse = String(row[2] || "Spain");
-        var productType = String(row[3] || "Suplementos");
-        var skuCount = Number(row[4]) || 1;
-        var ordersMonth = Number(row[5]) || 100;
-        var unitsPerOrder = Number(row[6]) || 1;
-        var packPrice = Number(row[7]) || 0;
-        var firstPickPrice = Number(row[8]) || 0;
-        var addPickPrice = Number(row[9]) || 0;
-        var shippingPrice = Number(row[10]) || 0;
-        var goLiveDate = String(row[17] || "");
-        var techs = row[18] ? String(row[18]).split(",").map(function(s) { return s.trim(); }).filter(Boolean) : [];
-        var notes = String(row[19] || "");
-        var updatedAt = String(row[20] || new Date().toISOString());
-
-        return {
-          id: clientId,
-          name: clientName,
-          notes: notes,
-          updatedAt: updatedAt,
-          inputs: {
-            clientName: clientName,
-            warehouse: warehouse,
-            productType: productType,
-            skuCount: skuCount,
-            ordersMonth: ordersMonth,
-            unitsPerOrder: unitsPerOrder,
-            packCostSource: "Calculadora (negociado)",
-            volumeMode: "Pedidos/mes",
-            workingDays: 22,
-            ordersPerDay: Math.round(ordersMonth / 22),
-            mixSpk: 40,
-            mixSpl: 40,
-            mixMpl: 15,
-            mixLpl: 5,
-            packPriceManual: packPrice,
-            firstPickPriceManual: firstPickPrice,
-            additionalPickPriceManual: addPickPrice,
-            shippingPriceManual: shippingPrice,
-            goLiveDate: goLiveDate,
-            technologies: techs,
-            clientNotes: notes
-          }
-        };
-      });
-    }
-
-    return ContentService.createTextOutput(JSON.stringify({
-      status: "success",
-      sheetName: ss.getName(),
-      totalClients: clients.length,
-      clients: clients,
-      message: "Cargados " + clients.length + " clientes desde " + ss.getName()
-    })).setMimeType(ContentService.MimeType.JSON);
-
+    var result = readClientsFromSpreadsheet(ss);
+    return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({
       status: "error",
@@ -146,7 +173,7 @@ function doGet(e) {
   }
 }
 
-// POST: Guardar cliente cotizado o sincronizar todo
+// POST: Guardar cliente cotizado, sincronizar todo o cargar clientes (evita bloqueos CORS entre ordenadores)
 function doPost(e) {
   try {
     var raw = e.postData ? e.postData.contents : "";
@@ -160,6 +187,12 @@ function doPost(e) {
     var payload = JSON.parse(raw);
     var action = payload.action || "save_client";
     var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    // Cargar clientes vía POST (100% fiable desde cualquier ordenador sin redirección ni bloqueos)
+    if (action === "load_clients" || action === "get_clients") {
+      var loadResult = readClientsFromSpreadsheet(ss);
+      return ContentService.createTextOutput(JSON.stringify(loadResult)).setMimeType(ContentService.MimeType.JSON);
+    }
 
     // 1. Guardar / Actualizar cliente individual (en tiempo real mientras cotizas)
     if (action === "save_client" && payload.client) {
@@ -260,7 +293,8 @@ function upsertClientInSheet(sheet, item) {
     res.goLiveDate || inp.goLiveDate || "",
     channels,
     p.notes || inp.clientNotes || "",
-    new Date().toLocaleString()
+    new Date().toLocaleString(),
+    JSON.stringify(p)
   ];
 
   var lastRow = sheet.getLastRow();
@@ -353,7 +387,8 @@ function syncFullSheet(ss, sheetName, clientsList, headerBgColor) {
       res.goLiveDate || inp.goLiveDate || "",
       channels,
       p.notes || inp.clientNotes || "",
-      new Date().toLocaleString()
+      new Date().toLocaleString(),
+      JSON.stringify(p)
     ];
   });
 
@@ -528,25 +563,91 @@ export async function fetchClientsFromGoogleSheets(webhookUrl: string): Promise<
     throw new Error('La URL de Google Apps Script debe comenzar con https://script.google.com/...');
   }
 
-  const response = await fetch(webhookUrl, {
-    method: 'GET',
-  });
+  // 1. Intentar primero con POST (acción 'load_clients')
+  // Usar text/plain evita bloqueos CORS preflight y problemas de cookies de redirección 302 en diferentes ordenadores
+  let data: any = null;
+  let fetchError: Error | null = null;
 
-  if (!response.ok) {
-    throw new Error(`Error HTTP (${response.status}): ${response.statusText}`);
+  try {
+    const postResponse = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8',
+      },
+      body: JSON.stringify({ action: 'load_clients' }),
+    });
+
+    if (postResponse.ok) {
+      const parsed = await postResponse.json();
+      if (parsed && parsed.status === 'success' && Array.isArray(parsed.clients)) {
+        data = parsed;
+      }
+    }
+  } catch (err: unknown) {
+    fetchError = err instanceof Error ? err : new Error(String(err));
   }
 
-  const data = await response.json();
-  if (data.status === 'success' && Array.isArray(data.clients)) {
+  // 2. Fallback a GET si POST no devolvió clientes (ej: script antiguo que solo tiene doGet)
+  if (!data || !Array.isArray(data.clients)) {
+    try {
+      const getResponse = await fetch(webhookUrl, {
+        method: 'GET',
+      });
+
+      if (!getResponse.ok) {
+        throw new Error(`Error HTTP (${getResponse.status}): ${getResponse.statusText}`);
+      }
+
+      data = await getResponse.json();
+    } catch (getErr: unknown) {
+      const errMsg = getErr instanceof Error ? getErr.message : String(getErr);
+      throw new Error(`Error al conectar con Google Sheets (${errMsg}). ${fetchError ? `(POST también falló: ${fetchError.message})` : ''}`);
+    }
+  }
+
+  if (data && data.status === 'success' && Array.isArray(data.clients)) {
+    // Sanitizar y validar cada cliente asegurando valores por defecto
+    const sanitizedClients: ClientProfile[] = data.clients.map((c: any, idx: number) => {
+      const id = String(c.id || `client-${Date.now()}-${idx}`);
+      const name = String(c.name || (c.inputs && c.inputs.clientName) || `Cliente ${idx + 1}`);
+      const rawInputs = c.inputs || {};
+
+      return {
+        id,
+        name,
+        notes: String(c.notes || rawInputs.clientNotes || ''),
+        updatedAt: String(c.updatedAt || new Date().toISOString()),
+        inputs: {
+          ...DEFAULT_INPUTS,
+          ...rawInputs,
+          clientName: name,
+          ordersMonth: Number(rawInputs.ordersMonth) || DEFAULT_INPUTS.ordersMonth,
+          unitsPerOrder: Number(rawInputs.unitsPerOrder) || DEFAULT_INPUTS.unitsPerOrder,
+          skuCount: Number(rawInputs.skuCount) || DEFAULT_INPUTS.skuCount,
+          workingDays: Number(rawInputs.workingDays) || DEFAULT_INPUTS.workingDays,
+          ordersPerDay: Number(rawInputs.ordersPerDay) || Math.round((Number(rawInputs.ordersMonth) || DEFAULT_INPUTS.ordersMonth) / (Number(rawInputs.workingDays) || 22)),
+          mixSpk: Number(rawInputs.mixSpk) ?? DEFAULT_INPUTS.mixSpk,
+          mixSpl: Number(rawInputs.mixSpl) ?? DEFAULT_INPUTS.mixSpl,
+          mixMpl: Number(rawInputs.mixMpl) ?? DEFAULT_INPUTS.mixMpl,
+          mixLpl: Number(rawInputs.mixLpl) ?? DEFAULT_INPUTS.mixLpl,
+          packPriceManual: Number(rawInputs.packPriceManual) || 0,
+          firstPickPriceManual: Number(rawInputs.firstPickPriceManual) || 0,
+          additionalPickPriceManual: Number(rawInputs.additionalPickPriceManual) || 0,
+          shippingPriceManual: Number(rawInputs.shippingPriceManual) || 0,
+          technologies: Array.isArray(rawInputs.technologies) ? rawInputs.technologies : [],
+        },
+      };
+    });
+
     return {
       success: true,
-      message: data.message || `Cargados ${data.clients.length} clientes`,
-      clients: data.clients,
+      message: data.message || `Cargados ${sanitizedClients.length} clientes`,
+      clients: sanitizedClients,
       sheetName: data.sheetName,
     };
   }
 
-  throw new Error(data.message || 'Respuesta inválida al cargar clientes de Google Sheet');
+  throw new Error(data?.message || 'Respuesta inválida al cargar clientes de Google Sheet');
 }
 
 export async function syncClientsToGoogleSheets(

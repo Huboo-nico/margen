@@ -323,14 +323,14 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
 
         {/* Tab switcher */}
         <div
-          className={`flex items-center gap-2 px-6 pt-3 border-b text-xs font-semibold ${
+          className={`flex items-center gap-2 px-4 sm:px-6 pt-3 border-b text-xs font-semibold overflow-x-auto scrollbar-none whitespace-nowrap ${
             isDark ? 'border-[#2E2A48] bg-[#17132B]' : 'border-gray-200 bg-gray-50/50'
           }`}
         >
           <button
             type="button"
             onClick={() => setActiveTab('setup')}
-            className={`pb-2.5 px-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer ${
+            className={`pb-2.5 px-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
               activeTab === 'setup'
                 ? 'border-emerald-500 text-emerald-500'
                 : 'border-transparent text-gray-400 hover:text-gray-200'
@@ -343,7 +343,7 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('sync')}
-            className={`pb-2.5 px-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer ${
+            className={`pb-2.5 px-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
               activeTab === 'sync'
                 ? 'border-emerald-500 text-emerald-500'
                 : 'border-transparent text-gray-400 hover:text-gray-200'
@@ -356,7 +356,7 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('columns')}
-            className={`pb-2.5 px-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer ${
+            className={`pb-2.5 px-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
               activeTab === 'columns'
                 ? 'border-emerald-500 text-emerald-500'
                 : 'border-transparent text-gray-400 hover:text-gray-200'
@@ -369,7 +369,7 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('code')}
-            className={`pb-2.5 px-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer ${
+            className={`pb-2.5 px-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
               activeTab === 'code'
                 ? 'border-emerald-500 text-emerald-500'
                 : 'border-transparent text-gray-400 hover:text-gray-200'
@@ -381,7 +381,7 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
         </div>
 
         {/* Content Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
           {/* TAB 1: STEP BY STEP SETUP */}
           {activeTab === 'setup' && (
             <div className="space-y-6">
@@ -693,6 +693,25 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
                     <span>{testResult.message}</span>
                   </div>
                 )}
+              </div>
+
+              {/* Multi-computer synchronization callout */}
+              <div
+                className={`p-3.5 rounded-xl border text-xs space-y-1.5 ${
+                  isDark
+                    ? 'bg-[#18142e] border-[#2E2A48] text-gray-300'
+                    : 'bg-[#F9F7F2] border-[#E8E1D3] text-[#4D453E]'
+                }`}
+              >
+                <div className="flex items-center gap-1.5 font-bold text-emerald-500">
+                  <Globe className="w-3.5 h-3.5" />
+                  <span>{language === 'en' ? 'Sincronización entre varios ordenadores' : '¿Usas la app desde varios ordenadores?'}</span>
+                </div>
+                <p className="text-[11.5px] leading-relaxed">
+                  {language === 'en'
+                    ? '1. Save your Web App URL here on each computer, OR 2. Configure VITE_GOOGLE_SHEETS_WEBAPP_URL in your Vercel Project Settings so all computers and team members connect automatically without configuring anything.'
+                    : '1. Guarda tu URL del Webhook aquí en cada ordenador al abrirlo por primera vez, O 2. Configura la variable VITE_GOOGLE_SHEETS_WEBAPP_URL en tu panel de Vercel (Project Settings > Environment Variables) para que cualquier ordenador o dispositivo se conecte automáticamente siempre.'}
+                </p>
               </div>
 
               {/* Partition Summary */}

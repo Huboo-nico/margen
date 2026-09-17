@@ -109,23 +109,23 @@ ${currentInputs.warehouse ? `Warehouse / Almacén: ${currentInputs.warehouse}\n`
   };
 
   return (
-    <div className={`px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs no-print print:hidden transition-colors duration-200 ${
+    <div className={`px-3 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2.5 text-xs no-print print:hidden transition-colors duration-200 ${
       isDark
         ? 'bg-[#1A162B] border-b border-[#2E2A48] text-gray-200'
         : 'bg-[#FAF7F2] border-b border-[#E5DDD0] text-[#2D2825]'
     }`}>
       {/* Left section: Client switcher & DIRECT NAME EDITOR */}
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-2 sm:gap-3 flex-wrap flex-1 min-w-0">
         {/* Selector */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 shrink-0">
           <span className={`font-semibold flex items-center gap-1 ${isDark ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`}>
             <Users className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{t('client.select')}</span>
+            <span className="hidden md:inline">{t('client.select')}</span>
           </span>
           <select
             value={activeClientId}
             onChange={(e) => onSelectClient(e.target.value)}
-            className={`rounded px-2.5 py-1 text-xs font-bold cursor-pointer max-w-[150px] sm:max-w-[200px] truncate transition ${
+            className={`rounded px-2 py-1 text-xs font-bold cursor-pointer max-w-[130px] sm:max-w-[180px] truncate transition ${
               isDark
                 ? 'bg-[#120e26] border border-[#2E2A48] text-white focus:ring-2 focus:ring-[#47D2BF]'
                 : 'border border-[#E5DDD0] bg-white text-[#2D2825] focus:ring-2 focus:ring-[#6B4ABF]'
@@ -140,13 +140,13 @@ ${currentInputs.warehouse ? `Warehouse / Almacén: ${currentInputs.warehouse}\n`
         </div>
 
         {/* INLINE EDITABLE CLIENT NAME */}
-        <div className={`flex items-center gap-1.5 rounded-md px-2 py-0.5 shadow-2xs ${
+        <div className={`flex items-center gap-1.5 rounded-md px-2 py-0.5 shadow-2xs flex-1 sm:flex-initial min-w-[130px] ${
           isDark
             ? 'bg-[#25203D] border border-[#47D2BF]/40'
             : 'bg-[#F4EEE4] border border-[#D5C9B8]'
         }`}>
           <Edit3 className={`w-3.5 h-3.5 shrink-0 ${isDark ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`} />
-          <span className={`text-[11px] font-bold whitespace-nowrap ${isDark ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`}>
+          <span className={`text-[11px] font-bold whitespace-nowrap hidden xs:inline ${isDark ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`}>
             {t('client.name')}
           </span>
           <input
@@ -155,7 +155,7 @@ ${currentInputs.warehouse ? `Warehouse / Almacén: ${currentInputs.warehouse}\n`
             value={currentInputs.clientName || ''}
             onChange={(e) => onRenameClient(e.target.value)}
             placeholder={t('client.placeholderName')}
-            className={`rounded px-2 py-0.5 text-xs font-bold focus:outline-none w-36 sm:w-52 md:w-64 transition shadow-inner ${
+            className={`rounded px-2 py-0.5 text-xs font-bold focus:outline-none w-full sm:w-44 md:w-56 transition shadow-inner ${
               isDark
                 ? 'bg-[#120e26] border border-[#2E2A48] text-white focus:ring-2 focus:ring-[#47D2BF]'
                 : 'bg-white border border-[#D5C9B8] text-[#2D2825] focus:ring-2 focus:ring-[#6B4ABF]'
@@ -164,18 +164,18 @@ ${currentInputs.warehouse ? `Warehouse / Almacén: ${currentInputs.warehouse}\n`
         </div>
 
         {/* Origin Warehouse badge */}
-        <div className={`hidden sm:inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md border ${
+        <div className={`inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold px-1.5 sm:px-2 py-0.5 rounded-md border shrink-0 ${
           isDark
             ? 'bg-[#151226] text-[#47D2BF] border-[#2E2A48]'
             : 'bg-[#FAF7F2] text-[#6B4ABF] border-[#D5C9B8]'
         }`} title={language === 'en' ? 'Territory / Fulfillment Warehouse' : 'Territorio / Almacén de salida'}>
-          <Warehouse className="w-3.5 h-3.5" />
+          <Warehouse className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
           <span>{currentInputs.warehouse || 'Spain'}</span>
         </div>
 
         {/* Selected Technologies quick badges */}
         {currentInputs.technologies && currentInputs.technologies.length > 0 && (
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden lg:flex items-center gap-1">
             {currentInputs.technologies.slice(0, 3).map((tech) => (
               <span
                 key={tech}
@@ -199,7 +199,7 @@ ${currentInputs.warehouse ? `Warehouse / Almacén: ${currentInputs.warehouse}\n`
         )}
 
         {/* Optional Notes / Tag */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           {showNotesInput ? (
             <input
               type="text"
@@ -208,7 +208,7 @@ ${currentInputs.warehouse ? `Warehouse / Almacén: ${currentInputs.warehouse}\n`
               onBlur={() => setShowNotesInput(false)}
               placeholder={t('client.placeholderNote')}
               autoFocus
-              className={`rounded px-2 py-0.5 text-[11px] w-44 focus:ring-1 ${
+              className={`rounded px-2 py-0.5 text-[11px] w-32 sm:w-44 focus:ring-1 ${
                 isDark
                   ? 'bg-[#120e26] border border-[#2E2A48] text-white focus:ring-[#47D2BF]'
                   : 'bg-white border border-[#E5DDD0] text-[#2D2825] focus:ring-[#6B4ABF]'
@@ -226,20 +226,20 @@ ${currentInputs.warehouse ? `Warehouse / Almacén: ${currentInputs.warehouse}\n`
               }`}
             >
               <Tag className="w-3 h-3 text-gray-400" />
-              <span className="max-w-[120px] truncate">
+              <span className="max-w-[80px] sm:max-w-[120px] truncate">
                 {activeClient.notes ? activeClient.notes : t('client.addNote')}
               </span>
             </button>
           )}
         </div>
 
-        {/* Quick actions for client */}
-        <div className="flex items-center gap-1">
+        {/* Quick actions for client: New, Duplicate, Delete */}
+        <div className="flex items-center gap-1 shrink-0">
           <button
             type="button"
             onClick={handleCreateAndFocus}
             title={language === 'en' ? 'Create a new client' : 'Crear un nuevo cliente y ponerle nombre'}
-            className="flex items-center gap-1 px-2.5 py-1 bg-[#6B4ABF] hover:bg-[#583aa3] text-white font-semibold rounded shadow-2xs border border-[#47D2BF]/30 transition cursor-pointer"
+            className="flex items-center gap-1 px-2 sm:px-2.5 py-1 bg-[#6B4ABF] hover:bg-[#583aa3] text-white font-semibold rounded shadow-2xs border border-[#47D2BF]/30 transition cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5 text-[#47D2BF]" />
             <span>{t('client.new')}</span>
@@ -277,8 +277,8 @@ ${currentInputs.warehouse ? `Warehouse / Almacén: ${currentInputs.warehouse}\n`
       </div>
 
       {/* Right side: Quick stats & export */}
-      <div className="flex items-center gap-2">
-        <span className="text-[11px] text-gray-400 hidden lg:inline">
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 flex-wrap justify-end">
+        <span className="text-[11px] text-gray-400 hidden xl:inline">
           {clients.length} {language === 'en' ? (clients.length === 1 ? 'saved client' : 'saved clients') : (clients.length === 1 ? 'cliente' : 'clientes')}
         </span>
 
@@ -293,7 +293,7 @@ ${currentInputs.warehouse ? `Warehouse / Almacén: ${currentInputs.warehouse}\n`
                 ? `Save or update "${currentInputs.clientName}" in Google Sheet "Margen"`
                 : `Guardar o actualizar "${currentInputs.clientName}" en la hoja Google Sheet "Margen"`
             }
-            className={`flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-lg transition shadow-2xs border cursor-pointer ${
+            className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 text-xs font-bold rounded-lg transition shadow-2xs border cursor-pointer ${
               saveToSheetsSuccess
                 ? 'bg-emerald-500 text-white border-emerald-400'
                 : isDark
@@ -304,17 +304,20 @@ ${currentInputs.warehouse ? `Warehouse / Almacén: ${currentInputs.warehouse}\n`
             {isSavingToSheets ? (
               <>
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                <span>{language === 'en' ? 'Saving...' : 'Guardando...'}</span>
+                <span className="hidden xs:inline">{language === 'en' ? 'Saving...' : 'Guardando...'}</span>
               </>
             ) : saveToSheetsSuccess ? (
               <>
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>{language === 'en' ? 'Saved to Sheet!' : '¡Guardado en Sheet!'}</span>
+                <span className="hidden xs:inline">{language === 'en' ? 'Saved!' : '¡Guardado!'}</span>
               </>
             ) : (
               <>
                 <Save className="w-3.5 h-3.5" />
-                <span>{language === 'en' ? 'Save to Sheet' : 'Guardar en Sheet'}</span>
+                <span>
+                  <span className="inline sm:hidden">{language === 'en' ? 'Save' : 'Guardar'}</span>
+                  <span className="hidden sm:inline">{language === 'en' ? 'Save to Sheet' : 'Guardar en Sheet'}</span>
+                </span>
               </>
             )}
           </button>
@@ -331,21 +334,22 @@ ${currentInputs.warehouse ? `Warehouse / Almacén: ${currentInputs.warehouse}\n`
                 ? 'Fetch and load saved clients from Google Sheet'
                 : 'Descargar y cargar los clientes guardados en Google Sheet'
             }
-            className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg transition shadow-2xs border cursor-pointer ${
+            className={`flex items-center gap-1 sm:gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg transition shadow-2xs border cursor-pointer ${
               isDark
                 ? 'bg-[#252238] hover:bg-[#2e2a44] text-purple-300 border-purple-500/30'
                 : 'bg-white hover:bg-purple-50 text-purple-700 border-purple-200'
             }`}
           >
             <Download className={`w-3.5 h-3.5 text-purple-500 ${isLoadingFromSheets ? 'animate-bounce' : ''}`} />
-            <span className="hidden sm:inline">
-              {isLoadingFromSheets
-                ? language === 'en'
-                  ? 'Loading...'
-                  : 'Cargando...'
-                : language === 'en'
-                ? 'Load Sheet'
-                : 'Cargar Sheet'}
+            <span>
+              {isLoadingFromSheets ? (
+                language === 'en' ? 'Loading...' : 'Cargando...'
+              ) : (
+                <>
+                  <span className="inline sm:hidden">{language === 'en' ? 'Load' : 'Cargar'}</span>
+                  <span className="hidden sm:inline">{language === 'en' ? 'Load Sheet' : 'Cargar Sheet'}</span>
+                </>
+              )}
             </span>
           </button>
         )}
@@ -353,6 +357,7 @@ ${currentInputs.warehouse ? `Warehouse / Almacén: ${currentInputs.warehouse}\n`
         <button
           type="button"
           onClick={handleCopyQuote}
+          title={language === 'en' ? 'Copy quote summary to clipboard' : 'Copiar resumen de la cotización al portapapeles'}
           className={`flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded transition shadow-2xs cursor-pointer ${
             isDark
               ? 'bg-[#252238] hover:bg-[#2e2a44] text-white border border-[#47D2BF]/40'
@@ -367,7 +372,8 @@ ${currentInputs.warehouse ? `Warehouse / Almacén: ${currentInputs.warehouse}\n`
           ) : (
             <>
               <Download className="w-3 h-3" />
-              <span>{t('client.copyQuote')}</span>
+              <span className="hidden sm:inline">{t('client.copyQuote')}</span>
+              <span className="inline sm:hidden">Copiar</span>
             </>
           )}
         </button>

@@ -171,7 +171,7 @@ export const PriceMarginRow: React.FC<PriceMarginRowProps> = ({
         : 'bg-white border-[#E5DDD0] hover:border-[#D5C9B8]'
     }`}>
       <div className="flex items-start justify-between mb-2.5 flex-wrap gap-2">
-        <div className="flex-1 min-w-[200px]">
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h4 className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>{label}</h4>
             {badge}

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ClientProfile } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { calculateAll, formatEur, formatPct, formatMarkup } from '../utils/calculations';
-import { ArrowRight, Plus, Edit2, Check, Trash2, Tag, Warehouse, ArrowUpDown, Download, FileSpreadsheet } from 'lucide-react';
+import { ArrowRight, Plus, Edit2, Check, Trash2, Tag, Warehouse, ArrowUpDown, Download } from 'lucide-react';
 
 interface ComparativaClientesTabProps {
   clients: ClientProfile[];
@@ -12,7 +12,6 @@ interface ComparativaClientesTabProps {
   onRenameClient: (id: string, newName: string) => void;
   onUpdateNotes: (id: string, notes: string) => void;
   onDeleteClient: (id: string) => void;
-  onOpenGoogleSheets?: () => void;
 }
 
 const productTypeLabels: Record<string, { es: string; en: string }> = {
@@ -37,7 +36,6 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
   onRenameClient,
   onUpdateNotes,
   onDeleteClient,
-  onOpenGoogleSheets,
 }) => {
   const { language } = useLanguage();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -166,7 +164,7 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Export to CSV / Google Sheets */}
+          {/* Export to CSV */}
           <button
             type="button"
             onClick={exportToCsv}
@@ -176,18 +174,6 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
             <Download className="w-3.5 h-3.5 text-emerald-600" />
             <span>{language === 'en' ? 'Export CSV' : 'Exportar CSV'}</span>
           </button>
-
-          {onOpenGoogleSheets && (
-            <button
-              type="button"
-              onClick={onOpenGoogleSheets}
-              title={language === 'en' ? 'Sync all clients to Google Sheet "Margen" by territory' : 'Sincronizar clientes con Google Sheet "Margen" por territorio'}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-2xs transition cursor-pointer"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5" />
-              <span>{language === 'en' ? 'Google Sheets (Margen)' : 'Google Sheets (Margen)'}</span>
-            </button>
-          )}
 
           <button
             type="button"
@@ -200,7 +186,116 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-2xs">
+      {/* Mobile Card View (visible on screens smaller than md) */}
+      <div className="block md:hidden space-y-3">
+        {sortedClients.map(({ profile, res }) => {
+          const isActive = profile.id === activeClientId;
+          const productLabel =
+            productTypeLabels[profile.inputs.productType]?.[language] ||
+            profile.inputs.productType;
+
+          return (
+            <div
+              key={profile.id}
+              className={`p-4 rounded-xl border transition ${
+                isActive
+                  ? 'bg-red-50/40 border-red-300 shadow-xs'
+                  : 'bg-white border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-2 mb-2.5">
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-bold text-sm text-gray-900">{profile.name}</h3>
+                    {isActive && (
+                      <span className="px-2 py-0.5 rounded text-[10px] bg-red-100 text-red-700 font-bold">
+                        {language === 'en' ? 'Active' : 'Activo'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-gray-500 mt-1 flex-wrap">
+                    <span className="inline-flex items-center gap-1 font-medium text-[#6B4ABF]">
+                      <Warehouse className="w-3 h-3" />
+                      {profile.inputs.warehouse || 'Spain'}
+                    </span>
+                    <span>•</span>
+                    <span>{productLabel}</span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => onSelectClient(profile.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shrink-0 ${
+                    isActive
+                      ? 'bg-gray-100 text-gray-600'
+                      : 'bg-red-600 text-white hover:bg-red-700'
+                  }`}
+                >
+                  <span>{isActive ? (language === 'en' ? 'Active' : 'Editando') : (language === 'en' ? 'Select' : 'Abrir')}</span>
+                  {!isActive && <ArrowRight className="w-3 h-3" />}
+                </button>
+              </div>
+
+              {/* Metrics grid */}
+              <div className="grid grid-cols-3 gap-2 p-2.5 bg-gray-50 rounded-lg text-xs mb-3">
+                <div>
+                  <span className="text-[10px] text-gray-400 uppercase block font-semibold">
+                    {language === 'en' ? 'Orders' : 'Pedidos'}
+                  </span>
+                  <span className="font-bold text-gray-900">
+                    {res.ordersMonth.toLocaleString(language === 'en' ? 'en-US' : 'es-ES', { maximumFractionDigits: 0 })}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-gray-400 uppercase block font-semibold">
+                    {language === 'en' ? 'Revenue' : 'Facturación'}
+                  </span>
+                  <span className="font-bold text-gray-900">{formatEur(res.totalRevenueMonth)}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-gray-400 uppercase block font-semibold">
+                    {language === 'en' ? 'Profit' : 'Beneficio'}
+                  </span>
+                  <span className="font-bold text-emerald-700 font-mono">{formatEur(res.totalProfitMonth)}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-xs text-gray-600 pt-1">
+                <div className="flex items-center gap-3">
+                  <span>
+                    Margen:{' '}
+                    <strong className={res.marginTotal !== null && res.marginTotal >= 0.2 ? 'text-gray-900' : 'text-amber-600'}>
+                      {formatPct(res.marginTotal)}
+                    </strong>
+                  </span>
+                  <span>
+                    Markup: <strong className="text-blue-700">{formatMarkup(res.markupTotal)}</strong>
+                  </span>
+                </div>
+
+                {clients.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm(language === 'en' ? `Delete ${profile.name}?` : `¿Eliminar a ${profile.name}?`)) {
+                        onDeleteClient(profile.id);
+                      }
+                    }}
+                    className="p-1 text-gray-400 hover:text-red-600 transition cursor-pointer"
+                    title={language === 'en' ? 'Delete client' : 'Eliminar cliente'}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop Spreadsheet Table View (visible on md+) */}
+      <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden shadow-2xs">
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
             <thead className="bg-gray-50 border-b border-gray-200 text-[11px] font-bold text-gray-600 uppercase">
