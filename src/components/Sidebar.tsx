@@ -4,8 +4,13 @@ import {
   CalculationResults,
   ProductType,
 } from '../types';
-import { PRODUCT_PROFILES, AVAILABLE_WAREHOUSES } from '../data/constants';
-import { ChevronDown, ChevronRight, AlertCircle, Package, Truck, Layers, User, Warehouse } from 'lucide-react';
+import {
+  PRODUCT_PROFILES,
+  AVAILABLE_WAREHOUSES,
+  SUBSCRIPTION_TIERS,
+  PRIMARY_INDUSTRIES,
+} from '../data/constants';
+import { ChevronDown, ChevronRight, AlertCircle, Package, Truck, Layers, User, Warehouse, CreditCard } from 'lucide-react';
 import { formatEur } from '../utils/calculations';
 import { CleanNumberInput } from './CleanNumberInput';
 import { useLanguage } from '../context/LanguageContext';
@@ -108,38 +113,116 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
 
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">
-              {language === 'en' ? 'Product type' : 'Tipo de producto'}
+              {language === 'en' ? 'Industry / Product type' : 'Industria / Tipo de producto'}
             </label>
             <select
               value={inputs.productType}
               onChange={(e) => handleProductChange(e.target.value as ProductType)}
-              className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-red-500 bg-white"
+              className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-red-500 bg-white font-medium"
             >
-              {(Object.keys(PRODUCT_PROFILES) as ProductType[]).map((type) => {
-                const label =
-                  language === 'en'
-                    ? type === 'Suplementos'
-                      ? 'Supplements'
-                      : type === 'Cosmética'
-                      ? 'Cosmetics'
-                      : type === 'Vidrio'
-                      ? 'Glass'
-                      : type === 'Perfume + vidrio'
-                      ? 'Perfume + glass'
-                      : type
-                    : type;
-                return (
+              <optgroup label={language === 'en' ? 'Industries' : 'Sectores / Industrias'}>
+                {PRIMARY_INDUSTRIES.map((type) => (
                   <option key={type} value={type}>
-                    {label}
+                    {type}
                   </option>
-                );
-              })}
+                ))}
+              </optgroup>
+              <optgroup label={language === 'en' ? 'Other profiles' : 'Otros perfiles'}>
+                {Object.keys(PRODUCT_PROFILES)
+                  .filter((t) => !PRIMARY_INDUSTRIES.includes(t as ProductType))
+                  .map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+              </optgroup>
             </select>
             <p className="text-[10px] text-gray-400 mt-0.5">
               {language === 'en'
                 ? 'Informative profile (does not alter final price)'
-                : 'Perfil informativo (no influye en el precio final)'}
+                : 'Perfil informativo de sector (no influye en el precio final)'}
             </p>
+          </div>
+
+          {/* Suscripción Huboo */}
+          <div className="bg-[#FAF7F2] p-2.5 rounded-lg border border-[#E5DDD0] space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-gray-900 flex items-center gap-1">
+                <CreditCard className="w-3.5 h-3.5 text-[#6B4ABF]" />
+                <span>{language === 'en' ? 'Huboo Subscription' : 'Suscripción Huboo'}</span>
+              </label>
+              <span className="text-[10px] font-bold text-[#6B4ABF] bg-[#EDE8FA] px-1.5 py-0.2 rounded border border-[#D5C9EB]">
+                {results.subscriptionRevenueMonth > 0 ? `${results.subscriptionRevenueMonth}€ / mes` : '0€'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 gap-1">
+              <button
+                type="button"
+                onClick={() => onChange({ subscriptionTier: 'tier-50', subscriptionPrice: 50 })}
+                className={`text-left px-2.5 py-1.5 rounded border text-xs transition cursor-pointer flex items-center justify-between ${
+                  (inputs.subscriptionTier === 'tier-50')
+                    ? 'bg-[#6B4ABF] text-white border-[#5A3DA3] shadow-xs'
+                    : 'bg-white text-gray-800 border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                <div className="font-semibold">50€ / mes</div>
+                <div className="text-[10px] opacity-85">hasta 300 pedidos</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onChange({ subscriptionTier: 'tier-150', subscriptionPrice: 150 })}
+                className={`text-left px-2.5 py-1.5 rounded border text-xs transition cursor-pointer flex items-center justify-between ${
+                  (inputs.subscriptionTier === 'tier-150')
+                    ? 'bg-[#6B4ABF] text-white border-[#5A3DA3] shadow-xs'
+                    : 'bg-white text-gray-800 border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                <div className="font-semibold">150€ / mes</div>
+                <div className="text-[10px] opacity-85">hasta 1.500 pedidos</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onChange({ subscriptionTier: 'tier-450', subscriptionPrice: 450 })}
+                className={`text-left px-2.5 py-1.5 rounded border text-xs transition cursor-pointer flex items-center justify-between ${
+                  (inputs.subscriptionTier === 'tier-450')
+                    ? 'bg-[#6B4ABF] text-white border-[#5A3DA3] shadow-xs'
+                    : 'bg-white text-gray-800 border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                <div className="font-semibold">450€ / mes</div>
+                <div className="text-[10px] opacity-85">hasta 5.000 pedidos</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onChange({ subscriptionTier: 'none', subscriptionPrice: 0 })}
+                className={`text-left px-2.5 py-1 rounded border text-[11px] transition cursor-pointer flex items-center justify-between ${
+                  (!inputs.subscriptionTier || inputs.subscriptionTier === 'none')
+                    ? 'bg-gray-700 text-white border-gray-800'
+                    : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                <div>Sin suscripción</div>
+                <div className="text-[10px]">0,00€</div>
+              </button>
+            </div>
+
+            {inputs.ordersMonth > 0 && inputs.subscriptionTier && inputs.subscriptionTier !== 'none' && inputs.subscriptionTier !== 'custom' && (
+              <p className="text-[9.5px] text-gray-500 mt-1">
+                {SUBSCRIPTION_TIERS[inputs.subscriptionTier]?.maxOrders < inputs.ordersMonth ? (
+                  <span className="text-amber-700 font-semibold">
+                    ⚠️ El volumen actual ({Math.round(inputs.ordersMonth)} pedidos) supera el límite de {SUBSCRIPTION_TIERS[inputs.subscriptionTier].maxOrders} pedidos del plan.
+                  </span>
+                ) : (
+                  <span>
+                    ✓ Volumen ({Math.round(inputs.ordersMonth)} pedidos/mes) cubierto dentro del cupo del plan.
+                  </span>
+                )}
+              </p>
+            )}
           </div>
 
           <div>

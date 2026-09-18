@@ -1,4 +1,12 @@
-import { PackType, ProductProfile, ProductType, CalculatorInputs, ClientProfile } from '../types';
+import {
+  PackType,
+  ProductProfile,
+  ProductType,
+  CalculatorInputs,
+  ClientProfile,
+  SubscriptionTier,
+  SubscriptionConfig,
+} from '../types';
 
 export const PACK_TYPES: PackType[] = ['SPK', 'SPL', 'MPL', 'LPL'];
 
@@ -56,45 +64,105 @@ export const STORAGE_PALLET_COST = 3.76;
 export const RETURN_HANDLING_PRICE = 4.75;
 export const RETURN_HANDLING_COST = 3.33;
 
-// Perfiles de producto
+// Perfiles de producto e industrias
 export const PRODUCT_PROFILES: Record<ProductType, ProductProfile> = {
-  Suplementos: {
-    pickMultiplier: 1.00,
-    surchargePrice: 0,
-    surchargeCost: 0,
-    returnRate: 0.02,
+  // Nuevas industrias solicitadas
+  Adult: { pickMultiplier: 1.00, surchargePrice: 0, surchargeCost: 0, returnRate: 0.05 },
+  'Alcohol and soft drinks': { pickMultiplier: 1.00, surchargePrice: 0, surchargeCost: 0, returnRate: 0.04 },
+  'Arts and craft': { pickMultiplier: 1.00, surchargePrice: 0, surchargeCost: 0, returnRate: 0.03 },
+  'Automotive and parts': { pickMultiplier: 1.00, surchargePrice: 0, surchargeCost: 0, returnRate: 0.05 },
+  'Baby and toddler': { pickMultiplier: 1.00, surchargePrice: 0, surchargeCost: 0, returnRate: 0.04 },
+  'Beauty and cosmetics': { pickMultiplier: 1.00, surchargePrice: 0, surchargeCost: 0, returnRate: 0.04 },
+  'CDs, vinyl, DVDs, books and magazines': { pickMultiplier: 1.00, surchargePrice: 0, surchargeCost: 0, returnRate: 0.03 },
+  'Cleaning and Laundry': { pickMultiplier: 1.00, surchargePrice: 0, surchargeCost: 0, returnRate: 0.03 },
+  DIY: { pickMultiplier: 1.00, surchargePrice: 0, surchargeCost: 0, returnRate: 0.04 },
+  'Fitness and sporting goods': { pickMultiplier: 1.00, surchargePrice: 0, surchargeCost: 0, returnRate: 0.05 },
+  Food: { pickMultiplier: 1.00, surchargePrice: 0, surchargeCost: 0, returnRate: 0.02 },
+  'Health and nutrition': { pickMultiplier: 1.00, surchargePrice: 0, surchargeCost: 0, returnRate: 0.02 },
+  Homeware: { pickMultiplier: 1.00, surchargePrice: 0, surchargeCost: 0, returnRate: 0.05 },
+  'Jewellery and watches': { pickMultiplier: 1.00, surchargePrice: 0, surchargeCost: 0, returnRate: 0.04 },
+  'Male Grooming': { pickMultiplier: 1.00, surchargePrice: 0, surchargeCost: 0, returnRate: 0.03 },
+  Medical: { pickMultiplier: 1.00, surchargePrice: 0, surchargeCost: 0, returnRate: 0.02 },
+  'Mobile phones and accessories': { pickMultiplier: 1.00, surchargePrice: 0, surchargeCost: 0, returnRate: 0.04 },
+  Other: { pickMultiplier: 1.00, surchargePrice: 0, surchargeCost: 0, returnRate: 0.04 },
+  'Pet products, foods and supplements': { pickMultiplier: 1.00, surchargePrice: 0, surchargeCost: 0, returnRate: 0.03 },
+  'Tech and gadgets': { pickMultiplier: 1.00, surchargePrice: 0, surchargeCost: 0, returnRate: 0.04 },
+  'Toys and games': { pickMultiplier: 1.00, surchargePrice: 0, surchargeCost: 0, returnRate: 0.04 },
+  'Vapes and Nicotine': { pickMultiplier: 1.00, surchargePrice: 0, surchargeCost: 0, returnRate: 0.04 },
+
+  // Perfiles tradicionales / retrocompatibilidad
+  Suplementos: { pickMultiplier: 1.00, surchargePrice: 0, surchargeCost: 0, returnRate: 0.02 },
+  Cosmética: { pickMultiplier: 1.00, surchargePrice: 0, surchargeCost: 0, returnRate: 0.04 },
+  Perfume: { pickMultiplier: 1.00, surchargePrice: 0, surchargeCost: 0, returnRate: 0.05 },
+  Vidrio: { pickMultiplier: 1.00, surchargePrice: 0, surchargeCost: 0, returnRate: 0.07 },
+  'Perfume + vidrio': { pickMultiplier: 1.00, surchargePrice: 0, surchargeCost: 0, returnRate: 0.08 },
+  'Apparel & Merch': { pickMultiplier: 1.00, surchargePrice: 0, surchargeCost: 0, returnRate: 0.05 },
+};
+
+// Planes de suscripción mensual Huboo
+export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, SubscriptionConfig> = {
+  'tier-50': {
+    id: 'tier-50',
+    label: '50€ / mes (hasta 300 pedidos)',
+    price: 50,
+    maxOrders: 300,
+    description: 'Suscripción base: 50€ al mes para volúmenes de hasta 300 pedidos/mes.',
   },
-  Cosmética: {
-    pickMultiplier: 1.00,
-    surchargePrice: 0,
-    surchargeCost: 0,
-    returnRate: 0.04,
+  'tier-150': {
+    id: 'tier-150',
+    label: '150€ / mes (hasta 1.500 pedidos)',
+    price: 150,
+    maxOrders: 1500,
+    description: 'Suscripción intermedia: 150€ al mes para volúmenes de hasta 1.500 pedidos/mes.',
   },
-  Perfume: {
-    pickMultiplier: 1.00,
-    surchargePrice: 0,
-    surchargeCost: 0,
-    returnRate: 0.05,
+  'tier-450': {
+    id: 'tier-450',
+    label: '450€ / mes (hasta 5.000 pedidos)',
+    price: 450,
+    maxOrders: 5000,
+    description: 'Suscripción pro/alta escala: 450€ al mes para volúmenes de hasta 5.000 pedidos/mes.',
   },
-  Vidrio: {
-    pickMultiplier: 1.00,
-    surchargePrice: 0,
-    surchargeCost: 0,
-    returnRate: 0.07,
+  none: {
+    id: 'none',
+    label: 'Sin suscripción (0€)',
+    price: 0,
+    maxOrders: Infinity,
+    description: 'Sin cuota fija mensual de suscripción.',
   },
-  'Perfume + vidrio': {
-    pickMultiplier: 1.00,
-    surchargePrice: 0,
-    surchargeCost: 0,
-    returnRate: 0.08,
-  },
-  'Apparel & Merch': {
-    pickMultiplier: 1.00,
-    surchargePrice: 0,
-    surchargeCost: 0,
-    returnRate: 0.05,
+  custom: {
+    id: 'custom',
+    label: 'Personalizada',
+    price: 0,
+    maxOrders: Infinity,
+    description: 'Cuota de suscripción definida manualmente.',
   },
 };
+
+// Lista ordenada de industrias para selectores de interfaz
+export const PRIMARY_INDUSTRIES: ProductType[] = [
+  'Adult',
+  'Alcohol and soft drinks',
+  'Arts and craft',
+  'Automotive and parts',
+  'Baby and toddler',
+  'Beauty and cosmetics',
+  'CDs, vinyl, DVDs, books and magazines',
+  'Cleaning and Laundry',
+  'DIY',
+  'Fitness and sporting goods',
+  'Food',
+  'Health and nutrition',
+  'Homeware',
+  'Jewellery and watches',
+  'Male Grooming',
+  'Medical',
+  'Mobile phones and accessories',
+  'Other',
+  'Pet products, foods and supplements',
+  'Tech and gadgets',
+  'Toys and games',
+  'Vapes and Nicotine',
+];
 
 // Tecnologías y plataformas e-commerce soportadas para la ficha del cliente
 export const AVAILABLE_TECHNOLOGIES = [
@@ -131,6 +199,8 @@ export const DEFAULT_INPUTS: CalculatorInputs = {
   productType: 'Suplementos',
   packCostSource: 'Calculadora (negociado)',
   customPackaging: false,
+  subscriptionTier: 'none',
+  subscriptionPrice: 0,
 
   // 2. Volumen
   volumeMode: 'Pedidos/día',

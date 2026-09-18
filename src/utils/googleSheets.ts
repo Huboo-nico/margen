@@ -666,6 +666,8 @@ function sanitizeClientList(rawList: any[]): ClientProfile[] {
         firstPickPriceManual: Number(rawInputs.firstPickPriceManual) || 0,
         additionalPickPriceManual: Number(rawInputs.additionalPickPriceManual) || 0,
         shippingPriceManual: Number(rawInputs.shippingPriceManual) || 0,
+        subscriptionTier: rawInputs.subscriptionTier || 'none',
+        subscriptionPrice: Number(rawInputs.subscriptionPrice) || 0,
         technologies: Array.isArray(rawInputs.technologies) ? rawInputs.technologies : [],
       },
     };
@@ -739,7 +741,9 @@ export async function saveSingleClientToGoogleSheets(
     return await response.json();
   }
 
-  throw new Error('Configura GOOGLE_SHEETS_WEBAPP_URL en Vercel o introduce la URL en la aplicación.');
+  throw new Error(
+    'Configura las variables de Google Sheets API en Vercel (GOOGLE_SHEETS_SPREADSHEET_ID y GOOGLE_SERVICE_ACCOUNT_KEY) o la URL de la Web App.'
+  );
 }
 
 export async function fetchClientsFromGoogleSheets(webhookUrl?: string): Promise<{
@@ -795,7 +799,7 @@ export async function fetchClientsFromGoogleSheets(webhookUrl?: string): Promise
   // 2. Fallback a llamada directa si se tiene una URL en el navegador
   if (!effectiveUrl || !effectiveUrl.startsWith('https://script.google.com/')) {
     throw new Error(
-      'Para que todos los ordenadores carguen los datos automáticamente, configura GOOGLE_SHEETS_WEBAPP_URL en las variables de entorno de Vercel.'
+      'Para que todos los ordenadores carguen los datos automáticamente, configura GOOGLE_SHEETS_SPREADSHEET_ID y GOOGLE_SERVICE_ACCOUNT_KEY en las variables de entorno de Vercel (o GOOGLE_SHEETS_WEBAPP_URL).'
     );
   }
 

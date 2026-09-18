@@ -1,19 +1,26 @@
 import type { Request, Response } from 'express';
+import {
+  isGoogleServiceAccountConfigured,
+  getGoogleSheetsClient,
+  getSpreadsheetId,
+  getGoogleServiceAccountEmail,
+  ensureSheetAndHeaders,
+  clientToRow,
+  rowToClient,
+} from './googleSheetsService';
 
-// Variable de entorno de backend segura en Vercel / Cloud Run
-// NO usa prefijo VITE_, garantizando que NUNCA sea expuesta al navegador
+// Fallback a URL de Apps Script si el usuario aún tiene esa variable
 export function getBackendGoogleSheetsUrl(): string {
-  const envUrl = (
+  return (
     process.env.GOOGLE_SHEETS_WEBAPP_URL ||
     process.env.GOOGLE_SHEETS_URL ||
     process.env.VITE_GOOGLE_SHEETS_WEBAPP_URL ||
     ''
   ).trim();
-  return envUrl;
 }
 
 export async function handleSheetsRequest(req: Request | any, res: Response | any) {
-  // Configurar cabeceras CORS
+  // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-custom-webhook-url');
@@ -22,284 +29,324 @@ export async function handleSheetsRequest(req: Request | any, res: Response | an
     return res.status(200).end();
   }
 
-  const configuredUrl = getBackendGoogleSheetsUrl();
-
-  // Permitir URL opcional enviada en header o body para pruebas específicas
-  const requestedUrl = (
-    (req.headers && (req.headers['x-custom-webhook-url'] as string)) ||
-    (req.body && (req.body.webhookUrl as string)) ||
-    (req.query && (req.query.webhookUrl as string)) ||
-    ''
-  ).trim();
-
-  // Si se solicita status con una URL específica en query, probar esa URL; si no, usar la del servidor
-  const targetUrl = (req.query?.action === 'status' && requestedUrl)
-    ? requestedUrl
-    : (configuredUrl || requestedUrl);
-
   const action = (req.query?.action as string) || (req.body?.action as string) || 'load_clients';
+  const hasServiceAccount = isGoogleServiceAccountConfigured();
+  const legacyWebAppUrl = getBackendGoogleSheetsUrl();
 
-  // 1. Verificación de formato básico de URL
-  if (targetUrl) {
-    if (targetUrl.includes('docs.google.com/spreadsheets')) {
-      return res.status(400).json({
-        status: 'error',
-        success: false,
-        configured: true,
-        errorType: 'IS_SPREADSHEET_URL',
-        message:
-          'Has configurado la URL de la hoja de cálculo de Google (docs.google.com/spreadsheets/...) en lugar de la URL de la Web App de Apps Script (script.google.com/macros/s/.../exec). Abre tu hoja de cálculo > Extensiones > Apps Script > Implementar > Nueva implementación > Tipo: Aplicación web > Copiar URL.',
-      });
+  // 1. STATUS & DIAGNOSTICS
+  if (action === 'status') {
+    if (hasServiceAccount) {
+      try {
+        const { sheets, spreadsheetId, clientEmail } = getGoogleSheetsClient();
+        const meta = await sheets.spreadsheets.get({
+          spreadsheetId,
+          fields: 'properties.title,sheets.properties.title',
+        });
+        const title = meta.data.properties?.title || 'Google Sheet';
+        const sheetTabs = (meta.data.sheets || []).map((s: any) => s.properties?.title);
+
+        return res.status(200).json({
+          configured: true,
+          connected: true,
+          mode: 'google_api',
+          sheetName: title,
+          tabs: sheetTabs,
+          serviceAccountEmail: clientEmail,
+          spreadsheetId,
+          message: `Conectado vía Google Sheets API a "${title}". Cuenta de servicio autorizada: ${clientEmail}`,
+          isServerEnv: true,
+          supportsLoadClients: true,
+        });
+      } catch (err: any) {
+        const email = getGoogleServiceAccountEmail();
+        const spreadsheetId = getSpreadsheetId();
+        let message = `Error al conectar con Google Sheets API: ${err.message}`;
+
+        if (err.code === 404) {
+          message = `Hoja no encontrada (ID: ${spreadsheetId}). Verifica que GOOGLE_SHEETS_SPREADSHEET_ID sea correcto.`;
+        } else if (err.code === 403) {
+          message = `Permiso denegado. Recuerda compartir tu hoja de Google Sheet con la cuenta de servicio: ${email} dándole permiso de "Editor".`;
+        }
+
+        return res.status(200).json({
+          configured: true,
+          connected: false,
+          mode: 'google_api',
+          errorType: err.code === 403 ? 'PERMISSION_DENIED' : 'API_ERROR',
+          serviceAccountEmail: email,
+          spreadsheetId,
+          message,
+          isServerEnv: true,
+        });
+      }
     }
 
-    if (targetUrl.endsWith('/dev')) {
+    // Si no hay Service Account pero hay Apps Script Web App URL
+    if (legacyWebAppUrl) {
+      return handleLegacyWebAppRequest(req, res, legacyWebAppUrl, 'status');
+    }
+
+    return res.status(200).json({
+      configured: false,
+      connected: false,
+      message:
+        'No se han configurado credenciales en Vercel. Configura GOOGLE_SHEETS_SPREADSHEET_ID y GOOGLE_SERVICE_ACCOUNT_KEY (o GOOGLE_SERVICE_ACCOUNT_EMAIL y GOOGLE_PRIVATE_KEY).',
+      isServerEnv: false,
+    });
+  }
+
+  // 2. MODO GOOGLE SHEETS API DIRECTA (Si está configurada la Service Account)
+  if (hasServiceAccount) {
+    try {
+      const { sheets, spreadsheetId } = getGoogleSheetsClient();
+
+      // ACCIÓN: LOAD / LOAD_CLIENTS
+      if (action === 'load' || action === 'load_clients') {
+        // Leemos de las pestañas habituales: Spain, UK, USA y Hoja 1/Resumen General
+        const meta = await sheets.spreadsheets.get({ spreadsheetId });
+        const sheetTitles = (meta.data.sheets || [])
+          .map((s: any) => s.properties?.title)
+          .filter(Boolean);
+
+        const clientsMap = new Map<string, any>();
+
+        // Si no hay pestañas territoriales, leemos la primera hoja
+        const tabsToRead = sheetTitles.length > 0 ? sheetTitles : ['Sheet1'];
+
+        for (const tab of tabsToRead) {
+          try {
+            const resp = await sheets.spreadsheets.values.get({
+              spreadsheetId,
+              range: `'${tab}'!A2:V500`,
+            });
+            const rows = resp.data.values || [];
+            for (const row of rows) {
+              const client = rowToClient(row);
+              if (client && client.id && client.name) {
+                clientsMap.set(client.id, client);
+              }
+            }
+          } catch {
+            // Pestaña vacía o no formateada, ignorar
+          }
+        }
+
+        const clients = Array.from(clientsMap.values());
+        const sheetTitle = meta.data.properties?.title || 'Margen';
+
+        return res.status(200).json({
+          status: 'success',
+          success: true,
+          configured: true,
+          mode: 'google_api',
+          clients,
+          totalClients: clients.length,
+          sheetName: sheetTitle,
+          isServerEnv: true,
+          message: `Cargados ${clients.length} clientes desde Google Sheets API ("${sheetTitle}")`,
+        });
+      }
+
+      // ACCIÓN: SAVE_CLIENT
+      if (action === 'save_client') {
+        const client = req.body.client;
+        if (!client) {
+          return res.status(400).json({ status: 'error', message: 'No se recibieron datos del cliente a guardar.' });
+        }
+
+        const profile = client.profile || client;
+        const inputs = client.inputs || profile.inputs || {};
+        const territory = String(inputs.warehouse || 'Spain').trim();
+        const tabName = territory || 'Spain';
+
+        // Asegurar que la pestaña existe
+        await ensureSheetAndHeaders(sheets, spreadsheetId, tabName);
+
+        const rowValues = clientToRow(client);
+        const clientId = String(profile.id);
+
+        // Buscar si ya existe la fila con ese ID en la pestaña
+        const existingData = await sheets.spreadsheets.values.get({
+          spreadsheetId,
+          range: `'${tabName}'!A2:A500`,
+        });
+        const existingIds = (existingData.data.values || []).map((r: any[]) => r[0]);
+        const rowIndex = existingIds.findIndex((id: string) => String(id) === clientId);
+
+        if (rowIndex >= 0) {
+          // Actualizar fila existente (A2 -> fila 2, etc.)
+          const targetRowNumber = rowIndex + 2;
+          await sheets.spreadsheets.values.update({
+            spreadsheetId,
+            range: `'${tabName}'!A${targetRowNumber}:V${targetRowNumber}`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: {
+              values: [rowValues],
+            },
+          });
+        } else {
+          // Agregar al final
+          await sheets.spreadsheets.values.append({
+            spreadsheetId,
+            range: `'${tabName}'!A:V`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: {
+              values: [rowValues],
+            },
+          });
+        }
+
+        return res.status(200).json({
+          status: 'success',
+          success: true,
+          mode: 'google_api',
+          clientName: profile.name || inputs.clientName,
+          territory: tabName,
+          message: `Cliente "${profile.name || inputs.clientName}" guardado correctamente en la pestaña "${tabName}".`,
+        });
+      }
+
+      // ACCIÓN: SYNC_ALL
+      if (action === 'sync_all') {
+        const rawClients = req.body.clients || [];
+        const clientsByTerritory: Record<string, any[]> = {
+          Spain: [],
+          UK: [],
+          USA: [],
+        };
+
+        for (const c of rawClients) {
+          const inputs = c.inputs || (c.profile && c.profile.inputs) || {};
+          const territory = String(inputs.warehouse || 'Spain').trim();
+          const target = clientsByTerritory[territory] ? territory : 'Spain';
+          clientsByTerritory[target].push(clientToRow(c));
+        }
+
+        for (const [territory, rows] of Object.entries(clientsByTerritory)) {
+          await ensureSheetAndHeaders(sheets, spreadsheetId, territory);
+
+          // Limpiar datos previos de la pestaña (desde fila 2) y reescribir ordenado
+          await sheets.spreadsheets.values.clear({
+            spreadsheetId,
+            range: `'${territory}'!A2:V500`,
+          });
+
+          if (rows.length > 0) {
+            await sheets.spreadsheets.values.update({
+              spreadsheetId,
+              range: `'${territory}'!A2:V${rows.length + 1}`,
+              valueInputOption: 'USER_ENTERED',
+              requestBody: {
+                values: rows,
+              },
+            });
+          }
+        }
+
+        return res.status(200).json({
+          status: 'success',
+          success: true,
+          mode: 'google_api',
+          totalClients: rawClients.length,
+          spainCount: clientsByTerritory.Spain.length,
+          ukCount: clientsByTerritory.UK.length,
+          usaCount: clientsByTerritory.USA.length,
+          message: `Sincronizados ${rawClients.length} clientes en Google Sheets mediante Google Sheets API directa.`,
+        });
+      }
+
       return res.status(400).json({
         status: 'error',
+        message: `Acción desconocida: ${action}`,
+      });
+    } catch (apiErr: any) {
+      const email = getGoogleServiceAccountEmail();
+      let errorMsg = apiErr.message;
+      if (apiErr.code === 403) {
+        errorMsg = `Permiso denegado en Google Sheets API. Asegúrate de haber compartido el documento con ${email} con permisos de Editor.`;
+      }
+      return res.status(500).json({
+        status: 'error',
         success: false,
-        configured: true,
-        errorType: 'IS_DEV_URL',
-        message:
-          'La URL termina en /dev. Las URLs de desarrollo de Google Apps Script requieren inicio de sesión de desarrollador. En Apps Script haz clic en: Implementar > Administrar implementaciones y copia la URL terminada en /exec.',
+        errorType: apiErr.code === 403 ? 'PERMISSION_DENIED' : 'API_ERROR',
+        serviceAccountEmail: email,
+        message: errorMsg,
       });
     }
   }
 
-  // 2. Acción STATUS / DIAGNÓSTICO
-  if (action === 'status') {
-    if (!targetUrl) {
-      return res.status(200).json({
-        configured: false,
-        connected: false,
-        message:
-          'Variable GOOGLE_SHEETS_WEBAPP_URL no configurada en Vercel ni URL local ingresada.',
-      });
-    }
+  // 3. MODO RETROCOMPATIBILIDAD (Web App Apps Script) si no hay Service Account
+  if (legacyWebAppUrl) {
+    return handleLegacyWebAppRequest(req, res, legacyWebAppUrl, action);
+  }
 
-    try {
-      // Probar GET inicial
-      const pingResponse = await fetch(targetUrl, {
-        method: 'GET',
-        redirect: 'follow',
-      });
+  // Si no hay ningún método configurado
+  return res.status(400).json({
+    status: 'error',
+    success: false,
+    configured: false,
+    message:
+      'Configura en Vercel las variables para Google Sheets API: GOOGLE_SHEETS_SPREADSHEET_ID y GOOGLE_SERVICE_ACCOUNT_KEY (o GOOGLE_SERVICE_ACCOUNT_EMAIL y GOOGLE_PRIVATE_KEY). Comparte luego la hoja de cálculo con el email de la Service Account.',
+  });
+}
 
-      const text = await pingResponse.text();
-
-      // Detección de bloqueo de Google Accounts (HTML Login)
-      if (text.includes('<!DOCTYPE') || text.includes('accounts.google.com') || text.includes('ServiceLogin')) {
+// Manejador legacy para Apps Script
+async function handleLegacyWebAppRequest(req: any, res: any, targetUrl: string, action: string) {
+  try {
+    if (action === 'status') {
+      const pingResp = await fetch(targetUrl, { method: 'GET', redirect: 'follow' });
+      const text = await pingResp.text();
+      if (text.includes('<!DOCTYPE') || text.includes('accounts.google.com')) {
         return res.status(200).json({
           configured: true,
-          isServerEnv: Boolean(configuredUrl),
           connected: false,
+          mode: 'webapp',
           errorType: 'AUTH_REQUIRED',
-          message:
-            'Google Apps Script solicita inicio de sesión. La Web App no está abierta al público: en Google Apps Script ve a Implementar > Administrar implementaciones > Editar > Quién tiene acceso > cambia a "Cualquier persona" (Anyone) > Implementar.',
+          message: 'Google Apps Script solicita inicio de sesión. Cambia acceso a "Cualquier persona".',
         });
       }
-
       let pingData: any = {};
       try {
         pingData = JSON.parse(text);
       } catch {
-        return res.status(200).json({
-          configured: true,
-          isServerEnv: Boolean(configuredUrl),
-          connected: false,
-          errorType: 'INVALID_JSON',
-          message: `Google Apps Script respondió con un formato no válido: ${text.slice(0, 150)}`,
-        });
+        pingData = {};
       }
-
-      // Probar si el script soporta lectura de clientes (load_clients)
-      let supportsLoadClients = false;
-      try {
-        const testLoad = await fetch(targetUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ action: 'load_clients' }),
-          redirect: 'follow',
-        });
-        const loadText = await testLoad.text();
-        const loadJson = JSON.parse(loadText);
-        if (loadJson && loadJson.status === 'success' && Array.isArray(loadJson.clients)) {
-          supportsLoadClients = true;
-        }
-      } catch {
-        supportsLoadClients = false;
-      }
-
-      const isConnected = pingData.status === 'success';
-
       return res.status(200).json({
         configured: true,
-        isServerEnv: Boolean(configuredUrl),
-        connected: isConnected,
+        connected: true,
+        mode: 'webapp',
         sheetName: pingData.sheetName || 'Margen',
-        supportsLoadClients,
-        needsScriptUpdate: isConnected && !supportsLoadClients,
-        message: isConnected
-          ? supportsLoadClients
-            ? `Conexión activa con Google Sheet: "${pingData.sheetName || 'Margen'}" (Lectura y Escritura operativas).`
-            : `Conexión detectada con "${pingData.sheetName || 'Margen'}", pero el script en Google Apps Script necesita actualizarse a la nueva versión para permitir leer clientes en otros ordenadores.`
-          : pingData.message || 'Error de conexión con el script de Google',
-      });
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      return res.status(200).json({
-        configured: true,
-        isServerEnv: Boolean(configuredUrl),
-        connected: false,
-        error: errMsg,
-        message: `Error al conectar con el Webhook de Google Sheets: ${errMsg}`,
+        message: 'Conectado a Google Sheets vía Web App.',
       });
     }
-  }
 
-  if (!targetUrl) {
-    return res.status(400).json({
-      status: 'error',
-      success: false,
-      configured: false,
-      message:
-        'No se ha configurado la variable de entorno GOOGLE_SHEETS_WEBAPP_URL en el servidor de Vercel.',
-    });
-  }
-
-  // 3. Acción LOAD / LOAD_CLIENTS
-  if (action === 'load' || action === 'load_clients') {
-    let googleData: any = null;
-    let postError: string | null = null;
-
-    // A) Intentar vía POST con { action: 'load_clients' }
-    try {
-      const postResp = await fetch(targetUrl, {
+    if (action === 'load' || action === 'load_clients') {
+      const resp = await fetch(targetUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'text/plain;charset=utf-8',
-        },
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action: 'load_clients' }),
         redirect: 'follow',
       });
-
-      const postText = await postResp.text();
-      if (!postText.includes('<!DOCTYPE')) {
-        const parsed = JSON.parse(postText);
-        if (parsed && parsed.status === 'success' && Array.isArray(parsed.clients)) {
-          googleData = parsed;
-        }
-      }
-    } catch (err: unknown) {
-      postError = err instanceof Error ? err.message : String(err);
+      const data = await resp.json();
+      return res.status(200).json(data);
     }
-
-    // B) Fallback a GET si el script responde por doGet
-    if (!googleData || !Array.isArray(googleData.clients)) {
-      try {
-        const getResp = await fetch(targetUrl, {
-          method: 'GET',
-          redirect: 'follow',
-        });
-        const getText = await getResp.text();
-
-        if (getText.includes('<!DOCTYPE') || getText.includes('accounts.google.com')) {
-          return res.status(403).json({
-            status: 'error',
-            success: false,
-            errorType: 'AUTH_REQUIRED',
-            message:
-              'Google Apps Script solicita inicio de sesión. Cambia "Quién tiene acceso" a "Cualquier persona" (Anyone) en Administrar implementaciones.',
-          });
-        }
-
-        const parsed = JSON.parse(getText);
-        if (parsed && parsed.status === 'success') {
-          googleData = parsed;
-        }
-      } catch (getErr: unknown) {
-        const getMsg = getErr instanceof Error ? getErr.message : String(getErr);
-        return res.status(500).json({
-          status: 'error',
-          success: false,
-          message: `Error al leer clientes desde Google Sheets: ${getMsg}. ${postError ? `(POST también falló: ${postError})` : ''}`,
-        });
-      }
-    }
-
-    if (googleData && googleData.status === 'success') {
-      const clientsList = Array.isArray(googleData.clients) ? googleData.clients : [];
-      return res.status(200).json({
-        status: 'success',
-        success: true,
-        configured: true,
-        isServerEnv: Boolean(configuredUrl),
-        clients: clientsList,
-        totalClients: clientsList.length,
-        sheetName: googleData.sheetName || 'Margen',
-        needsScriptUpdate: !Array.isArray(googleData.clients),
-        message: googleData.message || `Recuperados ${clientsList.length} clientes desde Google Sheets`,
-      });
-    }
-
-    return res.status(500).json({
-      status: 'error',
-      success: false,
-      message: googleData?.message || 'Respuesta inválida desde Google Sheets al cargar clientes',
-    });
-  }
-
-  // 4. Acción SAVE_CLIENT o SYNC_ALL
-  try {
-    const rawBody = req.body || {};
-    
-    // Retrocompatibilidad total: enviamos tanto `client` como `clients`
-    const client = rawBody.client;
-    const clients = rawBody.clients || (client ? [client] : []);
 
     const payload = {
-      ...rawBody,
-      action: rawBody.action || (client ? 'save_client' : 'sync_all'),
-      client: client,
-      clients: clients,
-      exportedAt: rawBody.exportedAt || new Date().toISOString(),
+      ...req.body,
+      action: req.body?.action || (req.body?.client ? 'save_client' : 'sync_all'),
     };
-
-    const googleResp = await fetch(targetUrl, {
+    const resp = await fetch(targetUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8',
-      },
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload),
       redirect: 'follow',
     });
-
-    const respText = await googleResp.text();
-
-    if (respText.includes('<!DOCTYPE') || respText.includes('accounts.google.com')) {
-      return res.status(403).json({
-        status: 'error',
-        success: false,
-        errorType: 'AUTH_REQUIRED',
-        message:
-          'Google Apps Script requiere inicio de sesión. Cambia "Quién tiene acceso" a "Cualquier persona" (Anyone) en Administrar implementaciones.',
-      });
-    }
-
-    try {
-      const result = JSON.parse(respText);
-      return res.status(200).json(result);
-    } catch {
-      return res.status(500).json({
-        status: 'error',
-        success: false,
-        message: `Google Apps Script respondió con un formato inesperado: ${respText.slice(0, 200)}`,
-      });
-    }
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error('Error en /api/sheets proxy:', message);
+    const result = await resp.json();
+    return res.status(200).json(result);
+  } catch (err: any) {
     return res.status(500).json({
       status: 'error',
-      success: false,
-      message: `Error al comunicar con Google Sheets: ${message}`,
+      message: `Error comunicando con Web App: ${err.message}`,
     });
   }
 }

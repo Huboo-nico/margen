@@ -12,6 +12,7 @@ import {
   PACK_COSTS_CALCULATOR,
   BASE_FIRST_PICK_COST,
   BASE_ADDITIONAL_PICK_COST,
+  SUBSCRIPTION_TIERS,
 } from '../data/constants';
 
 export function getSkuTier(skuCount: number): {
@@ -349,8 +350,18 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
   const storageRevenueMonth = Number(storagePalletWeeksMonth) * Number(storagePrice);
   const storageCostMonth = Number(storagePalletWeeksMonth) * Number(storageCost);
 
+  // Suscripción mensual Huboo
+  const subTier = inputs.subscriptionTier || 'none';
+  const subscriptionConfig = SUBSCRIPTION_TIERS[subTier] || SUBSCRIPTION_TIERS.none;
+  const subscriptionRevenueMonth =
+    subTier === 'custom'
+      ? Number(inputs.subscriptionPrice || 0)
+      : (inputs.subscriptionPrice !== undefined && inputs.subscriptionPrice !== null && inputs.subscriptionPrice > 0
+          ? Number(inputs.subscriptionPrice)
+          : subscriptionConfig.price);
+
   const fulfilmentRevenueMonthExShipping =
-    orderRevenueMonth + goodsInRevenueMonth + storageRevenueMonth;
+    orderRevenueMonth + goodsInRevenueMonth + storageRevenueMonth + subscriptionRevenueMonth;
   const fulfilmentCostMonthExShipping =
     orderCostMonth + goodsInCostMonth + storageCostMonth;
 
@@ -527,6 +538,17 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
       margen: marginFromPrice(shippingRevenueMonth, shippingCostMonth),
       markup: markupFromPrice(shippingRevenueMonth, shippingCostMonth),
     },
+    {
+      linea: `Suscripción Huboo (${subscriptionConfig.label})`,
+      categoria: 'Suscripción',
+      unitPrice: subscriptionRevenueMonth,
+      unitCost: 0,
+      ingresos: subscriptionRevenueMonth,
+      costes: 0,
+      beneficio: subscriptionRevenueMonth,
+      margen: subscriptionRevenueMonth > 0 ? 1.0 : null,
+      markup: null,
+    },
   ];
 
   const packMarkup = markupFromPrice(packPrice, packCost);
@@ -696,6 +718,8 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
     goodsInCostMonth,
     storageRevenueMonth,
     storageCostMonth,
+    subscriptionRevenueMonth,
+    subscriptionTier: subTier,
 
     fulfilmentRevenueMonthExShipping,
     fulfilmentCostMonthExShipping,

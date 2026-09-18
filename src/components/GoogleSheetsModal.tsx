@@ -22,6 +22,8 @@ import {
   RotateCcw,
   Lock,
   AlertTriangle,
+  KeyRound,
+  Share2,
 } from 'lucide-react';
 import {
   GOOGLE_APPS_SCRIPT_CODE,
@@ -59,8 +61,10 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
   const { isDark } = useTheme();
 
   const [url, setUrl] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'setup' | 'sync' | 'columns' | 'code'>('setup');
+  const [activeTab, setActiveTab] = useState<'google_api' | 'setup' | 'sync' | 'columns' | 'code'>('google_api');
   const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedKeyVar, setCopiedKeyVar] = useState(false);
+  const [copiedSheetIdVar, setCopiedSheetIdVar] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
@@ -96,12 +100,12 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
           if (st.configured || saved) {
             setActiveTab('sync');
           } else {
-            setActiveTab('setup');
+            setActiveTab('google_api');
           }
         })
         .catch(() => {
           if (saved) setActiveTab('sync');
-          else setActiveTab('setup');
+          else setActiveTab('google_api');
         });
     }
   }, [isOpen]);
@@ -357,15 +361,15 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
         >
           <button
             type="button"
-            onClick={() => setActiveTab('setup')}
+            onClick={() => setActiveTab('google_api')}
             className={`pb-2.5 px-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
-              activeTab === 'setup'
+              activeTab === 'google_api'
                 ? 'border-emerald-500 text-emerald-500'
                 : 'border-transparent text-gray-400 hover:text-gray-200'
             }`}
           >
-            <HelpCircle className="w-3.5 h-3.5" />
-            <span>{language === 'en' ? '1. Step-by-Step Setup' : '1. Paso a Paso'}</span>
+            <KeyRound className="w-3.5 h-3.5" />
+            <span>Google Console (API Directa)</span>
           </button>
 
           <button
@@ -378,7 +382,20 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
             }`}
           >
             <Send className="w-3.5 h-3.5" />
-            <span>{language === 'en' ? '2. Sync & Webhook' : '2. Sincronizar'}</span>
+            <span>Sincronizar & Cargar</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('setup')}
+            className={`pb-2.5 px-3 border-b-2 transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
+              activeTab === 'setup'
+                ? 'border-emerald-500 text-emerald-500'
+                : 'border-transparent text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            <HelpCircle className="w-3.5 h-3.5" />
+            <span>Apps Script (Legacy)</span>
           </button>
 
           <button
@@ -410,6 +427,201 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
 
         {/* Content Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+          {/* TAB GOOGLE CLOUD CONSOLE (API DIRECTA + SHARE) */}
+          {activeTab === 'google_api' && (
+            <div className="space-y-6">
+              {/* Banner informativo principal */}
+              <div
+                className={`p-4 rounded-xl border flex items-start gap-3.5 ${
+                  serverStatus?.configured && serverStatus?.connected
+                    ? isDark
+                      ? 'bg-emerald-950/20 border-emerald-500/40 text-emerald-200'
+                      : 'bg-emerald-50 border-emerald-300 text-emerald-950'
+                    : isDark
+                    ? 'bg-blue-950/20 border-blue-500/40 text-blue-200'
+                    : 'bg-blue-50 border-blue-200 text-blue-900'
+                }`}
+              >
+                <KeyRound className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+                <div className="text-xs space-y-1">
+                  <p className="font-bold text-sm">
+                    {serverStatus?.configured && serverStatus?.connected
+                      ? '✓ Google Sheets API Conectada con Éxito'
+                      : 'Integración Directa mediante Google Cloud Console & Service Account'}
+                  </p>
+                  <p className="leading-relaxed">
+                    {serverStatus?.configured && serverStatus?.connected
+                      ? `Conexión activa con "${serverStatus.sheetName}". Cualquier usuario u ordenador sincroniza en tiempo real de forma 100% fiable.`
+                      : 'Esta es la forma más robusta y recomendada: la API oficial de Google Sheets lee y escribe directamente en tu hoja de cálculo compartida, sin depender de Web Apps de Apps Script ni bloqueos de red.'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Guía Paso a Paso con Google Cloud Console y Share */}
+              <div className="space-y-4">
+                {/* Paso 1: Crear Service Account en Google Console */}
+                <div
+                  className={`p-4 rounded-xl border ${
+                    isDark ? 'bg-[#1C1833] border-[#2E2A48]' : 'bg-gray-50 border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="w-5 h-5 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">
+                      1
+                    </span>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-800">
+                      Crear Service Account & Habilitar API en Google Cloud
+                    </h3>
+                  </div>
+                  <div className="text-xs text-gray-400 pl-7 space-y-1.5 leading-relaxed">
+                    <p>
+                      1. Entra a <a href="https://console.cloud.google.com/" target="_blank" rel="noreferrer" className="text-blue-400 underline font-semibold">Google Cloud Console</a>.
+                    </p>
+                    <p>
+                      2. Ve a <strong>APIs y servicios &gt; Biblioteca</strong>, busca <strong className="text-white">Google Sheets API</strong> y haz clic en <strong>Habilitar</strong>.
+                    </p>
+                    <p>
+                      3. Ve a <strong>IAM y administración &gt; Cuentas de servicio</strong> y haz clic en <strong>Crear cuenta de servicio</strong> (ej. <em>huboo-sheets</em>).
+                    </p>
+                    <p>
+                      4. Entra en la cuenta de servicio recién creada, ve a la pestaña <strong>Claves (Keys) &gt; Agregar clave &gt; Crear clave nueva &gt; Tipo JSON</strong>. Se descargará un archivo <code className="text-blue-300 font-mono">.json</code> con tus credenciales.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Paso 2: Compartir la hoja con la cuenta de servicio */}
+                <div
+                  className={`p-4 rounded-xl border ${
+                    isDark ? 'bg-[#1C1833] border-[#2E2A48]' : 'bg-gray-50 border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="w-5 h-5 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">
+                      2
+                    </span>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-800 flex items-center gap-1.5">
+                      <Share2 className="w-3.5 h-3.5 text-blue-500" />
+                      <span>Dar Permiso de "Editor" en tu Google Sheet</span>
+                    </h3>
+                  </div>
+                  <div className="text-xs text-gray-400 pl-7 space-y-1.5 leading-relaxed">
+                    <p>
+                      1. Abre tu hoja de Google Sheets (llamada <strong>"Margen"</strong>).
+                    </p>
+                    <p>
+                      2. Haz clic en el botón superior derecho <strong>Compartir (Share)</strong>.
+                    </p>
+                    <p>
+                      3. Pega el correo de tu Service Account (termina en <code className="text-blue-300 font-mono">@...iam.gserviceaccount.com</code>) que aparece dentro de tu archivo JSON (campo <em>client_email</em>).
+                    </p>
+                    <p>
+                      4. asígnale el rol de <strong className="text-emerald-400 font-bold">Editor</strong> y pulsa <strong>Compartir</strong>.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Paso 3: Pegar Secretos en Vercel */}
+                <div
+                  className={`p-4 rounded-xl border ${
+                    isDark ? 'bg-[#1C1833] border-[#2E2A48]' : 'bg-gray-50 border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="w-5 h-5 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">
+                      3
+                    </span>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-800">
+                      Pegar los Secretos en Vercel (Environment Variables)
+                    </h3>
+                  </div>
+                  <div className="text-xs text-gray-400 pl-7 space-y-2.5 leading-relaxed">
+                    <p>
+                      En tu panel de <strong className="text-white">Vercel &gt; Proyecto &gt; Settings &gt; Environment Variables</strong>, agrega estas dos variables:
+                    </p>
+
+                    <div className="p-3 bg-black/40 rounded-lg border border-gray-700 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-mono text-emerald-400 font-bold text-xs">GOOGLE_SHEETS_SPREADSHEET_ID</div>
+                          <div className="text-[11px] text-gray-400">Pega la URL de tu hoja o el ID que está entre /d/ y /edit</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText('GOOGLE_SHEETS_SPREADSHEET_ID');
+                            setCopiedSheetIdVar(true);
+                            setTimeout(() => setCopiedSheetIdVar(false), 2000);
+                          }}
+                          className="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded text-[11px] font-semibold flex items-center gap-1 border border-gray-600 cursor-pointer"
+                        >
+                          <Copy className="w-3 h-3" />
+                          <span>{copiedSheetIdVar ? '¡Copiado!' : 'Copiar Nombre'}</span>
+                        </button>
+                      </div>
+
+                      <div className="border-t border-gray-800 pt-2 flex items-center justify-between">
+                        <div>
+                          <div className="font-mono text-emerald-400 font-bold text-xs">GOOGLE_SERVICE_ACCOUNT_KEY</div>
+                          <div className="text-[11px] text-gray-400">Abre el JSON que descargaste, cópialo todo entero y pégalo como valor</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText('GOOGLE_SERVICE_ACCOUNT_KEY');
+                            setCopiedKeyVar(true);
+                            setTimeout(() => setCopiedKeyVar(false), 2000);
+                          }}
+                          className="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded text-[11px] font-semibold flex items-center gap-1 border border-gray-600 cursor-pointer"
+                        >
+                          <Copy className="w-3 h-3" />
+                          <span>{copiedKeyVar ? '¡Copiado!' : 'Copiar Nombre'}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <p className="text-[11px] text-gray-400">
+                      💡 Pulsa <strong>Redeploy</strong> en Vercel para que las nuevas variables entren en vigor. ¡Y listo! La app leerá y escribirá en tu Google Sheet automáticamente para todos los ordenadores.
+                    </p>
+
+                    <div className="pt-2 flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={handleTestConnection}
+                        disabled={testingConnection}
+                        className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${testingConnection ? 'animate-spin' : ''}`} />
+                        <span>Comprobar Estado de la API</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('sync')}
+                        className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>Ir a Sincronizar Clientes</span>
+                      </button>
+                    </div>
+
+                    {testResult && (
+                      <div
+                        className={`p-2.5 rounded-lg text-xs flex items-center gap-2 ${
+                          testResult.success
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-red-500/10 text-red-400 border border-red-500/30'
+                        }`}
+                      >
+                        {testResult.success ? <Check className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                        <span>{testResult.message}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* TAB 1: STEP BY STEP SETUP */}
           {activeTab === 'setup' && (
             <div className="space-y-6">

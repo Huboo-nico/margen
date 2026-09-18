@@ -3,12 +3,45 @@ export type PackType = 'SPK' | 'SPL' | 'MPL' | 'LPL';
 export type Currency = 'EUR' | 'GBP' | 'USD';
 
 export type ProductType = 
+  | 'Adult'
+  | 'Alcohol and soft drinks'
+  | 'Arts and craft'
+  | 'Automotive and parts'
+  | 'Baby and toddler'
+  | 'Beauty and cosmetics'
+  | 'CDs, vinyl, DVDs, books and magazines'
+  | 'Cleaning and Laundry'
+  | 'DIY'
+  | 'Fitness and sporting goods'
+  | 'Food'
+  | 'Health and nutrition'
+  | 'Homeware'
+  | 'Jewellery and watches'
+  | 'Male Grooming'
+  | 'Medical'
+  | 'Mobile phones and accessories'
+  | 'Other'
+  | 'Pet products, foods and supplements'
+  | 'Tech and gadgets'
+  | 'Toys and games'
+  | 'Vapes and Nicotine'
+  // Legacy aliases for backward compatibility with saved sheets / initial profiles
   | 'Suplementos'
   | 'Cosmética'
   | 'Perfume'
   | 'Vidrio'
   | 'Perfume + vidrio'
   | 'Apparel & Merch';
+
+export type SubscriptionTier = 'tier-50' | 'tier-150' | 'tier-450' | 'none' | 'custom';
+
+export interface SubscriptionConfig {
+  id: SubscriptionTier;
+  label: string;
+  price: number;
+  maxOrders: number;
+  description: string;
+}
 
 export type PackCostSource = 'Calculadora (negociado)' | 'Rate card ES (estándar)';
 
@@ -43,6 +76,9 @@ export interface CalculatorInputs {
   packCostSource: PackCostSource;
   // Packaging personalizado (si es true, el packaging base se cancela = 0€)
   customPackaging?: boolean;
+  // Suscripción mensual plataforma / gestión
+  subscriptionTier?: SubscriptionTier;
+  subscriptionPrice?: number;
 
   // 2. Volumen
   volumeMode: VolumeMode;
@@ -114,7 +150,7 @@ export interface CalculatorInputs {
 
 export interface MonthlyLine {
   linea: string;
-  categoria: 'Preparación' | 'Pick' | 'Servicios' | 'Almacén' | 'Envío';
+  categoria: 'Preparación' | 'Pick' | 'Servicios' | 'Almacén' | 'Envío' | 'Suscripción';
   ingresos: number;
   costes: number;
   beneficio: number;
@@ -206,6 +242,8 @@ export interface CalculationResults {
   goodsInCostMonth: number;
   storageRevenueMonth: number;
   storageCostMonth: number;
+  subscriptionRevenueMonth: number;
+  subscriptionTier: SubscriptionTier;
 
   fulfilmentRevenueMonthExShipping: number;
   fulfilmentCostMonthExShipping: number;

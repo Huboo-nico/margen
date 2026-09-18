@@ -78,7 +78,7 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
     onChange({ mixSpk: spk, mixSpl: spl, mixMpl: mpl, mixLpl: lpl });
   };
 
-  const productTypeLabels: Record<ProductType, string> = {
+  const productTypeLabels: Partial<Record<ProductType, string>> = {
     'Suplementos': language === 'en' ? 'Supplements' : 'Suplementos',
     'Cosmética': language === 'en' ? 'Cosmetics' : 'Cosmética',
     'Perfume': 'Perfume',
@@ -373,7 +373,7 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
             >
               {(Object.keys(PRODUCT_PROFILES) as ProductType[]).map((type) => (
                 <option key={type} value={type} className={isDark ? 'bg-[#120e26] text-white' : 'bg-white text-gray-900'}>
-                  {productTypeLabels[type]}
+                  {productTypeLabels[type] || type}
                 </option>
               ))}
             </select>
