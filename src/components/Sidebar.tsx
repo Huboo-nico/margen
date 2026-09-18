@@ -152,73 +152,109 @@ export const Sidebar: React.FC<SidebarProps> = ({ inputs, results, onChange }) =
                 <span>{language === 'en' ? 'Huboo Subscription' : 'Suscripción Huboo'}</span>
               </label>
               <span className="text-[10px] font-bold text-[#6B4ABF] bg-[#EDE8FA] px-1.5 py-0.2 rounded border border-[#D5C9EB]">
-                {results.subscriptionRevenueMonth > 0 ? `${results.subscriptionRevenueMonth}€ / mes` : '0€'}
+                {results.subscriptionRevenueMonth > 0
+                  ? `${results.subscriptionRevenueMonth}€ ${language === 'en' ? '/ mo' : '/ mes'}`
+                  : `${language === 'en' ? 'Auto-tier' : 'Auto-tramo'}`}
               </span>
             </div>
 
-            <div className="grid grid-cols-1 gap-1">
-              <button
-                type="button"
-                onClick={() => onChange({ subscriptionTier: 'tier-50', subscriptionPrice: 50 })}
-                className={`text-left px-2.5 py-1.5 rounded border text-xs transition cursor-pointer flex items-center justify-between ${
-                  (inputs.subscriptionTier === 'tier-50')
-                    ? 'bg-[#6B4ABF] text-white border-[#5A3DA3] shadow-xs'
-                    : 'bg-white text-gray-800 border-gray-200 hover:bg-gray-50'
-                }`}
-              >
-                <div className="font-semibold">50€ / mes</div>
-                <div className="text-[10px] opacity-85">hasta 300 pedidos</div>
-              </button>
+            {(() => {
+              const orders = Number(inputs.ordersMonth || 0);
+              const autoTier = orders <= 300 ? 'tier-50' : orders <= 1500 ? 'tier-150' : 'tier-450';
+              const activeTier = inputs.subscriptionTier && inputs.subscriptionTier !== 'none'
+                ? inputs.subscriptionTier
+                : autoTier;
 
-              <button
-                type="button"
-                onClick={() => onChange({ subscriptionTier: 'tier-150', subscriptionPrice: 150 })}
-                className={`text-left px-2.5 py-1.5 rounded border text-xs transition cursor-pointer flex items-center justify-between ${
-                  (inputs.subscriptionTier === 'tier-150')
-                    ? 'bg-[#6B4ABF] text-white border-[#5A3DA3] shadow-xs'
-                    : 'bg-white text-gray-800 border-gray-200 hover:bg-gray-50'
-                }`}
-              >
-                <div className="font-semibold">150€ / mes</div>
-                <div className="text-[10px] opacity-85">hasta 1.500 pedidos</div>
-              </button>
+              return (
+                <div className="grid grid-cols-1 gap-1">
+                  <button
+                    type="button"
+                    onClick={() => onChange({ subscriptionTier: 'tier-50', subscriptionPrice: 50 })}
+                    className={`text-left px-2.5 py-1.5 rounded border text-xs transition cursor-pointer flex items-center justify-between ${
+                      activeTier === 'tier-50'
+                        ? 'bg-[#6B4ABF] text-white border-[#5A3DA3] shadow-xs'
+                        : 'bg-white text-gray-800 border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1">
+                      <span className="font-semibold">{language === 'en' ? '50€ / mo' : '50€ / mes'}</span>
+                      {autoTier === 'tier-50' && (
+                        <span className={`text-[9px] font-bold px-1 rounded ${
+                          activeTier === 'tier-50' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
+                        }`}>
+                          Auto
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[10px] opacity-85">
+                      {language === 'en' ? 'up to 300 orders' : 'hasta 300 pedidos'}
+                    </div>
+                  </button>
 
-              <button
-                type="button"
-                onClick={() => onChange({ subscriptionTier: 'tier-450', subscriptionPrice: 450 })}
-                className={`text-left px-2.5 py-1.5 rounded border text-xs transition cursor-pointer flex items-center justify-between ${
-                  (inputs.subscriptionTier === 'tier-450')
-                    ? 'bg-[#6B4ABF] text-white border-[#5A3DA3] shadow-xs'
-                    : 'bg-white text-gray-800 border-gray-200 hover:bg-gray-50'
-                }`}
-              >
-                <div className="font-semibold">450€ / mes</div>
-                <div className="text-[10px] opacity-85">hasta 5.000 pedidos</div>
-              </button>
+                  <button
+                    type="button"
+                    onClick={() => onChange({ subscriptionTier: 'tier-150', subscriptionPrice: 150 })}
+                    className={`text-left px-2.5 py-1.5 rounded border text-xs transition cursor-pointer flex items-center justify-between ${
+                      activeTier === 'tier-150'
+                        ? 'bg-[#6B4ABF] text-white border-[#5A3DA3] shadow-xs'
+                        : 'bg-white text-gray-800 border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1">
+                      <span className="font-semibold">{language === 'en' ? '150€ / mo' : '150€ / mes'}</span>
+                      {autoTier === 'tier-150' && (
+                        <span className={`text-[9px] font-bold px-1 rounded ${
+                          activeTier === 'tier-150' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
+                        }`}>
+                          Auto
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[10px] opacity-85">
+                      {language === 'en' ? 'up to 1,500 orders' : 'hasta 1.500 pedidos'}
+                    </div>
+                  </button>
 
-              <button
-                type="button"
-                onClick={() => onChange({ subscriptionTier: 'none', subscriptionPrice: 0 })}
-                className={`text-left px-2.5 py-1 rounded border text-[11px] transition cursor-pointer flex items-center justify-between ${
-                  (!inputs.subscriptionTier || inputs.subscriptionTier === 'none')
-                    ? 'bg-gray-700 text-white border-gray-800'
-                    : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
-                }`}
-              >
-                <div>Sin suscripción</div>
-                <div className="text-[10px]">0,00€</div>
-              </button>
-            </div>
+                  <button
+                    type="button"
+                    onClick={() => onChange({ subscriptionTier: 'tier-450', subscriptionPrice: 450 })}
+                    className={`text-left px-2.5 py-1.5 rounded border text-xs transition cursor-pointer flex items-center justify-between ${
+                      activeTier === 'tier-450'
+                        ? 'bg-[#6B4ABF] text-white border-[#5A3DA3] shadow-xs'
+                        : 'bg-white text-gray-800 border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1">
+                      <span className="font-semibold">{language === 'en' ? '450€ / mo' : '450€ / mes'}</span>
+                      {autoTier === 'tier-450' && (
+                        <span className={`text-[9px] font-bold px-1 rounded ${
+                          activeTier === 'tier-450' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
+                        }`}>
+                          Auto
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[10px] opacity-85">
+                      {language === 'en' ? 'over 1,500 orders' : 'más de 1.500 pedidos'}
+                    </div>
+                  </button>
+                </div>
+              );
+            })()}
 
             {inputs.ordersMonth > 0 && inputs.subscriptionTier && inputs.subscriptionTier !== 'none' && inputs.subscriptionTier !== 'custom' && (
               <p className="text-[9.5px] text-gray-500 mt-1">
                 {SUBSCRIPTION_TIERS[inputs.subscriptionTier]?.maxOrders < inputs.ordersMonth ? (
                   <span className="text-amber-700 font-semibold">
-                    ⚠️ El volumen actual ({Math.round(inputs.ordersMonth)} pedidos) supera el límite de {SUBSCRIPTION_TIERS[inputs.subscriptionTier].maxOrders} pedidos del plan.
+                    {language === 'en'
+                      ? `⚠️ Volume (${Math.round(inputs.ordersMonth)} orders) exceeds plan limit (${SUBSCRIPTION_TIERS[inputs.subscriptionTier].maxOrders}).`
+                      : `⚠️ El volumen actual (${Math.round(inputs.ordersMonth)} pedidos) supera el límite de ${SUBSCRIPTION_TIERS[inputs.subscriptionTier].maxOrders} pedidos del plan.`}
                   </span>
                 ) : (
                   <span>
-                    ✓ Volumen ({Math.round(inputs.ordersMonth)} pedidos/mes) cubierto dentro del cupo del plan.
+                    {language === 'en'
+                      ? `✓ Volume (${Math.round(inputs.ordersMonth)} orders/mo) covered in plan tier.`
+                      : `✓ Volumen (${Math.round(inputs.ordersMonth)} pedidos/mes) cubierto dentro del cupo del plan.`}
                   </span>
                 )}
               </p>

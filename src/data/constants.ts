@@ -199,8 +199,8 @@ export const DEFAULT_INPUTS: CalculatorInputs = {
   productType: 'Suplementos',
   packCostSource: 'Calculadora (negociado)',
   customPackaging: false,
-  subscriptionTier: 'none',
-  subscriptionPrice: 0,
+  subscriptionTier: 'tier-150',
+  subscriptionPrice: 150,
 
   // 2. Volumen
   volumeMode: 'Pedidos/día',

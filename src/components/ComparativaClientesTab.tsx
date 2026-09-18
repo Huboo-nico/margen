@@ -15,7 +15,6 @@ import {
   Download,
   RefreshCw,
   Search,
-  ExternalLink,
   Table,
   CheckCircle2,
   CreditCard,
@@ -81,7 +80,6 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
   onDeleteClient,
   onRefreshFromSheets,
   isLoadingSheets = false,
-  onOpenSheetsModal,
 }) => {
   const { language } = useLanguage();
   const { isDark } = useTheme();
@@ -373,23 +371,6 @@ export const ComparativaClientesTab: React.FC<ComparativaClientesTabProps> = ({
               <Download className="w-3.5 h-3.5 text-emerald-500" />
               <span>{language === 'en' ? 'Export CSV' : 'Exportar CSV'}</span>
             </button>
-
-            {/* Sheets config modal */}
-            {onOpenSheetsModal && (
-              <button
-                type="button"
-                onClick={onOpenSheetsModal}
-                title={language === 'en' ? 'Google Sheets settings' : 'Configuración de Google Sheets'}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg border transition cursor-pointer ${
-                  isDark
-                    ? 'bg-[#151226] hover:bg-[#25203D] text-gray-300 border-[#2E2A48]'
-                    : 'bg-white hover:bg-gray-50 text-gray-600 border-gray-200'
-                }`}
-              >
-                <ExternalLink className="w-3.5 h-3.5 text-blue-500" />
-                <span>Config</span>
-              </button>
-            )}
 
             {/* Add new client */}
             <button

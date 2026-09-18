@@ -127,6 +127,20 @@ export function formatMarkup(value: number | null | undefined): string {
   return `${prefix}${(value * 100).toFixed(1)}%`;
 }
 
+export function detectSubscriptionTier(ordersMonth: number): {
+  tier: 'tier-50' | 'tier-150' | 'tier-450';
+  price: number;
+} {
+  const orders = Number(ordersMonth || 0);
+  if (orders <= 300) {
+    return { tier: 'tier-50', price: 50 };
+  } else if (orders <= 1500) {
+    return { tier: 'tier-150', price: 150 };
+  } else {
+    return { tier: 'tier-450', price: 450 };
+  }
+}
+
 export function calculateAll(inputs: CalculatorInputs): CalculationResults {
   const {
     clientName,
@@ -351,8 +365,14 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
   const storageCostMonth = Number(storagePalletWeeksMonth) * Number(storageCost);
 
   // Suscripción mensual Huboo
-  const subTier = inputs.subscriptionTier || 'none';
+  // Detectada automáticamente en función del volumen mensual de pedidos del cliente (salvo override manual específico)
+  const autoTier = detectSubscriptionTier(Number(ordersMonth || 0));
+  let subTier = inputs.subscriptionTier;
+  if (!subTier || subTier === 'none') {
+    subTier = autoTier.tier;
+  }
   const subscriptionConfig = SUBSCRIPTION_TIERS[subTier] || SUBSCRIPTION_TIERS.none;
+
   let subscriptionRevenueMonth = 0;
   if (subTier === 'tier-50') {
     subscriptionRevenueMonth = 50;
@@ -363,7 +383,7 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
   } else if (subTier === 'custom') {
     subscriptionRevenueMonth = Number(inputs.subscriptionPrice || 0);
   } else {
-    subscriptionRevenueMonth = 0;
+    subscriptionRevenueMonth = autoTier.price;
   }
 
   const fulfilmentRevenueMonthExShipping =
