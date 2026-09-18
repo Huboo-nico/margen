@@ -397,6 +397,10 @@ export const App: React.FC = () => {
                 onRenameClient={handleRenameClientById}
                 onUpdateNotes={handleUpdateNotes}
                 onDeleteClient={handleDeleteClient}
+                onRefreshFromSheets={handleQuickLoadClients}
+                onSaveToSheets={handleQuickSaveCurrentClient}
+                isLoadingSheets={isLoadingFromSheets}
+                onOpenSheetsModal={() => setIsGoogleSheetsOpen(true)}
               />
             )}
             {activeTab === 'Rate card' && <RateCardTab />}

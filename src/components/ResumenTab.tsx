@@ -3,9 +3,11 @@ import { CalculationResults, CalculatorInputs } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 import { formatEur, formatPct, formatMarkup } from '../utils/calculations';
-import { AlertTriangle, CheckCircle, Package, Truck, Info, ArrowUpRight, FileText } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Package, Truck, Info, ArrowUpRight, FileText, CreditCard, Sparkles, Check } from 'lucide-react';
 import { InternalReportModal } from './InternalReportModal';
 import { LiveDateScheduler } from './LiveDateScheduler';
+import { SUBSCRIPTION_TIERS } from '../data/constants';
+import { SubscriptionTier } from '../types';
 
 interface ResumenTabProps {
   results: CalculationResults;
@@ -176,9 +178,18 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({
             ? 'bg-[#1E1B2E] border-[#2E2A48]'
             : 'bg-white border-[#E5DDD0]'
         }`}>
-          <span className={`text-xs font-medium block mb-1 ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
-            {language === 'en' ? 'Revenue / month' : 'Ingresos / mes'}
-          </span>
+          <div className="flex items-center justify-between mb-1">
+            <span className={`text-xs font-medium block ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
+              {language === 'en' ? 'Revenue / month' : 'Ingresos / mes'}
+            </span>
+            {results.subscriptionRevenueMonth > 0 && (
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                isDark ? 'bg-[#25203D] text-[#47D2BF] border border-[#47D2BF]/30' : 'bg-purple-100 text-purple-800'
+              }`}>
+                +{formatEur(results.subscriptionRevenueMonth)} suscripción
+              </span>
+            )}
+          </div>
           <span className={`text-2xl font-extrabold tracking-tight block ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
             {formatEur(results.totalRevenueMonth)}
           </span>
@@ -192,9 +203,18 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({
             ? 'bg-[#1E1B2E] border-[#2E2A48]'
             : 'bg-white border-[#E5DDD0]'
         }`}>
-          <span className={`text-xs font-medium block mb-1 ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
-            {language === 'en' ? 'Net profit / month' : 'Beneficio neto / mes'}
-          </span>
+          <div className="flex items-center justify-between mb-1">
+            <span className={`text-xs font-medium block ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
+              {language === 'en' ? 'Net profit / month' : 'Beneficio neto / mes'}
+            </span>
+            {results.subscriptionRevenueMonth > 0 && (
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                isDark ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/40' : 'bg-emerald-100 text-emerald-800'
+              }`}>
+                100% margen cuota
+              </span>
+            )}
+          </div>
           <span
             className={`text-2xl font-extrabold tracking-tight block ${
               results.totalProfitMonth >= 0
@@ -266,6 +286,228 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({
           </span>
         </div>
       </div>
+
+      {/* PLANES DE SUSCRIPCIÓN HUBOO */}
+      {(() => {
+        const currentTier = (effectiveInputs.subscriptionTier || 'none') as SubscriptionTier;
+        const currentOrders = results.ordersMonth || 0;
+
+        // Recomendación automática basada en el volumen mensual de pedidos
+        let recommendedTier: SubscriptionTier = 'tier-50';
+        if (currentOrders <= 300) {
+          recommendedTier = 'tier-50';
+        } else if (currentOrders <= 1500) {
+          recommendedTier = 'tier-150';
+        } else {
+          recommendedTier = 'tier-450';
+        }
+
+        const tierConfigs = [
+          {
+            key: 'tier-50' as SubscriptionTier,
+            name: 'Plan 50 €/mes',
+            badge: 'Hasta 300 pedidos',
+            price: 50,
+            maxOrders: 300,
+            desc: 'Para clientes iniciales o en despegue comercial (≤ 300 pedidos/mes).',
+          },
+          {
+            key: 'tier-150' as SubscriptionTier,
+            name: 'Plan 150 €/mes',
+            badge: 'Hasta 1.500 pedidos',
+            price: 150,
+            maxOrders: 1500,
+            desc: 'Para marcas consolidadas en crecimiento continuado (≤ 1.500 pedidos/mes).',
+          },
+          {
+            key: 'tier-450' as SubscriptionTier,
+            name: 'Plan 450 €/mes',
+            badge: 'Hasta 5.000 pedidos',
+            price: 450,
+            maxOrders: 5000,
+            desc: 'Para grandes volúmenes y alta escala logística (≤ 5.000 pedidos/mes).',
+          },
+          {
+            key: 'none' as SubscriptionTier,
+            name: 'Sin Suscripción',
+            badge: '0 €/mes',
+            price: 0,
+            maxOrders: Infinity,
+            desc: 'Sin cuota fija mensual de plataforma.',
+          },
+        ];
+
+        const selectedConfig = SUBSCRIPTION_TIERS[currentTier] || SUBSCRIPTION_TIERS.none;
+        const isExceeding = currentTier !== 'none' && currentTier !== 'custom' && selectedConfig.maxOrders < currentOrders;
+
+        return (
+          <div
+            id="subscription-plans-section"
+            className={`rounded-xl border p-5 shadow-2xs transition-colors duration-200 ${
+              isDark ? 'bg-[#1E1B2E] border-[#2E2A48]' : 'bg-white border-[#E5DDD0]'
+            }`}
+          >
+            <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3 mb-4 ${
+              isDark ? 'border-[#2E2A48]' : 'border-[#EFE8DC]'
+            }`}>
+              <div className="flex items-center gap-2.5">
+                <div className={`p-2 rounded-lg ${isDark ? 'bg-[#6B4ABF]/20 text-[#47D2BF]' : 'bg-purple-100 text-[#6B4ABF]'}`}>
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className={`text-sm font-bold uppercase tracking-wide ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
+                      {language === 'en' ? 'Huboo Subscription Plans' : 'Planes de Suscripción Huboo'}
+                    </h3>
+                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                      currentTier !== 'none'
+                        ? isDark ? 'bg-[#47D2BF]/20 text-[#47D2BF] border border-[#47D2BF]/40' : 'bg-purple-100 text-[#6B4ABF] border border-purple-200'
+                        : isDark ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {currentTier === 'none'
+                        ? (language === 'en' ? 'No Subscription' : 'Sin Suscripción')
+                        : `${formatEur(results.subscriptionRevenueMonth)}/mes`}
+                    </span>
+                  </div>
+                  <p className={`text-xs mt-0.5 ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
+                    {language === 'en'
+                      ? 'Fixed monthly platform plan according to order volume tiers. 100% direct gross margin to operational profit.'
+                      : 'Cuota fija mensual de plataforma según tramos de pedidos. Margen bruto directo al 100% al beneficio operativo (coste operativo 0€).'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Recomendación según volumen actual */}
+              <div className={`px-3 py-1.5 rounded-lg border text-xs flex items-center gap-2 self-start sm:self-auto ${
+                isDark ? 'bg-[#25203D] border-[#6B4ABF]/40 text-purple-200' : 'bg-purple-50 border-purple-200 text-purple-900'
+              }`}>
+                <Sparkles className="w-3.5 h-3.5 text-[#47D2BF]" />
+                <span>
+                  {language === 'en' ? 'Vol: ' : 'Volumen: '}
+                  <strong>{currentOrders.toLocaleString()} {language === 'en' ? 'orders/mo' : 'pedidos/mes'}</strong>
+                  {' → '}
+                  {language === 'en' ? 'Suggested: ' : 'Recomendado: '}
+                  <strong>
+                    {recommendedTier === 'tier-50' && '50 €/mes (≤300)'}
+                    {recommendedTier === 'tier-150' && '150 €/mes (≤1.500)'}
+                    {recommendedTier === 'tier-450' && '450 €/mes (≤5.000)'}
+                  </strong>
+                </span>
+              </div>
+            </div>
+
+            {/* Alerta si el plan actual excede el tope */}
+            {isExceeding && (
+              <div className="mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500" />
+                <span>
+                  <strong>Aviso de volumen:</strong> El cliente tiene estimado un volumen de <strong>{currentOrders.toLocaleString()} pedidos/mes</strong>, que supera el tope del plan seleccionado ({selectedConfig.label}). Se recomienda cambiar a <strong>{recommendedTier === 'tier-150' ? 'Plan 150 €/mes' : 'Plan 450 €/mes'}</strong>.
+                </span>
+              </div>
+            )}
+
+            {/* Grid de los 4 Planes interactivos */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {tierConfigs.map((tier) => {
+                const isSelected = currentTier === tier.key;
+                const isRecommended = (recommendedTier as string) === tier.key && tier.key !== 'none';
+
+                return (
+                  <button
+                    key={tier.key}
+                    type="button"
+                    onClick={() => {
+                      if (onUpdateInputs) {
+                        onUpdateInputs({
+                          subscriptionTier: tier.key,
+                          subscriptionPrice: tier.price,
+                        });
+                      }
+                    }}
+                    className={`p-3.5 rounded-xl border text-left transition relative cursor-pointer flex flex-col justify-between ${
+                      isSelected
+                        ? isDark
+                          ? 'bg-[#2A2346] border-[#47D2BF] ring-2 ring-[#47D2BF]/30 shadow-md'
+                          : 'bg-purple-50/70 border-[#6B4ABF] ring-2 ring-[#6B4ABF]/20 shadow-md'
+                        : isDark
+                        ? 'bg-[#151226] border-[#2E2A48] hover:border-[#47D2BF]/50 hover:bg-[#1f1b36]'
+                        : 'bg-[#FAF7F2] border-[#E5DDD0] hover:border-[#6B4ABF]/40 hover:bg-[#f4efe6]'
+                    }`}
+                  >
+                    {isRecommended && !isSelected && (
+                      <span className="absolute -top-2 right-3 px-2 py-0.5 text-[9px] font-bold uppercase rounded-full bg-emerald-500 text-white shadow-xs">
+                        Recomendado
+                      </span>
+                    )}
+                    {isSelected && (
+                      <span className={`absolute -top-2 right-3 px-2 py-0.5 text-[9px] font-bold uppercase rounded-full flex items-center gap-1 shadow-xs ${
+                        isDark ? 'bg-[#47D2BF] text-gray-950' : 'bg-[#6B4ABF] text-white'
+                      }`}>
+                        <Check className="w-2.5 h-2.5 stroke-[3]" /> Activo
+                      </span>
+                    )}
+
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className={`text-xs font-bold ${isSelected ? (isDark ? 'text-white' : 'text-[#6B4ABF]') : (isDark ? 'text-gray-200' : 'text-[#2D2825]')}`}>
+                          {tier.name}
+                        </span>
+                      </div>
+                      <div className="mt-1 flex items-baseline gap-1">
+                        <span className={`text-xl font-extrabold tracking-tight font-mono ${
+                          isSelected ? (isDark ? 'text-[#47D2BF]' : 'text-[#6B4ABF]') : (isDark ? 'text-white' : 'text-[#2D2825]')
+                        }`}>
+                          {formatEur(tier.price)}
+                        </span>
+                        {tier.price > 0 && (
+                          <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>/ mes</span>
+                        )}
+                      </div>
+                      <div className={`mt-1 text-[11px] font-semibold ${
+                        isSelected ? (isDark ? 'text-[#47D2BF]' : 'text-purple-700') : (isDark ? 'text-gray-400' : 'text-[#8C8278]')
+                      }`}>
+                        {tier.badge}
+                      </div>
+                      <p className={`mt-2 text-[11px] leading-snug ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
+                        {tier.desc}
+                      </p>
+                    </div>
+
+                    <div className={`mt-3 pt-2.5 border-t text-[11px] flex justify-between items-center ${
+                      isDark ? 'border-[#2E2A48]' : 'border-[#E5DDD0]'
+                    }`}>
+                      <span className={isDark ? 'text-gray-400' : 'text-[#8C8278]'}>Margen:</span>
+                      <span className="font-mono font-bold text-emerald-500">100% (Coste 0€)</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Resumen Económico del Plan Activo */}
+            <div className={`mt-4 p-3 rounded-lg flex flex-wrap items-center justify-between gap-3 text-xs border ${
+              isDark ? 'bg-[#151226] border-[#2E2A48]' : 'bg-[#FAF7F2] border-[#E5DDD0]'
+            }`}>
+              <div className="flex items-center gap-3">
+                <span className={isDark ? 'text-gray-400' : 'text-[#6D635B]'}>Impacto en cuenta:</span>
+                <span className={`font-mono font-bold ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
+                  Facturación mensual: <strong className={isDark ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}>+{formatEur(results.subscriptionRevenueMonth)}/mes</strong>
+                </span>
+                <span className="text-gray-400">·</span>
+                <span className={`font-mono font-bold text-emerald-600 dark:text-emerald-400`}>
+                  Margen bruto: 100% (+{formatEur(results.subscriptionRevenueMonth)} beneficio directo)
+                </span>
+              </div>
+              <div className="flex items-center gap-2 font-mono text-xs">
+                <span className={isDark ? 'text-gray-400' : 'text-[#8C8278]'}>ARR Suscripción:</span>
+                <span className={`font-extrabold ${isDark ? 'text-purple-300' : 'text-purple-700'}`}>
+                  +{formatEur(results.subscriptionRevenueMonth * 12)} / año
+                </span>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Planificación Go-Live & Proyecciones ARR / YRR */}
       <LiveDateScheduler
@@ -538,6 +780,42 @@ export const ResumenTab: React.FC<ResumenTabProps> = ({
                     {formatEur(results.shippingPrice)}
                   </td>
                 </tr>
+
+                {/* Cuota Suscripción Mensual Huboo */}
+                {results.subscriptionRevenueMonth > 0 && (
+                  <tr className={`transition ${isDark ? 'hover:bg-[#25203D]' : 'hover:bg-[#FAF7F2]'}`}>
+                    <td className={`px-4 py-2.5 font-medium ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
+                      <div className="flex items-center gap-1.5">
+                        <span>{language === 'en' ? 'Huboo Monthly Subscription' : 'Cuota Suscripción Huboo'}</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                          isDark ? 'bg-[#47D2BF]/20 text-[#47D2BF]' : 'bg-purple-100 text-purple-700'
+                        }`}>
+                          {results.subscriptionTier === 'tier-50' && 'Plan 50€/mes'}
+                          {results.subscriptionTier === 'tier-150' && 'Plan 150€/mes'}
+                          {results.subscriptionTier === 'tier-450' && 'Plan 450€/mes'}
+                          {results.subscriptionTier === 'custom' && 'Personalizado'}
+                        </span>
+                      </div>
+                      <div className={`text-[11px] ${isDark ? 'text-gray-400' : 'text-[#8C8278]'}`}>
+                        {language === 'en'
+                          ? `Fixed monthly platform plan: ${formatEur(results.subscriptionRevenueMonth)}/mo (prorated ~${formatEur(results.subscriptionRevenueMonth / (results.ordersMonth || 1))}/order)`
+                          : `Cuota fija mensual de plataforma: ${formatEur(results.subscriptionRevenueMonth)}/mes (~${formatEur(results.subscriptionRevenueMonth / (results.ordersMonth || 1))}/pedido prorrateado)`}
+                      </div>
+                    </td>
+                    <td className={`px-3 py-2.5 text-right font-mono ${isDark ? 'text-gray-300' : 'text-[#4D453E]'}`}>
+                      {formatEur(0)}
+                    </td>
+                    <td className={`px-3 py-2.5 text-right font-mono font-semibold text-emerald-500`}>
+                      100.0%
+                    </td>
+                    <td className={`px-3 py-2.5 text-right font-mono font-semibold ${isDark ? 'text-purple-300' : 'text-blue-700'}`}>
+                      N/A
+                    </td>
+                    <td className={`px-4 py-2.5 text-right font-mono font-bold ${isDark ? 'text-[#47D2BF]' : 'text-purple-700'}`}>
+                      {formatEur(results.subscriptionRevenueMonth / (results.ordersMonth || 1))} <span className="text-[10px] font-normal opacity-70">/ped</span>
+                    </td>
+                  </tr>
+                )}
 
                 {/* 6. Total Facturado Pedido */}
                 <tr className={`font-bold border-t ${

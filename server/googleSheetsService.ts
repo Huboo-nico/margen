@@ -127,6 +127,7 @@ export const SHEET_HEADERS = [
   'Tarifa 1er Pick (€)',
   'Tarifa Pick Adicional (€)',
   'Tarifa Envío (€)',
+  'Suscripción Mensual (€)',
   'Ingresos / Mes (€)',
   'Coste / Mes (€)',
   'Margen Bruto (%)',
@@ -153,10 +154,20 @@ export function clientToRow(c: any): any[] {
   const ordersMonth = Number(inputs.ordersMonth) || 0;
   const unitsPerOrder = Number(inputs.unitsPerOrder) || 1.0;
 
-  const packPrice = Number(results.packPriceManual || results.packPrice || 0);
-  const firstPickPrice = Number(results.firstPickPriceManual || results.firstPickPrice || 0);
-  const addPickPrice = Number(results.additionalPickPriceManual || results.additionalPickPrice || 0);
+  const packPrice = Number(results.packPriceManual || results.packPrice || inputs.packPriceManual || 0);
+  const firstPickPrice = Number(results.firstPickPriceManual || results.firstPickPrice || inputs.firstPickPriceManual || 0);
+  const addPickPrice = Number(results.additionalPickPriceManual || results.additionalPickPrice || inputs.additionalPickPriceManual || 0);
   const shippingPrice = Number(results.shippingPriceManual || results.shippingPrice || 0);
+
+  // Suscripción mensual Huboo
+  const subTier = inputs.subscriptionTier || 'none';
+  const subPrice = Number(
+    results.subscriptionRevenueMonth !== undefined
+      ? results.subscriptionRevenueMonth
+      : inputs.subscriptionPrice !== undefined
+      ? inputs.subscriptionPrice
+      : (subTier === 'tier-50' ? 50 : subTier === 'tier-150' ? 150 : subTier === 'tier-450' ? 450 : 0)
+  );
 
   const totalRev = Number(results.totalRevenueMonth) || 0;
   const totalCost = Number(results.totalCostMonth) || 0;
@@ -176,7 +187,12 @@ export function clientToRow(c: any): any[] {
     name: name,
     notes: notes,
     updatedAt: updatedAt,
-    inputs: inputs,
+    inputs: {
+      ...inputs,
+      clientName: name,
+      subscriptionTier: subTier,
+      subscriptionPrice: subPrice,
+    },
   });
 
   return [
@@ -191,6 +207,7 @@ export function clientToRow(c: any): any[] {
     Number(firstPickPrice.toFixed(2)),
     Number(addPickPrice.toFixed(2)),
     Number(shippingPrice.toFixed(2)),
+    Number(subPrice.toFixed(2)),
     Number(totalRev.toFixed(2)),
     Number(totalCost.toFixed(2)),
     marginGross,
@@ -208,15 +225,18 @@ export function clientToRow(c: any): any[] {
 export function rowToClient(row: any[]): any | null {
   if (!row || row.length === 0) return null;
 
-  // Si tenemos el JSON completo en la columna 21 (índice 21)
-  if (row[21] && typeof row[21] === 'string' && row[21].trim().startsWith('{')) {
-    try {
-      const parsed = JSON.parse(row[21]);
-      if (parsed && (parsed.id || parsed.name || parsed.inputs)) {
-        return parsed;
+  // Buscar si alguna celda contiene el JSON completo (suele ser la última columna)
+  for (let i = row.length - 1; i >= 0; i--) {
+    const val = row[i];
+    if (typeof val === 'string' && val.trim().startsWith('{') && val.includes('"inputs"')) {
+      try {
+        const parsed = JSON.parse(val);
+        if (parsed && (parsed.id || parsed.name || parsed.inputs)) {
+          return parsed;
+        }
+      } catch {
+        // Fallback a columnas sueltas
       }
-    } catch {
-      // Si falla, parseamos las celdas directas
     }
   }
 
@@ -233,15 +253,40 @@ export function rowToClient(row: any[]): any | null {
   const addPickPrice = Number(row[9]) || 0;
   const shippingPrice = Number(row[10]) || 0;
 
-  const goLiveDate = String(row[17] || '');
-  const techs = row[18]
-    ? String(row[18])
+  // Detectar si la columna 11 es la suscripción (esquema 23 cols) o si es ingresos (esquema 22 cols antiguo)
+  let subPrice = 0;
+  let subTier = 'none';
+  let goLiveDate = '';
+  let channelsStr = '';
+  let notes = '';
+  let updatedAt = new Date().toISOString();
+
+  if (row.length >= 23) {
+    // Nuevo esquema con Suscripción en col 11
+    subPrice = Number(row[11]) || 0;
+    if (subPrice === 50) subTier = 'tier-50';
+    else if (subPrice === 150) subTier = 'tier-150';
+    else if (subPrice === 450) subTier = 'tier-450';
+    else if (subPrice > 0) subTier = 'custom';
+
+    goLiveDate = String(row[18] || '');
+    channelsStr = String(row[19] || '');
+    notes = String(row[20] || '');
+    updatedAt = String(row[21] || new Date().toISOString());
+  } else {
+    // Esquema de 22 columnas
+    goLiveDate = String(row[17] || '');
+    channelsStr = String(row[18] || '');
+    notes = String(row[19] || '');
+    updatedAt = String(row[20] || new Date().toISOString());
+  }
+
+  const techs = channelsStr
+    ? channelsStr
         .split(',')
         .map((t) => t.trim())
         .filter(Boolean)
     : [];
-  const notes = String(row[19] || '');
-  const updatedAt = String(row[20] || new Date().toISOString());
 
   return {
     id: clientId,
@@ -255,6 +300,8 @@ export function rowToClient(row: any[]): any | null {
       skuCount: skuCount,
       ordersMonth: ordersMonth,
       unitsPerOrder: unitsPerOrder,
+      subscriptionTier: subTier,
+      subscriptionPrice: subPrice,
       packCostSource: 'Calculadora (negociado)',
       volumeMode: 'Pedidos/mes',
       workingDays: 22,

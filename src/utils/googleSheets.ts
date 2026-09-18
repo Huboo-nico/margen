@@ -16,6 +16,7 @@ export const GOOGLE_SHEET_COLUMNS = [
   'Tarifa 1er Pick (€)',
   'Tarifa Pick Adicional (€)',
   'Tarifa Envío (€)',
+  'Suscripción Mensual (€)',
   'Ingresos / Mes (€)',
   'Coste / Mes (€)',
   'Margen Bruto (%)',
@@ -677,7 +678,16 @@ function sanitizeClientList(rawList: any[]): ClientProfile[] {
 export async function saveSingleClientToGoogleSheets(
   client: ClientProfile,
   webhookUrl?: string
-): Promise<{ status: 'success' | 'error'; message: string; clientName?: string; territory?: string }> {
+): Promise<{
+  status: 'success' | 'error';
+  message: string;
+  clientName?: string;
+  territory?: string;
+  isDuplicate?: boolean;
+  isUpdated?: boolean;
+  matchedRow?: number;
+  warning?: string;
+}> {
   const effectiveUrl = (webhookUrl || getSavedGoogleSheetsUrl()).trim();
 
   const enrichedClient = {

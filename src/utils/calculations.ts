@@ -353,12 +353,18 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
   // Suscripción mensual Huboo
   const subTier = inputs.subscriptionTier || 'none';
   const subscriptionConfig = SUBSCRIPTION_TIERS[subTier] || SUBSCRIPTION_TIERS.none;
-  const subscriptionRevenueMonth =
-    subTier === 'custom'
-      ? Number(inputs.subscriptionPrice || 0)
-      : (inputs.subscriptionPrice !== undefined && inputs.subscriptionPrice !== null && inputs.subscriptionPrice > 0
-          ? Number(inputs.subscriptionPrice)
-          : subscriptionConfig.price);
+  let subscriptionRevenueMonth = 0;
+  if (subTier === 'tier-50') {
+    subscriptionRevenueMonth = 50;
+  } else if (subTier === 'tier-150') {
+    subscriptionRevenueMonth = 150;
+  } else if (subTier === 'tier-450') {
+    subscriptionRevenueMonth = 450;
+  } else if (subTier === 'custom') {
+    subscriptionRevenueMonth = Number(inputs.subscriptionPrice || 0);
+  } else {
+    subscriptionRevenueMonth = 0;
+  }
 
   const fulfilmentRevenueMonthExShipping =
     orderRevenueMonth + goodsInRevenueMonth + storageRevenueMonth + subscriptionRevenueMonth;

@@ -117,13 +117,18 @@ export async function handleSheetsRequest(req: Request | any, res: Response | an
           try {
             const resp = await sheets.spreadsheets.values.get({
               spreadsheetId,
-              range: `'${tab}'!A2:V500`,
+              range: `'${tab}'!A2:W1000`,
             });
             const rows = resp.data.values || [];
             for (const row of rows) {
               const client = rowToClient(row);
-              if (client && client.id && client.name) {
-                clientsMap.set(client.id, client);
+              if (client && (client.id || client.name)) {
+                // Clave única por nombre normalizado de cliente para cruzar datos
+                const uniqueKey = client.name ? client.name.trim().toLowerCase() : String(client.id);
+                // Si no existía o si esta pestaña tiene datos más completos, guardar
+                if (!clientsMap.has(uniqueKey) || tab !== 'Resumen General') {
+                  clientsMap.set(uniqueKey, client);
+                }
               }
             }
           } catch {
@@ -147,7 +152,7 @@ export async function handleSheetsRequest(req: Request | any, res: Response | an
         });
       }
 
-      // ACCIÓN: SAVE_CLIENT
+      // ACCIÓN: SAVE_CLIENT (Cruce de datos por nombre "Cliente" e ID para no borrar ni duplicar)
       if (action === 'save_client') {
         const client = req.body.client;
         if (!client) {
@@ -159,54 +164,85 @@ export async function handleSheetsRequest(req: Request | any, res: Response | an
         const territory = String(inputs.warehouse || 'Spain').trim();
         const tabName = territory || 'Spain';
 
-        // Asegurar que la pestaña existe
+        // Asegurar que la pestaña existe con cabeceras completas
         await ensureSheetAndHeaders(sheets, spreadsheetId, tabName);
 
-        const rowValues = clientToRow(client);
-        const clientId = String(profile.id);
+        const clientName = String(profile.name || inputs.clientName || 'Cliente').trim();
+        const clientId = String(profile.id || '').trim();
+        const clientNameNorm = clientName.toLowerCase();
 
-        // Buscar si ya existe la fila con ese ID en la pestaña
+        const rowValues = clientToRow(client);
+
+        // Cruce de datos: Buscar en columnas A y B (ID y Cliente)
         const existingData = await sheets.spreadsheets.values.get({
           spreadsheetId,
-          range: `'${tabName}'!A2:A500`,
+          range: `'${tabName}'!A2:B1000`,
         });
-        const existingIds = (existingData.data.values || []).map((r: any[]) => r[0]);
-        const rowIndex = existingIds.findIndex((id: string) => String(id) === clientId);
+        const existingRows = existingData.data.values || [];
 
-        if (rowIndex >= 0) {
-          // Actualizar fila existente (A2 -> fila 2, etc.)
-          const targetRowNumber = rowIndex + 2;
+        // Buscar coincidencia por nombre de Cliente (exacto sin mayúsculas) o por ID
+        const matchedIndex = existingRows.findIndex((r: any[]) => {
+          const rowId = String(r[0] || '').trim();
+          const rowName = String(r[1] || '').trim().toLowerCase();
+          return (clientNameNorm && rowName === clientNameNorm) || (clientId && rowId === clientId);
+        });
+
+        if (matchedIndex >= 0) {
+          // El cliente YA EXISTÍA en el Sheet: ACTUALIZAR su fila exacta sin tocar las demás
+          const targetRowNumber = matchedIndex + 2;
+          
+          // Preservar el ID original de la hoja si existía
+          const originalId = existingRows[matchedIndex][0];
+          if (originalId && !clientId) {
+            rowValues[0] = originalId;
+          }
+
           await sheets.spreadsheets.values.update({
             spreadsheetId,
-            range: `'${tabName}'!A${targetRowNumber}:V${targetRowNumber}`,
+            range: `'${tabName}'!A${targetRowNumber}:W${targetRowNumber}`,
             valueInputOption: 'USER_ENTERED',
             requestBody: {
               values: [rowValues],
             },
+          });
+
+          return res.status(200).json({
+            status: 'success',
+            success: true,
+            mode: 'google_api',
+            isDuplicate: true,
+            isUpdated: true,
+            matchedRow: targetRowNumber,
+            clientName: clientName,
+            territory: tabName,
+            warning: `El cliente "${clientName}" ya existía en la fila ${targetRowNumber}. Se ha actualizado su registro existente.`,
+            message: `⚠️ Aviso: Ya existía un cliente registrado como "${clientName}" en la fila ${targetRowNumber}. Se ha actualizado su registro existente para no crear duplicados.`,
           });
         } else {
-          // Agregar al final
+          // Es un NUEVO cliente: Agregar al final sin borrar nada existente
           await sheets.spreadsheets.values.append({
             spreadsheetId,
-            range: `'${tabName}'!A:V`,
+            range: `'${tabName}'!A:W`,
             valueInputOption: 'USER_ENTERED',
             requestBody: {
               values: [rowValues],
             },
           });
-        }
 
-        return res.status(200).json({
-          status: 'success',
-          success: true,
-          mode: 'google_api',
-          clientName: profile.name || inputs.clientName,
-          territory: tabName,
-          message: `Cliente "${profile.name || inputs.clientName}" guardado correctamente en la pestaña "${tabName}".`,
-        });
+          return res.status(200).json({
+            status: 'success',
+            success: true,
+            mode: 'google_api',
+            isDuplicate: false,
+            isUpdated: false,
+            clientName: clientName,
+            territory: tabName,
+            message: `Nuevo cliente "${clientName}" guardado correctamente en la pestaña "${tabName}".`,
+          });
+        }
       }
 
-      // ACCIÓN: SYNC_ALL
+      // ACCIÓN: SYNC_ALL (Merge seguro con cruce por "Cliente": NUNCA borra clientes previos)
       if (action === 'sync_all') {
         const rawClients = req.body.clients || [];
         const clientsByTerritory: Record<string, any[]> = {
@@ -219,25 +255,55 @@ export async function handleSheetsRequest(req: Request | any, res: Response | an
           const inputs = c.inputs || (c.profile && c.profile.inputs) || {};
           const territory = String(inputs.warehouse || 'Spain').trim();
           const target = clientsByTerritory[territory] ? territory : 'Spain';
-          clientsByTerritory[target].push(clientToRow(c));
+          clientsByTerritory[target].push(c);
         }
 
-        for (const [territory, rows] of Object.entries(clientsByTerritory)) {
+        let totalUpdated = 0;
+        let totalAppended = 0;
+
+        for (const [territory, incomingClients] of Object.entries(clientsByTerritory)) {
           await ensureSheetAndHeaders(sheets, spreadsheetId, territory);
 
-          // Limpiar datos previos de la pestaña (desde fila 2) y reescribir ordenado
-          await sheets.spreadsheets.values.clear({
+          // 1. Leer todas las filas existentes en la hoja
+          const existingData = await sheets.spreadsheets.values.get({
             spreadsheetId,
-            range: `'${territory}'!A2:V500`,
+            range: `'${territory}'!A2:W1000`,
           });
+          const existingRows = existingData.data.values || [];
 
-          if (rows.length > 0) {
+          // 2. Fusionar los clientes que entran cruzando datos por Nombre (Cliente) e ID
+          const norm = (s: any) => String(s || '').trim().toLowerCase();
+
+          for (const incClient of incomingClients) {
+            const incProfile = incClient.profile || incClient;
+            const incInputs = incClient.inputs || incProfile.inputs || {};
+            const incName = norm(incProfile.name || incInputs.clientName);
+            const incId = String(incProfile.id || '').trim();
+            const incRow = clientToRow(incClient);
+
+            const matchIdx = existingRows.findIndex((r: any[]) => {
+              const rId = String(r[0] || '').trim();
+              const rName = norm(r[1]);
+              return (incName && rName === incName) || (incId && rId === incId);
+            });
+
+            if (matchIdx >= 0) {
+              existingRows[matchIdx] = incRow;
+              totalUpdated++;
+            } else {
+              existingRows.push(incRow);
+              totalAppended++;
+            }
+          }
+
+          // 3. Escribir todas las filas combinadas SIN BORRAR nada previo
+          if (existingRows.length > 0) {
             await sheets.spreadsheets.values.update({
               spreadsheetId,
-              range: `'${territory}'!A2:V${rows.length + 1}`,
+              range: `'${territory}'!A2:W${existingRows.length + 1}`,
               valueInputOption: 'USER_ENTERED',
               requestBody: {
-                values: rows,
+                values: existingRows,
               },
             });
           }
@@ -247,11 +313,10 @@ export async function handleSheetsRequest(req: Request | any, res: Response | an
           status: 'success',
           success: true,
           mode: 'google_api',
-          totalClients: rawClients.length,
-          spainCount: clientsByTerritory.Spain.length,
-          ukCount: clientsByTerritory.UK.length,
-          usaCount: clientsByTerritory.USA.length,
-          message: `Sincronizados ${rawClients.length} clientes en Google Sheets mediante Google Sheets API directa.`,
+          totalReceived: rawClients.length,
+          totalUpdated,
+          totalAppended,
+          message: `Sincronización completada: ${totalUpdated} clientes actualizados y ${totalAppended} nuevos clientes añadidos sin borrar datos existentes.`,
         });
       }
 
