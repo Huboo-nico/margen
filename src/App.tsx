@@ -21,7 +21,6 @@ import {
   getSavedGoogleSheetsUrl,
   saveSingleClientToGoogleSheets,
   fetchClientsFromGoogleSheets,
-  checkServerSheetsStatus,
   mergeClientProfiles,
 } from './utils/googleSheets';
 
@@ -123,28 +122,29 @@ export const App: React.FC = () => {
     }
   };
 
-  // Carga automática inicial desde Google Sheet si la API del servidor tiene credenciales configuradas
-  useEffect(() => {
-    let active = true;
-    checkServerSheetsStatus()
-      .then(async (st) => {
-        if (st.configured && active) {
-          try {
-            const res = await fetchClientsFromGoogleSheets();
-            if (res.success && res.clients.length > 0 && active) {
-              setClients((prev) => mergeClientProfiles(prev, res.clients));
-            }
-          } catch {
-            // Silencioso al inicio para no interrumpir si no hay conexión
-          }
-        }
-      })
-      .catch(() => {});
+  // Eliminamos la carga forzada automática al inicio para respetar la preferencia del usuario
+  // (los clientes de Sheet solo se cargan si el usuario pulsa explícitamente "Cargar Sheet")
 
-    return () => {
-      active = false;
-    };
-  }, []);
+  // Selector sincronizado de cliente para evitar pérdida de datos entre cotizaciones
+  const handleSelectClient = (id: string) => {
+    // 1. Guardar primero los datos del cliente actual antes de cambiar
+    setClients((prev) =>
+      prev.map((c) =>
+        c.id.toLowerCase() === activeClientId.toLowerCase() || c.name.toLowerCase() === activeClientId.toLowerCase()
+          ? { ...c, inputs: { ...inputs }, updatedAt: new Date().toISOString() }
+          : c
+      )
+    );
+
+    // 2. Cargar el cliente seleccionado
+    const found = clients.find(
+      (c) => c.id.toLowerCase() === id.toLowerCase() || c.name.toLowerCase() === id.toLowerCase()
+    );
+    if (found) {
+      setActiveClientId(found.id);
+      setInputs(found.inputs);
+    }
+  };
 
   // When activeClientId changes, update inputs without circular reset
   useEffect(() => {
@@ -206,6 +206,15 @@ export const App: React.FC = () => {
 
   // Client management handlers
   const handleCreateClient = () => {
+    // 1. Guardar el estado actual del cliente que se estaba editando antes de crear uno nuevo
+    setClients((prev) =>
+      prev.map((c) =>
+        c.id.toLowerCase() === activeClientId.toLowerCase() || c.name.toLowerCase() === activeClientId.toLowerCase()
+          ? { ...c, inputs: { ...inputs }, updatedAt: new Date().toISOString() }
+          : c
+      )
+    );
+
     let count = clients.length + 1;
     let newName = `Cliente ${count}`;
     while (clients.some((c) => c.name.trim().toLowerCase() === newName.toLowerCase())) {
@@ -227,7 +236,7 @@ export const App: React.FC = () => {
     setActiveClientId(newName);
     setInputs(newClient.inputs);
     setActiveTab('Resumen');
-    showToast(`Cliente "${newName}" añadido a la lista.`, 'info');
+    showToast(`Nuevo cliente "${newName}" creado. Tus cotizaciones anteriores siguen disponibles en la lista.`, 'info');
   };
 
   const handleDuplicateClient = () => {
@@ -369,11 +378,7 @@ export const App: React.FC = () => {
         <ClientManagerHeader
           clients={clients}
           activeClientId={activeClientId}
-          onSelectClient={(id) => {
-            setActiveClientId(id);
-            const c = clients.find((item) => item.id === id);
-            if (c) setInputs(c.inputs);
-          }}
+          onSelectClient={handleSelectClient}
           onCreateClient={handleCreateClient}
           onDuplicateClient={handleDuplicateClient}
           onDeleteClient={handleDeleteClient}

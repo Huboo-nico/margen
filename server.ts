@@ -2,7 +2,7 @@ import express from 'express';
 import http from 'http';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
-import { handleSheetsRequest } from './server/sheetsHandler';
+import { handleSheetsRequest } from './server/sheetsHandler.ts';
 
 async function startServer() {
   const app = express();

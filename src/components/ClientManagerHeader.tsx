@@ -378,6 +378,68 @@ ${currentInputs.warehouse ? `Warehouse / Almacén: ${currentInputs.warehouse}\n`
           )}
         </button>
       </div>
+
+      {/* Barra de pestañas/píldoras de clientes para que el usuario SIEMPRE vea que sus cotizaciones no se borran */}
+      <div className={`w-full flex items-center gap-1.5 overflow-x-auto pb-0.5 pt-1.5 scrollbar-thin ${
+        isDark ? 'border-t border-[#2E2A48]/60' : 'border-t border-[#E5DDD0]/70'
+      }`}>
+        <span className={`text-[10px] font-bold uppercase tracking-wider shrink-0 ${isDark ? 'text-gray-400' : 'text-[#7D736A]'}`}>
+          {language === 'en' ? 'Active Quotes:' : 'Cotizaciones:'}
+        </span>
+        {clients.map((c) => {
+          const isActive =
+            c.id.toLowerCase() === activeClientId.toLowerCase() ||
+            c.name.toLowerCase() === activeClientId.toLowerCase();
+          return (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => onSelectClient(c.id)}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition cursor-pointer shrink-0 ${
+                isActive
+                  ? isDark
+                    ? 'bg-[#47D2BF] text-[#120E26] shadow-sm font-bold ring-1 ring-[#47D2BF]'
+                    : 'bg-[#6B4ABF] text-white shadow-sm font-bold ring-1 ring-[#6B4ABF]'
+                  : isDark
+                  ? 'bg-[#252238] text-gray-300 hover:bg-[#2e2a44] border border-[#2E2A48]'
+                  : 'bg-white text-[#4D453E] hover:bg-[#F4EEE4] border border-[#E5DDD0]'
+              }`}
+              title={
+                language === 'en'
+                  ? `Switch to quote "${c.name}" (${c.inputs.ordersMonth || 0} orders/mo)`
+                  : `Cambiar a cotización "${c.name}" (${c.inputs.ordersMonth || 0} ped/mes)`
+              }
+            >
+              <span>{c.name}</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                isActive
+                  ? isDark ? 'bg-[#120E26]/20 text-[#120E26]' : 'bg-white/20 text-white'
+                  : isDark ? 'bg-[#1A162B] text-gray-400' : 'bg-[#EFE9DF] text-[#7D736A]'
+              }`}>
+                {c.inputs.warehouse || 'Spain'}
+              </span>
+            </button>
+          );
+        })}
+
+        <button
+          type="button"
+          onClick={handleCreateAndFocus}
+          className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border border-dashed transition cursor-pointer shrink-0 ${
+            isDark
+              ? 'text-[#47D2BF] border-[#47D2BF]/50 hover:bg-[#47D2BF]/10'
+              : 'text-[#6B4ABF] border-[#6B4ABF]/50 hover:bg-[#6B4ABF]/10'
+          }`}
+          title={
+            language === 'en'
+              ? 'Create a new quote without deleting any existing client'
+              : 'Crear una nueva cotización sin borrar ningún cliente anterior'
+          }
+        >
+          <Plus className="w-3 h-3" />
+          <span>{language === 'en' ? '+ New Quote' : '+ Nueva Cotización'}</span>
+        </button>
+      </div>
     </div>
   );
 };
