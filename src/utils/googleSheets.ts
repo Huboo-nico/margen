@@ -602,9 +602,10 @@ export interface SyncResponse {
 
 function sanitizeClientList(rawList: any[]): ClientProfile[] {
   return rawList.map((c: any, idx: number) => {
-    const id = String(c.id || `client-${Date.now()}-${idx}`);
-    const name = String(c.name || (c.inputs && c.inputs.clientName) || `Cliente ${idx + 1}`);
     const rawInputs = c.inputs || {};
+    const name = String(c.name || rawInputs.clientName || (c.profile && c.profile.name) || `Cliente ${idx + 1}`).trim();
+    // El ID es idéntico al nombre del cliente
+    const id = name;
 
     return {
       id,
@@ -656,10 +657,21 @@ export async function saveSingleClientToGoogleSheets(
 }> {
   const effectiveUrl = (webhookUrl || getSavedGoogleSheetsUrl()).trim();
 
+  const clientName = String(client.name || client.inputs?.clientName || 'Cliente').trim();
+  const normalizedClient: ClientProfile = {
+    ...client,
+    id: clientName,
+    name: clientName,
+    inputs: {
+      ...client.inputs,
+      clientName: clientName,
+    },
+  };
+
   const enrichedClient = {
-    profile: client,
-    inputs: client.inputs,
-    results: calculateAll(client.inputs),
+    profile: normalizedClient,
+    inputs: normalizedClient.inputs,
+    results: calculateAll(normalizedClient.inputs),
   };
 
   const payload = {
@@ -836,11 +848,23 @@ export async function syncClientsToGoogleSheets(
 ): Promise<SyncResponse> {
   const effectiveUrl = (webhookUrl || getSavedGoogleSheetsUrl()).trim();
 
-  const enrichedClients = clients.map((c) => ({
-    profile: c,
-    inputs: c.inputs,
-    results: calculateAll(c.inputs),
-  }));
+  const enrichedClients = clients.map((c) => {
+    const clientName = String(c.name || c.inputs?.clientName || 'Cliente').trim();
+    const normalizedClient: ClientProfile = {
+      ...c,
+      id: clientName,
+      name: clientName,
+      inputs: {
+        ...c.inputs,
+        clientName: clientName,
+      },
+    };
+    return {
+      profile: normalizedClient,
+      inputs: normalizedClient.inputs,
+      results: calculateAll(normalizedClient.inputs),
+    };
+  });
 
   const payload = {
     action: 'sync_all',

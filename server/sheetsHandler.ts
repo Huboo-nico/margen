@@ -21,6 +21,35 @@ function isGenericClientName(name: string): boolean {
   return !s || s === 'cliente' || s === 'cliente nuevo' || s === 'nuevo cliente' || s === 'client';
 }
 
+// Comprueba si una fila de Google Sheet coincide con un cliente objetivo.
+// El ID es el mismo que el nombre del cliente, revisando mayúsculas y minúsculas (insensible).
+function doesRowMatchClient(row: any[], clientName: string, clientId?: string): boolean {
+  if (!row || row.length === 0) return false;
+  const targetName = String(clientName || '').trim().toLowerCase();
+  const targetId = String(clientId || '').trim().toLowerCase();
+  if (!targetName && !targetId) return false;
+
+  // En la fila de la hoja:
+  // Columna 0 (A): ID (que es el nombre del cliente o un ID legacy)
+  // Columna 1 (B): Nombre del cliente
+  const colA = String(row[0] || '').trim().toLowerCase();
+  const colB = String(row[1] || '').trim().toLowerCase();
+
+  if (targetName) {
+    if (colB === targetName || colA === targetName) {
+      return true;
+    }
+  }
+
+  if (targetId && !isGenericClientId(targetId)) {
+    if (colA === targetId || colB === targetId) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 // Fallback a URL de Apps Script si el usuario aún tiene esa variable
 export function getBackendGoogleSheetsUrl(): string {
   return (
@@ -32,18 +61,27 @@ export function getBackendGoogleSheetsUrl(): string {
 }
 
 export async function handleSheetsRequest(req: Request | any, res: Response | any) {
-  // CORS Headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-custom-webhook-url');
+  try {
+    // CORS Headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-custom-webhook-url');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
 
-  const action = (req.query?.action as string) || (req.body?.action as string) || 'load_clients';
-  const hasServiceAccount = isGoogleServiceAccountConfigured();
-  const legacyWebAppUrl = getBackendGoogleSheetsUrl();
+    if (typeof req.body === 'string') {
+      try {
+        req.body = JSON.parse(req.body);
+      } catch {
+        // mantener como string si no es JSON válido
+      }
+    }
+
+    const action = (req.query?.action as string) || (req.body?.action as string) || 'load_clients';
+    const hasServiceAccount = isGoogleServiceAccountConfigured();
+    const legacyWebAppUrl = getBackendGoogleSheetsUrl();
 
   // 1. STATUS & DIAGNOSTICS
   if (action === 'status') {
@@ -194,31 +232,15 @@ export async function handleSheetsRequest(req: Request | any, res: Response | an
           });
           const existingRows = existingData.data.values || [];
 
-          // Reglas de coincidencia estrictas:
-          // 1. Por nombre normalizado (siempre que no sea genérico como "Cliente")
-          // 2. Por ID (solo si el ID NO es genérico como 'client-1' o 'client-2')
-          let matchedIndex = -1;
-
-          if (!isGenericClientName(clientName)) {
-            matchedIndex = existingRows.findIndex((r: any[]) => {
-              const rowName = String(r[1] || '').trim().toLowerCase();
-              return rowName === clientNameNorm;
-            });
-          }
-
-          if (matchedIndex === -1 && !isGenericClientId(incomingId)) {
-            matchedIndex = existingRows.findIndex((r: any[]) => {
-              const rowId = String(r[0] || '').trim();
-              return rowId === incomingId;
-            });
-          }
+          // Reglas de coincidencia: El ID es el mismo que el nombre del cliente (revisando mayúsculas y minúsculas)
+          const matchedIndex = existingRows.findIndex((r: any[]) =>
+            doesRowMatchClient(r, clientName, incomingId)
+          );
 
           if (matchedIndex >= 0) {
             // El cliente YA EXISTÍA: Actualizar su fila específica
             const targetRowNumber = matchedIndex + 2;
-            const existingRowId = String(existingRows[matchedIndex][0] || '').trim();
-            const safeId = existingRowId || (isGenericClientId(incomingId) ? `client-${Date.now()}` : incomingId);
-            const rowValues = clientToRow(client, safeId);
+            const rowValues = clientToRow(client, clientName);
 
             await sheets.spreadsheets.values.update({
               spreadsheetId,
@@ -231,12 +253,10 @@ export async function handleSheetsRequest(req: Request | any, res: Response | an
 
             return { updated: true, rowNumber: targetRowNumber };
           } else {
-            // Es un NUEVO cliente: Append determinista en la siguiente fila vacía
+            // Es un NUEVO cliente: Append en la siguiente fila vacía
+            // NUNCA se sobreescribe ningún cliente anterior
             const newRowNumber = existingRows.length + 2;
-            const safeNewId = isGenericClientId(incomingId)
-              ? `client-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
-              : incomingId;
-            const rowValues = clientToRow(client, safeNewId);
+            const rowValues = clientToRow(client, clientName);
 
             await sheets.spreadsheets.values.update({
               spreadsheetId,
@@ -299,8 +319,8 @@ export async function handleSheetsRequest(req: Request | any, res: Response | an
 
         for (const c of rawClients) {
           const inputs = c.inputs || (c.profile && c.profile.inputs) || {};
-          const territory = String(inputs.warehouse || 'Spain').trim();
-          const target = clientsByTerritory[territory] ? territory : 'Spain';
+          const territory = String(inputs.warehouse || 'Spain').trim().toLowerCase();
+          const target = territory === 'uk' ? 'UK' : territory === 'usa' ? 'USA' : 'Spain';
           clientsByTerritory[target].push(c);
         }
 
@@ -317,39 +337,22 @@ export async function handleSheetsRequest(req: Request | any, res: Response | an
             range: `'${territory}'!A2:W1000`,
           });
           const existingRows = existingData.data.values || [];
-          const norm = (s: any) => String(s || '').trim().toLowerCase();
 
           for (const incClient of incomingClients) {
             const incProfile = incClient.profile || incClient;
             const incInputs = incClient.inputs || incProfile.inputs || {};
-            const incName = norm(incProfile.name || incInputs.clientName);
+            const incName = String(incInputs.clientName || incProfile.name || '').trim();
             const incId = String(incProfile.id || '').trim();
 
-            let matchIdx = -1;
-
-            if (!isGenericClientName(incName)) {
-              matchIdx = existingRows.findIndex((r: any[]) => {
-                const rName = norm(r[1]);
-                return rName === incName;
-              });
-            }
-
-            if (matchIdx === -1 && !isGenericClientId(incId)) {
-              matchIdx = existingRows.findIndex((r: any[]) => {
-                const rId = String(r[0] || '').trim();
-                return rId === incId;
-              });
-            }
+            const matchIdx = existingRows.findIndex((r: any[]) =>
+              doesRowMatchClient(r, incName, incId)
+            );
 
             if (matchIdx >= 0) {
-              const existingId = String(existingRows[matchIdx][0] || '').trim() || incId;
-              existingRows[matchIdx] = clientToRow(incClient, existingId);
+              existingRows[matchIdx] = clientToRow(incClient, incName);
               totalUpdated++;
             } else {
-              const newId = isGenericClientId(incId)
-                ? `client-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
-                : incId;
-              existingRows.push(clientToRow(incClient, newId));
+              existingRows.push(clientToRow(incClient, incName));
               totalAppended++;
             }
           }
@@ -375,30 +378,21 @@ export async function handleSheetsRequest(req: Request | any, res: Response | an
             range: `'Resumen General'!A2:W1000`,
           });
           const genRows = genData.data.values || [];
-          const norm = (s: any) => String(s || '').trim().toLowerCase();
 
           for (const incClient of rawClients) {
             const incProfile = incClient.profile || incClient;
             const incInputs = incClient.inputs || incProfile.inputs || {};
-            const incName = norm(incProfile.name || incInputs.clientName);
+            const incName = String(incInputs.clientName || incProfile.name || '').trim();
             const incId = String(incProfile.id || '').trim();
 
-            let matchIdx = -1;
-            if (!isGenericClientName(incName)) {
-              matchIdx = genRows.findIndex((r: any[]) => norm(r[1]) === incName);
-            }
-            if (matchIdx === -1 && !isGenericClientId(incId)) {
-              matchIdx = genRows.findIndex((r: any[]) => String(r[0] || '').trim() === incId);
-            }
+            const matchIdx = genRows.findIndex((r: any[]) =>
+              doesRowMatchClient(r, incName, incId)
+            );
 
             if (matchIdx >= 0) {
-              const existingId = String(genRows[matchIdx][0] || '').trim() || incId;
-              genRows[matchIdx] = clientToRow(incClient, existingId);
+              genRows[matchIdx] = clientToRow(incClient, incName);
             } else {
-              const newId = isGenericClientId(incId)
-                ? `client-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
-                : incId;
-              genRows.push(clientToRow(incClient, newId));
+              genRows.push(clientToRow(incClient, incName));
             }
           }
 
@@ -433,14 +427,16 @@ export async function handleSheetsRequest(req: Request | any, res: Response | an
       });
     } catch (apiErr: any) {
       const email = getGoogleServiceAccountEmail();
-      let errorMsg = apiErr.message;
-      if (apiErr.code === 403) {
+      let errorMsg = apiErr?.message || String(apiErr);
+      if (apiErr?.code === 403) {
         errorMsg = `Permiso denegado en Google Sheets API. Asegúrate de haber compartido el documento con ${email} con permisos de Editor.`;
+      } else if (apiErr?.code === 404) {
+        errorMsg = `Hoja no encontrada. Verifica GOOGLE_SHEETS_SPREADSHEET_ID.`;
       }
-      return res.status(500).json({
+      return res.status(200).json({
         status: 'error',
         success: false,
-        errorType: apiErr.code === 403 ? 'PERMISSION_DENIED' : 'API_ERROR',
+        errorType: apiErr?.code === 403 ? 'PERMISSION_DENIED' : 'API_ERROR',
         serviceAccountEmail: email,
         message: errorMsg,
       });
@@ -453,13 +449,22 @@ export async function handleSheetsRequest(req: Request | any, res: Response | an
   }
 
   // Si no hay ningún método configurado
-  return res.status(400).json({
+  return res.status(200).json({
     status: 'error',
     success: false,
     configured: false,
     message:
       'Configura en Vercel las variables para Google Sheets API: GOOGLE_SHEETS_SPREADSHEET_ID y GOOGLE_SERVICE_ACCOUNT_KEY (o GOOGLE_SERVICE_ACCOUNT_EMAIL y GOOGLE_PRIVATE_KEY). Comparte luego la hoja de cálculo con el email de la Service Account.',
   });
+  } catch (outerErr: any) {
+    console.error('Unhandled error in handleSheetsRequest:', outerErr);
+    return res.status(200).json({
+      status: 'error',
+      success: false,
+      errorType: 'SERVER_ERROR',
+      message: `Error en el servidor: ${outerErr?.message || String(outerErr)}`,
+    });
+  }
 }
 
 // Manejador legacy para Apps Script

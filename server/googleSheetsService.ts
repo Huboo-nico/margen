@@ -29,10 +29,14 @@ export function cleanPrivateKey(rawKey: string): string {
   key = key.replace(/\\n/g, '\n').replace(/\\r/g, '');
 
   // Ensure BEGIN and END markers are on separate lines
-  if (!key.includes('\n') && key.includes('-----BEGIN PRIVATE KEY-----') && key.includes('-----END PRIVATE KEY-----')) {
-    key = key
-      .replace('-----BEGIN PRIVATE KEY-----', '-----BEGIN PRIVATE KEY-----\n')
-      .replace('-----END PRIVATE KEY-----', '\n-----END PRIVATE KEY-----');
+  if (key.includes('-----BEGIN PRIVATE KEY-----') && key.includes('-----END PRIVATE KEY-----')) {
+    const beginMarker = '-----BEGIN PRIVATE KEY-----';
+    const endMarker = '-----END PRIVATE KEY-----';
+    const startIdx = key.indexOf(beginMarker) + beginMarker.length;
+    const endIdx = key.indexOf(endMarker);
+    const middle = key.substring(startIdx, endIdx).replace(/\s+/g, '');
+    const lines = middle.match(/.{1,64}/g) || [middle];
+    key = `${beginMarker}\n${lines.join('\n')}\n${endMarker}`;
   }
 
   return key.trim();
@@ -44,6 +48,18 @@ function tryParseJsonCredentials(raw: string): Partial<ServiceAccountCredentials
 
   if ((str.startsWith('"') && str.endsWith('"')) || (str.startsWith("'") && str.endsWith("'"))) {
     str = str.slice(1, -1);
+  }
+
+  // Si está codificado en Base64
+  if (!str.startsWith('{') && str.length > 20) {
+    try {
+      const decoded = Buffer.from(str, 'base64').toString('utf-8');
+      if (decoded.includes('"client_email"') || decoded.includes('"private_key"')) {
+        str = decoded;
+      }
+    } catch {
+      // no es base64
+    }
   }
 
   if (str.includes('\\"') && !str.includes('{"')) {
@@ -278,11 +294,9 @@ export function clientToRow(c: any, overrideId?: string): any[] {
   const inputs = c.inputs || profile.inputs || {};
   const results = c.results || {};
 
-  let id = String(overrideId || profile.id || '').trim();
-  if (!id) {
-    id = `client-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-  }
-  const name = String(inputs.clientName || profile.name || 'Cliente');
+  const name = String(inputs.clientName || profile.name || overrideId || 'Cliente').trim();
+  // El ID es el mismo que el nombre del cliente
+  const id = name;
   const warehouse = String(inputs.warehouse || 'Spain');
   const productType = String(inputs.productType || 'Suplementos');
   const skuCount = Number(inputs.skuCount) || 15;
@@ -367,7 +381,16 @@ export function rowToClient(row: any[]): any | null {
       try {
         const parsed = JSON.parse(val);
         if (parsed && (parsed.id || parsed.name || parsed.inputs)) {
-          return parsed;
+          const clientName = String(parsed.inputs?.clientName || parsed.name || parsed.id || 'Cliente').trim();
+          return {
+            ...parsed,
+            id: clientName,
+            name: clientName,
+            inputs: {
+              ...(parsed.inputs || {}),
+              clientName: clientName,
+            },
+          };
         }
       } catch {
         // Fallback a columnas sueltas
@@ -375,8 +398,10 @@ export function rowToClient(row: any[]): any | null {
     }
   }
 
-  const clientId = String(row[0] || `client-${Date.now()}`);
-  const clientName = String(row[1] || 'Cliente');
+  const rawCol0 = String(row[0] || '').trim();
+  const rawCol1 = String(row[1] || '').trim();
+  const clientName = rawCol1 || rawCol0 || 'Cliente';
+  const clientId = clientName;
   const warehouse = String(row[2] || 'Spain');
   const productType = String(row[3] || 'Suplementos');
   const skuCount = Number(row[4]) || 15;

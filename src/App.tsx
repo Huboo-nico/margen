@@ -43,7 +43,7 @@ export const App: React.FC = () => {
     return INITIAL_CLIENT_PROFILES;
   });
 
-  const [activeClientId, setActiveClientId] = useState<string>(() => clients[0]?.id || 'client-1');
+  const [activeClientId, setActiveClientId] = useState<string>(() => clients[0]?.id || clients[0]?.name || 'NutriLife (Suplementos)');
   const [isGoogleSheetsOpen, setIsGoogleSheetsOpen] = useState<boolean>(false);
   const [isSavingToSheets, setIsSavingToSheets] = useState<boolean>(false);
   const [isLoadingFromSheets, setIsLoadingFromSheets] = useState<boolean>(false);
@@ -55,7 +55,9 @@ export const App: React.FC = () => {
   >('Resumen');
 
   // Active client & inputs
-  const currentClient = clients.find((c) => c.id === activeClientId) || clients[0];
+  const currentClient =
+    clients.find((c) => c.id.toLowerCase() === activeClientId.toLowerCase() || c.name.toLowerCase() === activeClientId.toLowerCase()) ||
+    clients[0];
   const [inputs, setInputs] = useState<CalculatorInputs>(currentClient.inputs);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -67,7 +69,9 @@ export const App: React.FC = () => {
 
   const handleQuickSaveCurrentClient = async () => {
     const url = getSavedGoogleSheetsUrl();
-    const clientToSave = clients.find((c) => c.id === activeClientId) || clients[0];
+    const clientToSave =
+      clients.find((c) => c.id.toLowerCase() === activeClientId.toLowerCase() || c.name.toLowerCase() === activeClientId.toLowerCase()) ||
+      currentClient;
     if (!clientToSave) return;
 
     setIsSavingToSheets(true);
@@ -138,11 +142,13 @@ export const App: React.FC = () => {
 
   // When activeClientId changes, update inputs
   useEffect(() => {
-    const client = clients.find((c) => c.id === activeClientId);
+    const client = clients.find(
+      (c) => c.id.toLowerCase() === activeClientId.toLowerCase() || c.name.toLowerCase() === activeClientId.toLowerCase()
+    );
     if (client) {
       setInputs(client.inputs);
     }
-  }, [activeClientId]);
+  }, [activeClientId, clients]);
 
   // Persist clients to localStorage
   useEffect(() => {
@@ -156,32 +162,51 @@ export const App: React.FC = () => {
   // Calculation results
   const results = useMemo(() => calculateAll(inputs), [inputs]);
 
-  // Update inputs and sync into active client
+  // Update inputs and sync into active client (El ID es idéntico al nombre del cliente)
   const handleInputChange = (updated: Partial<CalculatorInputs>) => {
     setInputs((prev) => {
       const next = { ...prev, ...updated };
+      const currentActiveIdLower = activeClientId.toLowerCase();
+      const hasNameChange = updated.clientName !== undefined && updated.clientName.trim().length > 0;
+      const targetName = hasNameChange ? updated.clientName!.trim() : undefined;
+
       setClients((prevClients) =>
-        prevClients.map((c) =>
-          c.id === activeClientId
-            ? {
-                ...c,
-                name: next.clientName || c.name,
-                updatedAt: new Date().toISOString(),
-                inputs: next,
-              }
-            : c
-        )
+        prevClients.map((c) => {
+          if (c.id.toLowerCase() === currentActiveIdLower || c.name.toLowerCase() === currentActiveIdLower) {
+            const nextName = targetName || next.clientName || c.name;
+            return {
+              ...c,
+              id: nextName,
+              name: nextName,
+              updatedAt: new Date().toISOString(),
+              inputs: {
+                ...next,
+                clientName: nextName,
+              },
+            };
+          }
+          return c;
+        })
       );
+
+      if (targetName) {
+        setActiveClientId(targetName);
+      }
+
       return next;
     });
   };
 
   // Client management handlers
   const handleCreateClient = () => {
-    const newId = `client-${Date.now()}`;
-    const newName = `Cliente ${clients.length + 1}`;
+    let count = clients.length + 1;
+    let newName = `Cliente ${count}`;
+    while (clients.some((c) => c.name.trim().toLowerCase() === newName.toLowerCase())) {
+      count++;
+      newName = `Cliente ${count}`;
+    }
     const newClient: ClientProfile = {
-      id: newId,
+      id: newName,
       name: newName,
       notes: '',
       updatedAt: new Date().toISOString(),
@@ -191,18 +216,23 @@ export const App: React.FC = () => {
       },
     };
     setClients((prev) => [...prev, newClient]);
-    setActiveClientId(newId);
+    setActiveClientId(newName);
     setInputs(newClient.inputs);
     setActiveTab('Resumen');
   };
 
   const handleDuplicateClient = () => {
-    const newId = `client-${Date.now()}`;
-    const newName = `${inputs.clientName || 'Cliente'} (Copia)`;
+    const baseName = inputs.clientName || 'Cliente';
+    let newName = `${baseName} (Copia)`;
+    let copyIdx = 2;
+    while (clients.some((c) => c.name.trim().toLowerCase() === newName.toLowerCase())) {
+      newName = `${baseName} (Copia ${copyIdx})`;
+      copyIdx++;
+    }
     const newClient: ClientProfile = {
-      id: newId,
+      id: newName,
       name: newName,
-      notes: `Duplicado de ${inputs.clientName}`,
+      notes: `Duplicado de ${baseName}`,
       updatedAt: new Date().toISOString(),
       inputs: {
         ...inputs,
@@ -210,13 +240,14 @@ export const App: React.FC = () => {
       },
     };
     setClients((prev) => [...prev, newClient]);
-    setActiveClientId(newId);
+    setActiveClientId(newName);
     setInputs(newClient.inputs);
   };
 
   const handleDeleteClient = (id: string) => {
     if (clients.length <= 1) return;
-    const filtered = clients.filter((c) => c.id !== id);
+    const targetLower = id.toLowerCase();
+    const filtered = clients.filter((c) => c.id.toLowerCase() !== targetLower && c.name.toLowerCase() !== targetLower);
     setClients(filtered);
     const nextActive = filtered[0];
     setActiveClientId(nextActive.id);
@@ -228,31 +259,37 @@ export const App: React.FC = () => {
   };
 
   const handleRenameClientById = (id: string, newName: string) => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    const targetLower = id.toLowerCase();
     setClients((prev) =>
       prev.map((c) => {
-        if (c.id === id) {
+        if (c.id.toLowerCase() === targetLower || c.name.toLowerCase() === targetLower) {
           return {
             ...c,
-            name: newName,
+            id: trimmed,
+            name: trimmed,
             updatedAt: new Date().toISOString(),
             inputs: {
               ...c.inputs,
-              clientName: newName,
+              clientName: trimmed,
             },
           };
         }
         return c;
       })
     );
-    if (id === activeClientId) {
-      setInputs((prev) => ({ ...prev, clientName: newName }));
+    if (activeClientId.toLowerCase() === targetLower) {
+      setActiveClientId(trimmed);
+      setInputs((prev) => ({ ...prev, clientName: trimmed }));
     }
   };
 
   const handleUpdateNotes = (id: string, notes: string) => {
+    const targetLower = id.toLowerCase();
     setClients((prev) =>
       prev.map((c) =>
-        c.id === id
+        c.id.toLowerCase() === targetLower || c.name.toLowerCase() === targetLower
           ? {
               ...c,
               notes,

@@ -272,7 +272,7 @@ export const DEFAULT_INPUTS: CalculatorInputs = {
 
 export const INITIAL_CLIENT_PROFILES: ClientProfile[] = [
   {
-    id: 'client-1',
+    id: 'NutriLife (Suplementos)',
     name: 'NutriLife (Suplementos)',
     notes: 'Volumen medio, mix MPL/LPL estándar',
     updatedAt: new Date().toISOString(),
@@ -285,7 +285,7 @@ export const INITIAL_CLIENT_PROFILES: ClientProfile[] = [
     },
   },
   {
-    id: 'client-2',
+    id: 'Aura Glow (Cosmética & Perfume)',
     name: 'Aura Glow (Cosmética & Perfume)',
     notes: 'Volumen alto, pedidos multi-unidad cosmética',
     updatedAt: new Date().toISOString(),

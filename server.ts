@@ -11,6 +11,10 @@ async function startServer() {
   app.use(express.json({ limit: '10mb' }));
 
   // API Routes FIRST
+  app.get('/favicon.ico', (_req, res) => {
+    res.sendFile(path.join(process.cwd(), 'public', 'favicon.svg'));
+  });
+
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok' });
   });
