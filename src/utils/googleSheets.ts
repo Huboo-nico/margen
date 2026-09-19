@@ -382,12 +382,22 @@ function upsertClientInSheet(sheet, item) {
   var lastRow = sheet.getLastRow();
   var targetRow = -1;
 
+  var normTargetName = (p.name || inp.clientName || "").toLowerCase().trim();
+  var isGenericName = !normTargetName || normTargetName === "cliente" || normTargetName === "nuevo cliente" || normTargetName === "client";
+  var isGenericId = !p.id || p.id === "client-1" || p.id === "client-2" || String(p.id).indexOf("demo") >= 0;
+
   if (lastRow > 1) {
     var ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
     var names = sheet.getRange(2, 2, lastRow - 1, 1).getValues();
     for (var i = 0; i < ids.length; i++) {
-      if ((p.id && String(ids[i][0]) === String(p.id)) ||
-          (p.name && String(names[i][0]).toLowerCase().trim() === String(p.name).toLowerCase().trim())) {
+      var rowName = String(names[i][0] || "").toLowerCase().trim();
+      var rowId = String(ids[i][0] || "").trim();
+
+      if (!isGenericName && rowName === normTargetName) {
+        targetRow = i + 2;
+        break;
+      }
+      if (!isGenericId && rowId === String(p.id)) {
         targetRow = i + 2;
         break;
       }
@@ -418,82 +428,17 @@ function upsertClientInSheet(sheet, item) {
 }
 
 function syncFullSheet(ss, sheetName, clientsList, headerBgColor) {
-  var sheet = ss.getSheetByName(sheetName);
-  if (!sheet) {
-    sheet = ss.insertSheet(sheetName);
-  }
-  sheet.clear();
-
-  if (sheet.getMaxColumns() < COLUMNS.length) {
-    sheet.insertColumnsAfter(sheet.getMaxColumns(), COLUMNS.length - sheet.getMaxColumns());
-  }
-
-  sheet.getRange(1, 1, 1, COLUMNS.length).setValues([COLUMNS]);
-  var headerRange = sheet.getRange(1, 1, 1, COLUMNS.length);
-  headerRange.setBackground(headerBgColor);
-  headerRange.setFontColor("#FFFFFF");
-  headerRange.setFontWeight("bold");
-  headerRange.setFontFamily("Arial");
-  headerRange.setFontSize(10);
-  headerRange.setHorizontalAlignment("center");
-  sheet.setFrozenRows(1);
+  var sheet = ensureSheet(ss, sheetName, headerBgColor);
 
   if (!clientsList || clientsList.length === 0) {
     sheet.autoResizeColumns(1, COLUMNS.length);
     return;
   }
 
-  var rows = clientsList.map(function(item) {
-    var p = item.profile || item;
-    var inp = p.inputs || {};
-    var res = item.results || {};
-    var channels = (inp.technologies && inp.technologies.length > 0) ? inp.technologies.join(", ") : "";
-    var marginPct = res.marginTotal !== null && res.marginTotal !== undefined ? res.marginTotal : 0;
-
-    return [
-      p.id || "",
-      p.name || inp.clientName || "",
-      inp.warehouse || "Spain",
-      inp.productType || "",
-      inp.skuCount || 0,
-      res.ordersMonth || inp.ordersMonth || 0,
-      res.unitsPerOrder || inp.unitsPerOrder || 1,
-      res.packPrice || inp.packPriceManual || 0,
-      res.firstPickPrice || inp.firstPickPriceManual || 0,
-      res.additionalPickPrice || inp.additionalPickPriceManual || 0,
-      res.shippingPrice || 0,
-      res.totalRevenueMonth || 0,
-      res.totalCostMonth || 0,
-      marginPct,
-      res.markupAverage || 0,
-      res.totalProfitMonth || 0,
-      res.annualRunRate || ((res.totalRevenueMonth || 0) * 12),
-      res.goLiveDate || inp.goLiveDate || "",
-      channels,
-      p.notes || inp.clientNotes || "",
-      new Date().toLocaleString(),
-      JSON.stringify(p)
-    ];
+  // Fusionar clientes de forma segura sin borrar nada previo
+  clientsList.forEach(function(item) {
+    upsertClientInSheet(sheet, item);
   });
-
-  var dataRange = sheet.getRange(2, 1, rows.length, COLUMNS.length);
-  dataRange.setValues(rows);
-  dataRange.setFontFamily("Arial");
-  dataRange.setFontSize(10);
-
-  [8, 9, 10, 11, 12, 13, 16, 17].forEach(function(colIndex) {
-    sheet.getRange(2, colIndex, rows.length, 1).setNumberFormat("€#,##0.00");
-  });
-  sheet.getRange(2, 14, rows.length, 1).setNumberFormat("0.0%");
-  sheet.getRange(2, 5, rows.length, 1).setNumberFormat("#,##0");
-  sheet.getRange(2, 6, rows.length, 1).setNumberFormat("#,##0");
-  sheet.getRange(2, 7, rows.length, 1).setNumberFormat("0.0");
-  sheet.getRange(2, 15, rows.length, 1).setNumberFormat("0.00");
-  sheet.getRange(2, 1, rows.length, 1).setHorizontalAlignment("center");
-  sheet.getRange(2, 3, rows.length, 1).setHorizontalAlignment("center");
-  sheet.getRange(2, 18, rows.length, 1).setHorizontalAlignment("center");
-  sheet.getRange(2, 21, rows.length, 1).setHorizontalAlignment("center");
-  sheet.autoResizeColumns(1, COLUMNS.length);
 }
 
 function onOpen() {
@@ -546,6 +491,27 @@ export interface ServerStatusResponse {
   isServerEnv?: boolean;
   connected?: boolean;
   sheetName?: string;
+  tabs?: string[];
+  serviceAccountEmail?: string;
+  spreadsheetId?: string;
+  diagnostics?: {
+    spreadsheetIdSet: boolean;
+    individualVars: {
+      emailSet: boolean;
+      privateKeySet: boolean;
+      projectIdSet: boolean;
+      emailValue?: string;
+      privateKeyLength?: number;
+    };
+    jsonBlob: {
+      keySet: boolean;
+      keyParsable: boolean;
+      hasClientEmail: boolean;
+      hasPrivateKey: boolean;
+      jsonLength?: number;
+    };
+    resolvedStrategy: 'INDIVIDUAL_VARS' | 'JSON_BLOB' | 'NONE';
+  };
   supportsLoadClients?: boolean;
   needsScriptUpdate?: boolean;
   errorType?: string;

@@ -65,6 +65,9 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedKeyVar, setCopiedKeyVar] = useState(false);
   const [copiedSheetIdVar, setCopiedSheetIdVar] = useState(false);
+  const [copiedEmailVar, setCopiedEmailVar] = useState(false);
+  const [copiedPrivateKeyVar, setCopiedPrivateKeyVar] = useState(false);
+  const [copiedProjectIdVar, setCopiedProjectIdVar] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
@@ -162,18 +165,15 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
     setTestingConnection(true);
     setTestResult(null);
     try {
-      const res = await testGoogleSheetsConnection(url || undefined);
+      const [res, freshStatus] = await Promise.all([
+        testGoogleSheetsConnection(url || undefined),
+        checkServerSheetsStatus(),
+      ]);
+      setServerStatus(freshStatus);
       setTestResult({
         success: res.success,
         message: res.message + (res.sheetName ? ` (${res.sheetName})` : ''),
       });
-      if (res.needsScriptUpdate !== undefined) {
-        setServerStatus((prev) =>
-          prev
-            ? { ...prev, needsScriptUpdate: res.needsScriptUpdate, supportsLoadClients: res.supportsLoadClients }
-            : prev
-        );
-      }
       if (res.success && url) {
         saveGoogleSheetsUrl(url);
       }
@@ -531,59 +531,186 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
                       3
                     </span>
                     <h3 className="text-xs font-bold uppercase tracking-wider text-gray-800">
-                      Pegar los Secretos en Vercel (Environment Variables)
+                      Configurar Variables de Entorno en Vercel
                     </h3>
                   </div>
-                  <div className="text-xs text-gray-400 pl-7 space-y-2.5 leading-relaxed">
+                  <div className="text-xs text-gray-400 pl-7 space-y-3.5 leading-relaxed">
                     <p>
-                      En tu panel de <strong className="text-white">Vercel &gt; Proyecto &gt; Settings &gt; Environment Variables</strong>, agrega estas dos variables:
+                      En tu panel de <strong className="text-white">Vercel &gt; Proyecto &gt; Settings &gt; Environment Variables</strong>, puedes elegir la opción recomendada de variables individuales (evita errores con saltos de línea del JSON) o pegar el JSON completo:
                     </p>
 
-                    <div className="p-3 bg-black/40 rounded-lg border border-gray-700 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-mono text-emerald-400 font-bold text-xs">GOOGLE_SHEETS_SPREADSHEET_ID</div>
-                          <div className="text-[11px] text-gray-400">Pega la URL de tu hoja o el ID que está entre /d/ y /edit</div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            navigator.clipboard.writeText('GOOGLE_SHEETS_SPREADSHEET_ID');
-                            setCopiedSheetIdVar(true);
-                            setTimeout(() => setCopiedSheetIdVar(false), 2000);
-                          }}
-                          className="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded text-[11px] font-semibold flex items-center gap-1 border border-gray-600 cursor-pointer"
-                        >
-                          <Copy className="w-3 h-3" />
-                          <span>{copiedSheetIdVar ? '¡Copiado!' : 'Copiar Nombre'}</span>
-                        </button>
+                    {/* Opción A: Variables individuales 1 por 1 */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                          OPCIÓN A (RECOMENDADA)
+                        </span>
+                        <span className="text-[11px] font-semibold text-gray-300">
+                          Variables una por una (100% fiable)
+                        </span>
                       </div>
 
-                      <div className="border-t border-gray-800 pt-2 flex items-center justify-between">
-                        <div>
-                          <div className="font-mono text-emerald-400 font-bold text-xs">GOOGLE_SERVICE_ACCOUNT_KEY</div>
-                          <div className="text-[11px] text-gray-400">Abre el JSON que descargaste, cópialo todo entero y pégalo como valor</div>
+                      <div className="p-3 bg-black/40 rounded-lg border border-gray-700 space-y-2">
+                        {/* 1. SPREADSHEET_ID */}
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-mono text-emerald-400 font-bold text-xs truncate">GOOGLE_SHEETS_SPREADSHEET_ID</div>
+                            <div className="text-[11px] text-gray-400">ID de tu hoja (la parte entre /d/ y /edit de la URL)</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText('GOOGLE_SHEETS_SPREADSHEET_ID');
+                              setCopiedSheetIdVar(true);
+                              setTimeout(() => setCopiedSheetIdVar(false), 2000);
+                            }}
+                            className="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded text-[11px] font-semibold flex items-center gap-1 border border-gray-600 cursor-pointer shrink-0"
+                          >
+                            <Copy className="w-3 h-3" />
+                            <span>{copiedSheetIdVar ? '¡Copiado!' : 'Copiar'}</span>
+                          </button>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            navigator.clipboard.writeText('GOOGLE_SERVICE_ACCOUNT_KEY');
-                            setCopiedKeyVar(true);
-                            setTimeout(() => setCopiedKeyVar(false), 2000);
-                          }}
-                          className="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded text-[11px] font-semibold flex items-center gap-1 border border-gray-600 cursor-pointer"
-                        >
-                          <Copy className="w-3 h-3" />
-                          <span>{copiedKeyVar ? '¡Copiado!' : 'Copiar Nombre'}</span>
-                        </button>
+
+                        {/* 2. SERVICE_ACCOUNT_EMAIL */}
+                        <div className="border-t border-gray-800 pt-2 flex items-center justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-mono text-emerald-400 font-bold text-xs truncate">GOOGLE_SERVICE_ACCOUNT_EMAIL</div>
+                            <div className="text-[11px] text-gray-400">El email de tu Service Account (campo <em>client_email</em> del JSON)</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText('GOOGLE_SERVICE_ACCOUNT_EMAIL');
+                              setCopiedEmailVar(true);
+                              setTimeout(() => setCopiedEmailVar(false), 2000);
+                            }}
+                            className="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded text-[11px] font-semibold flex items-center gap-1 border border-gray-600 cursor-pointer shrink-0"
+                          >
+                            <Copy className="w-3 h-3" />
+                            <span>{copiedEmailVar ? '¡Copiado!' : 'Copiar'}</span>
+                          </button>
+                        </div>
+
+                        {/* 3. PRIVATE_KEY */}
+                        <div className="border-t border-gray-800 pt-2 flex items-center justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-mono text-emerald-400 font-bold text-xs truncate">GOOGLE_PRIVATE_KEY</div>
+                            <div className="text-[11px] text-gray-400">Clave privada (campo <em>private_key</em> que empieza por -----BEGIN PRIVATE KEY-----)</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText('GOOGLE_PRIVATE_KEY');
+                              setCopiedPrivateKeyVar(true);
+                              setTimeout(() => setCopiedPrivateKeyVar(false), 2000);
+                            }}
+                            className="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded text-[11px] font-semibold flex items-center gap-1 border border-gray-600 cursor-pointer shrink-0"
+                          >
+                            <Copy className="w-3 h-3" />
+                            <span>{copiedPrivateKeyVar ? '¡Copiado!' : 'Copiar'}</span>
+                          </button>
+                        </div>
+
+                        {/* 4. PROJECT_ID */}
+                        <div className="border-t border-gray-800 pt-2 flex items-center justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-mono text-gray-400 font-bold text-xs truncate">GOOGLE_PROJECT_ID <span className="text-[10px] text-gray-500 font-normal">(Opcional)</span></div>
+                            <div className="text-[11px] text-gray-400">ID del proyecto en Google Cloud (campo <em>project_id</em>)</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText('GOOGLE_PROJECT_ID');
+                              setCopiedProjectIdVar(true);
+                              setTimeout(() => setCopiedProjectIdVar(false), 2000);
+                            }}
+                            className="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded text-[11px] font-semibold flex items-center gap-1 border border-gray-600 cursor-pointer shrink-0"
+                          >
+                            <Copy className="w-3 h-3" />
+                            <span>{copiedProjectIdVar ? '¡Copiado!' : 'Copiar'}</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
 
+                    {/* Opción B: JSON completo */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-700 text-gray-300">
+                          OPCIÓN B (ALTERNATIVA)
+                        </span>
+                        <span className="text-[11px] font-semibold text-gray-400">
+                          JSON completo en una sola variable
+                        </span>
+                      </div>
+
+                      <div className="p-3 bg-black/40 rounded-lg border border-gray-700">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-mono text-emerald-400 font-bold text-xs truncate">GOOGLE_SERVICE_ACCOUNT_KEY</div>
+                            <div className="text-[11px] text-gray-400">Pega todo el contenido del archivo .json que descargaste</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText('GOOGLE_SERVICE_ACCOUNT_KEY');
+                              setCopiedKeyVar(true);
+                              setTimeout(() => setCopiedKeyVar(false), 2000);
+                            }}
+                            className="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded text-[11px] font-semibold flex items-center gap-1 border border-gray-600 cursor-pointer shrink-0"
+                          >
+                            <Copy className="w-3 h-3" />
+                            <span>{copiedKeyVar ? '¡Copiado!' : 'Copiar'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Panel de Diagnóstico en Tiempo Real */}
+                    {serverStatus?.diagnostics && (
+                      <div className="p-3 rounded-lg bg-gray-900/60 border border-gray-700/80 space-y-2 text-xs">
+                        <div className="font-bold text-gray-200 flex items-center gap-1.5">
+                          <ShieldCheck className="w-4 h-4 text-blue-400" />
+                          <span>Diagnóstico en Vivo de Variables de Servidor</span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px]">
+                          <div className="flex items-center justify-between p-1.5 rounded bg-black/30">
+                            <span className="text-gray-400">Spreadsheet ID:</span>
+                            <span className={serverStatus.diagnostics.spreadsheetIdSet ? 'text-emerald-400 font-semibold' : 'text-amber-400'}>
+                              {serverStatus.diagnostics.spreadsheetIdSet ? '✓ Detectado' : '✗ No detectado'}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between p-1.5 rounded bg-black/30">
+                            <span className="text-gray-400">Email Service Account:</span>
+                            <span className={serverStatus.diagnostics.individualVars?.emailSet ? 'text-emerald-400 font-semibold' : serverStatus.diagnostics.jsonBlob?.hasClientEmail ? 'text-blue-400 font-semibold' : 'text-amber-400'}>
+                              {serverStatus.diagnostics.individualVars?.emailSet ? '✓ Por variable' : serverStatus.diagnostics.jsonBlob?.hasClientEmail ? '✓ Por JSON' : '✗ No detectado'}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between p-1.5 rounded bg-black/30">
+                            <span className="text-gray-400">Clave Privada:</span>
+                            <span className={serverStatus.diagnostics.individualVars?.privateKeySet ? 'text-emerald-400 font-semibold' : serverStatus.diagnostics.jsonBlob?.hasPrivateKey ? 'text-blue-400 font-semibold' : 'text-amber-400'}>
+                              {serverStatus.diagnostics.individualVars?.privateKeySet ? '✓ Por variable' : serverStatus.diagnostics.jsonBlob?.hasPrivateKey ? '✓ Por JSON' : '✗ No detectado'}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between p-1.5 rounded bg-black/30">
+                            <span className="text-gray-400">Estrategia Activa:</span>
+                            <span className="font-semibold text-white">
+                              {serverStatus.diagnostics.resolvedStrategy === 'INDIVIDUAL_VARS'
+                                ? 'Variables Individuales'
+                                : serverStatus.diagnostics.resolvedStrategy === 'JSON_BLOB'
+                                ? 'JSON Blob'
+                                : 'Sin configurar'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <p className="text-[11px] text-gray-400">
-                      💡 Pulsa <strong>Redeploy</strong> en Vercel para que las nuevas variables entren en vigor. ¡Y listo! La app leerá y escribirá en tu Google Sheet automáticamente para todos los ordenadores.
+                      💡 Tras guardar o cambiar las variables en Vercel, pulsa <strong>Redeploy</strong> (o despliega de nuevo) para que Vercel cargue los nuevos valores en el servidor.
                     </p>
 
-                    <div className="pt-2 flex items-center gap-3">
+                    <div className="pt-2 flex flex-wrap items-center gap-3">
                       <button
                         type="button"
                         onClick={handleTestConnection}

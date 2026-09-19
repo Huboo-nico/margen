@@ -4,11 +4,89 @@ import { google } from 'googleapis';
 let sheetsClientCache: any = null;
 let cachedSpreadsheetId: string = '';
 
+export interface ServiceAccountCredentials {
+  clientEmail: string;
+  privateKey: string;
+  projectId?: string;
+  clientId?: string;
+  privateKeyId?: string;
+  authSource: 'individual_vars' | 'json_key' | 'incomplete';
+}
+
+export function cleanPrivateKey(rawKey: string): string {
+  if (!rawKey) return '';
+  let key = rawKey.trim();
+
+  // Strip leading and trailing quotes if present
+  if (
+    (key.startsWith('"') && key.endsWith('"')) ||
+    (key.startsWith("'") && key.endsWith("'"))
+  ) {
+    key = key.slice(1, -1);
+  }
+
+  // Replace literal '\n' and '\r' with actual newlines
+  key = key.replace(/\\n/g, '\n').replace(/\\r/g, '');
+
+  // Ensure BEGIN and END markers are on separate lines
+  if (!key.includes('\n') && key.includes('-----BEGIN PRIVATE KEY-----') && key.includes('-----END PRIVATE KEY-----')) {
+    key = key
+      .replace('-----BEGIN PRIVATE KEY-----', '-----BEGIN PRIVATE KEY-----\n')
+      .replace('-----END PRIVATE KEY-----', '\n-----END PRIVATE KEY-----');
+  }
+
+  return key.trim();
+}
+
+function tryParseJsonCredentials(raw: string): Partial<ServiceAccountCredentials> | null {
+  if (!raw) return null;
+  let str = raw.trim();
+
+  if ((str.startsWith('"') && str.endsWith('"')) || (str.startsWith("'") && str.endsWith("'"))) {
+    str = str.slice(1, -1);
+  }
+
+  if (str.includes('\\"') && !str.includes('{"')) {
+    str = str.replace(/\\"/g, '"');
+  }
+
+  try {
+    const parsed = JSON.parse(str);
+    if (parsed && typeof parsed === 'object') {
+      return {
+        clientEmail: (parsed.client_email || parsed.clientEmail || '').trim(),
+        privateKey: cleanPrivateKey(parsed.private_key || parsed.privateKey || ''),
+        projectId: (parsed.project_id || parsed.projectId || '').trim(),
+        clientId: (parsed.client_id || parsed.clientId || '').trim(),
+        privateKeyId: (parsed.private_key_id || parsed.privateKeyId || '').trim(),
+      };
+    }
+  } catch {
+    try {
+      const unescaped = str.replace(/\\n/g, '\n').replace(/\\r/g, '');
+      const parsed = JSON.parse(unescaped);
+      if (parsed && typeof parsed === 'object') {
+        return {
+          clientEmail: (parsed.client_email || parsed.clientEmail || '').trim(),
+          privateKey: cleanPrivateKey(parsed.private_key || parsed.privateKey || ''),
+          projectId: (parsed.project_id || parsed.projectId || '').trim(),
+          clientId: (parsed.client_id || parsed.clientId || '').trim(),
+          privateKeyId: (parsed.private_key_id || parsed.privateKeyId || '').trim(),
+        };
+      }
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 export function getSpreadsheetId(): string {
   let raw = (
     process.env.GOOGLE_SHEETS_SPREADSHEET_ID ||
     process.env.SPREADSHEET_ID ||
     process.env.GOOGLE_SHEET_ID ||
+    process.env.SHEET_ID ||
     ''
   ).trim();
 
@@ -24,86 +102,140 @@ export function getSpreadsheetId(): string {
   return raw;
 }
 
+export function getGoogleServiceAccountCredentials(): ServiceAccountCredentials {
+  // 1. Extraer de variables de entorno individuales
+  const clientEmail = (
+    process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL ||
+    process.env.GOOGLE_CLIENT_EMAIL ||
+    process.env.CLIENT_EMAIL ||
+    process.env.SERVICE_ACCOUNT_EMAIL ||
+    ''
+  ).trim();
+
+  const rawPrivateKey = (
+    process.env.GOOGLE_PRIVATE_KEY ||
+    process.env.PRIVATE_KEY ||
+    process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY ||
+    ''
+  ).trim();
+
+  const projectId = (
+    process.env.GOOGLE_PROJECT_ID ||
+    process.env.PROJECT_ID ||
+    process.env.GOOGLE_CLOUD_PROJECT ||
+    ''
+  ).trim();
+
+  const clientId = (
+    process.env.GOOGLE_CLIENT_ID ||
+    process.env.CLIENT_ID ||
+    ''
+  ).trim();
+
+  const privateKeyId = (
+    process.env.GOOGLE_PRIVATE_KEY_ID ||
+    process.env.PRIVATE_KEY_ID ||
+    ''
+  ).trim();
+
+  let finalPrivateKey = cleanPrivateKey(rawPrivateKey);
+  let finalEmail = clientEmail;
+  let finalProjectId = projectId;
+  let finalClientId = clientId;
+  let finalPrivateKeyId = privateKeyId;
+  let authSource: 'individual_vars' | 'json_key' | 'incomplete' =
+    finalEmail && finalPrivateKey ? 'individual_vars' : 'incomplete';
+
+  // 2. Si faltan email o privateKey, buscar en JSON completo
+  if (!finalEmail || !finalPrivateKey) {
+    const fullJson = (
+      process.env.GOOGLE_SERVICE_ACCOUNT_KEY ||
+      process.env.GOOGLE_CREDENTIALS ||
+      ''
+    ).trim();
+
+    if (fullJson) {
+      const fromJson = tryParseJsonCredentials(fullJson);
+      if (fromJson) {
+        if (!finalEmail && fromJson.clientEmail) finalEmail = fromJson.clientEmail;
+        if (!finalPrivateKey && fromJson.privateKey) finalPrivateKey = fromJson.privateKey;
+        if (!finalProjectId && fromJson.projectId) finalProjectId = fromJson.projectId;
+        if (!finalClientId && fromJson.clientId) finalClientId = fromJson.clientId;
+        if (!finalPrivateKeyId && fromJson.privateKeyId) finalPrivateKeyId = fromJson.privateKeyId;
+        if (finalEmail && finalPrivateKey) {
+          authSource = 'json_key';
+        }
+      }
+    }
+  }
+
+  return {
+    clientEmail: finalEmail,
+    privateKey: finalPrivateKey,
+    projectId: finalProjectId,
+    clientId: finalClientId,
+    privateKeyId: finalPrivateKeyId,
+    authSource,
+  };
+}
+
 export function isGoogleServiceAccountConfigured(): boolean {
   const spreadsheetId = getSpreadsheetId();
   if (!spreadsheetId) return false;
 
-  // Opción 1: JSON completo en GOOGLE_SERVICE_ACCOUNT_KEY
-  const fullJson = process.env.GOOGLE_SERVICE_ACCOUNT_KEY || process.env.GOOGLE_CREDENTIALS;
-  if (fullJson && fullJson.trim().startsWith('{')) {
-    return true;
-  }
-
-  // Opción 2: Email y Private Key separados
-  const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_CLIENT_EMAIL;
-  const privateKey = process.env.GOOGLE_PRIVATE_KEY;
-  if (clientEmail && privateKey) {
-    return true;
-  }
-
-  return false;
+  const creds = getGoogleServiceAccountCredentials();
+  return Boolean(creds.clientEmail && creds.privateKey);
 }
 
 export function getGoogleServiceAccountEmail(): string {
-  if (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL) {
-    return process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL.trim();
-  }
-  if (process.env.GOOGLE_CLIENT_EMAIL) {
-    return process.env.GOOGLE_CLIENT_EMAIL.trim();
-  }
+  const creds = getGoogleServiceAccountCredentials();
+  return creds.clientEmail;
+}
 
-  const fullJson = process.env.GOOGLE_SERVICE_ACCOUNT_KEY || process.env.GOOGLE_CREDENTIALS;
-  if (fullJson && fullJson.trim().startsWith('{')) {
-    try {
-      const parsed = JSON.parse(fullJson);
-      return parsed.client_email || '';
-    } catch {
-      return '';
-    }
-  }
+export function getGoogleCredentialsDiagnostic() {
+  const spreadsheetId = getSpreadsheetId();
+  const creds = getGoogleServiceAccountCredentials();
 
-  return '';
+  return {
+    hasSpreadsheetId: Boolean(spreadsheetId),
+    spreadsheetIdPreview: spreadsheetId ? `${spreadsheetId.slice(0, 8)}...${spreadsheetId.slice(-4)}` : '',
+    hasClientEmail: Boolean(creds.clientEmail),
+    clientEmail: creds.clientEmail,
+    hasPrivateKey: Boolean(creds.privateKey && creds.privateKey.includes('PRIVATE KEY')),
+    hasProjectId: Boolean(creds.projectId),
+    projectId: creds.projectId,
+    hasClientId: Boolean(creds.clientId),
+    hasPrivateKeyId: Boolean(creds.privateKeyId),
+    authSource: creds.authSource,
+  };
 }
 
 export function getGoogleSheetsClient() {
   const spreadsheetId = getSpreadsheetId();
   if (!spreadsheetId) {
-    throw new Error('Falta la variable de entorno GOOGLE_SHEETS_SPREADSHEET_ID.');
+    throw new Error('Falta la variable de entorno GOOGLE_SHEETS_SPREADSHEET_ID (o SPREADSHEET_ID).');
   }
 
   if (sheetsClientCache && cachedSpreadsheetId === spreadsheetId) {
     return { sheets: sheetsClientCache, spreadsheetId };
   }
 
-  let clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_CLIENT_EMAIL;
-  let privateKey = process.env.GOOGLE_PRIVATE_KEY;
+  const creds = getGoogleServiceAccountCredentials();
 
-  const fullJson = process.env.GOOGLE_SERVICE_ACCOUNT_KEY || process.env.GOOGLE_CREDENTIALS;
-  if (fullJson && fullJson.trim().startsWith('{')) {
-    try {
-      const parsed = JSON.parse(fullJson);
-      clientEmail = parsed.client_email;
-      privateKey = parsed.private_key;
-    } catch (e: any) {
-      throw new Error(`Error al parsear GOOGLE_SERVICE_ACCOUNT_KEY JSON: ${e.message}`);
-    }
-  }
-
-  if (!clientEmail || !privateKey) {
+  if (!creds.clientEmail || !creds.privateKey) {
     throw new Error(
-      'Faltan las credenciales de Service Account. Configura GOOGLE_SERVICE_ACCOUNT_EMAIL y GOOGLE_PRIVATE_KEY (o GOOGLE_SERVICE_ACCOUNT_KEY con el JSON completo).'
+      'Faltan las credenciales de Google Service Account. Puedes proporcionarlas una por una en tus variables de entorno:\n' +
+      '- GOOGLE_SHEETS_SPREADSHEET_ID\n' +
+      '- GOOGLE_SERVICE_ACCOUNT_EMAIL\n' +
+      '- GOOGLE_PRIVATE_KEY\n' +
+      '- GOOGLE_PROJECT_ID (opcional)\n' +
+      'o bien como JSON completo en GOOGLE_SERVICE_ACCOUNT_KEY.'
     );
   }
 
-  // Corregir escapes de saltos de línea habituales en variables de entorno
-  let formattedKey = privateKey.replace(/\\n/g, '\n');
-  if (formattedKey.startsWith('"') && formattedKey.endsWith('"')) {
-    formattedKey = formattedKey.slice(1, -1);
-  }
-
   const auth = new google.auth.JWT({
-    email: clientEmail,
-    key: formattedKey,
+    email: creds.clientEmail,
+    key: creds.privateKey,
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
 
@@ -111,7 +243,7 @@ export function getGoogleSheetsClient() {
   sheetsClientCache = sheets;
   cachedSpreadsheetId = spreadsheetId;
 
-  return { sheets, spreadsheetId, clientEmail };
+  return { sheets, spreadsheetId, clientEmail: creds.clientEmail };
 }
 
 // Columnas que coinciden con el esquema de la calculadora
@@ -141,12 +273,15 @@ export const SHEET_HEADERS = [
   'Datos Completos (JSON)',
 ];
 
-export function clientToRow(c: any): any[] {
+export function clientToRow(c: any, overrideId?: string): any[] {
   const profile = c.profile || c;
   const inputs = c.inputs || profile.inputs || {};
   const results = c.results || {};
 
-  const id = String(profile.id || `client-${Date.now()}`);
+  let id = String(overrideId || profile.id || '').trim();
+  if (!id) {
+    id = `client-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+  }
   const name = String(inputs.clientName || profile.name || 'Cliente');
   const warehouse = String(inputs.warehouse || 'Spain');
   const productType = String(inputs.productType || 'Suplementos');
