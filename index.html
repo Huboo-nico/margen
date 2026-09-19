@@ -5,6 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script>
       (function() {
+        function isBenignViteWsError(err) {
+          if (!err) return false;
+          var msg = (err.message || String(err) || '').toLowerCase();
+          var reason = (err.reason && (err.reason.message || String(err.reason)) || '').toLowerCase();
+          return msg.includes('websocket closed without opened') ||
+                 reason.includes('websocket closed without opened') ||
+                 msg.includes('failed to connect to websocket') ||
+                 reason.includes('failed to connect to websocket');
+        }
+
+        window.addEventListener('unhandledrejection', function(event) {
+          if (isBenignViteWsError(event.reason)) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (typeof event.stopImmediatePropagation === 'function') {
+              event.stopImmediatePropagation();
+            }
+          }
+        }, true);
+
+        window.addEventListener('error', function(event) {
+          if (isBenignViteWsError(event.error) || isBenignViteWsError(event.message)) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (typeof event.stopImmediatePropagation === 'function') {
+              event.stopImmediatePropagation();
+            }
+          }
+        }, true);
+
         try {
           var originalFetch = window.fetch;
           Object.defineProperty(window, 'fetch', {
