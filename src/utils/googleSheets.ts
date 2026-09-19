@@ -600,12 +600,58 @@ export interface SyncResponse {
   isServerEnv?: boolean;
 }
 
+export function mergeClientProfiles(
+  currentList: ClientProfile[],
+  incomingList: ClientProfile[]
+): ClientProfile[] {
+  if (!incomingList || incomingList.length === 0) return currentList;
+  if (!currentList || currentList.length === 0) return incomingList;
+
+  const result = [...currentList];
+
+  for (const incoming of incomingList) {
+    const incNameLower = (incoming.name || incoming.id || '').trim().toLowerCase();
+    if (!incNameLower) continue;
+
+    const existingIdx = result.findIndex((c) => {
+      const cName = (c.name || c.id || '').trim().toLowerCase();
+      const cId = (c.id || '').trim().toLowerCase();
+      return cName === incNameLower || cId === incNameLower;
+    });
+
+    if (existingIdx >= 0) {
+      // Actualizar cliente existente con los datos reales de Google Sheet manteniendo propiedades locales no sobreescritas
+      result[existingIdx] = {
+        ...result[existingIdx],
+        ...incoming,
+        id: incoming.name || incoming.id,
+        name: incoming.name || incoming.id,
+        inputs: {
+          ...result[existingIdx].inputs,
+          ...incoming.inputs,
+          clientName: incoming.name || incoming.id,
+        },
+      };
+    } else {
+      // Incorporar nuevo cliente proveniente de Google Sheet
+      result.push(incoming);
+    }
+  }
+
+  return result;
+}
+
 function sanitizeClientList(rawList: any[]): ClientProfile[] {
   return rawList.map((c: any, idx: number) => {
     const rawInputs = c.inputs || {};
     const name = String(c.name || rawInputs.clientName || (c.profile && c.profile.name) || `Cliente ${idx + 1}`).trim();
     // El ID es idéntico al nombre del cliente
     const id = name;
+
+    const packPrice = Number(rawInputs.packPriceManual) || 0;
+    const firstPickPrice = Number(rawInputs.firstPickPriceManual) || 0;
+    const addPickPrice = Number(rawInputs.additionalPickPriceManual) || 0;
+    const shippingPrice = Number(rawInputs.shippingPriceManual) || 0;
 
     return {
       id,
@@ -630,13 +676,17 @@ function sanitizeClientList(rawList: any[]): ClientProfile[] {
         mixSpl: Number(rawInputs.mixSpl) ?? DEFAULT_INPUTS.mixSpl,
         mixMpl: Number(rawInputs.mixMpl) ?? DEFAULT_INPUTS.mixMpl,
         mixLpl: Number(rawInputs.mixLpl) ?? DEFAULT_INPUTS.mixLpl,
-        packPriceManual: Number(rawInputs.packPriceManual) || 0,
-        firstPickPriceManual: Number(rawInputs.firstPickPriceManual) || 0,
-        additionalPickPriceManual: Number(rawInputs.additionalPickPriceManual) || 0,
-        shippingPriceManual: Number(rawInputs.shippingPriceManual) || 0,
+        packPriceManual: packPrice,
+        packPriceMode: rawInputs.packPriceMode || (packPrice > 0 ? 'manual' : 'margin'),
+        firstPickPriceManual: firstPickPrice,
+        firstPickPriceMode: rawInputs.firstPickPriceMode || (firstPickPrice > 0 ? 'manual' : 'margin'),
+        additionalPickPriceManual: addPickPrice,
+        additionalPickPriceMode: rawInputs.additionalPickPriceMode || (addPickPrice > 0 ? 'manual' : 'margin'),
+        shippingPriceManual: shippingPrice,
+        shippingPriceMode: rawInputs.shippingPriceMode || (shippingPrice > 0 ? 'manual' : 'margin'),
         subscriptionTier: rawInputs.subscriptionTier || 'none',
         subscriptionPrice: Number(rawInputs.subscriptionPrice) || 0,
-        technologies: Array.isArray(rawInputs.technologies) ? rawInputs.technologies : [],
+        technologies: Array.isArray(rawInputs.technologies) ? rawInputs.technologies : ['Shopify'],
       },
     };
   });

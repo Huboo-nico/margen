@@ -22,6 +22,7 @@ import {
   saveSingleClientToGoogleSheets,
   fetchClientsFromGoogleSheets,
   checkServerSheetsStatus,
+  mergeClientProfiles,
 } from './utils/googleSheets';
 
 const STORAGE_KEY = 'fulfilment_calculator_clients_v2';
@@ -98,12 +99,19 @@ export const App: React.FC = () => {
     try {
       const res = await fetchClientsFromGoogleSheets(url || undefined);
       if (res.success && res.clients.length > 0) {
-        setClients(res.clients);
-        setActiveClientId(res.clients[0].id);
-        setInputs(res.clients[0].inputs);
-        showToast(`Cargados ${res.clients.length} clientes desde Google Sheet ("${res.sheetName || 'Margen'}").`, 'success');
+        setClients((prev) => {
+          const merged = mergeClientProfiles(prev, res.clients);
+          return merged;
+        });
+        showToast(
+          `Sincronizados ${res.clients.length} clientes desde Google Sheet ("${res.sheetName || 'Margen'}"). Tus clientes locales se han mantenido intactos.`,
+          'success'
+        );
       } else if (res.success && res.clients.length === 0) {
-        showToast('Conexión con Google Sheet exitosa, pero la hoja no tiene clientes guardados aún. Guarda algún cliente primero con "Guardar en Sheet".', 'info');
+        showToast(
+          'Conexión con Google Sheet exitosa, pero la hoja no tiene clientes guardados aún. Guarda algún cliente primero con "Guardar en Sheet".',
+          'info'
+        );
       } else {
         showToast(res.message || 'No se pudieron recuperar clientes de Google Sheet.', 'error');
       }
@@ -115,7 +123,7 @@ export const App: React.FC = () => {
     }
   };
 
-  // Carga automática inicial desde Google Sheet si la API del servidor tiene GOOGLE_SHEETS_WEBAPP_URL configurada
+  // Carga automática inicial desde Google Sheet si la API del servidor tiene credenciales configuradas
   useEffect(() => {
     let active = true;
     checkServerSheetsStatus()
@@ -124,9 +132,7 @@ export const App: React.FC = () => {
           try {
             const res = await fetchClientsFromGoogleSheets();
             if (res.success && res.clients.length > 0 && active) {
-              setClients(res.clients);
-              setActiveClientId(res.clients[0].id);
-              setInputs(res.clients[0].inputs);
+              setClients((prev) => mergeClientProfiles(prev, res.clients));
             }
           } catch {
             // Silencioso al inicio para no interrumpir si no hay conexión
@@ -140,7 +146,7 @@ export const App: React.FC = () => {
     };
   }, []);
 
-  // When activeClientId changes, update inputs
+  // When activeClientId changes, update inputs without circular reset
   useEffect(() => {
     const client = clients.find(
       (c) => c.id.toLowerCase() === activeClientId.toLowerCase() || c.name.toLowerCase() === activeClientId.toLowerCase()
@@ -148,7 +154,7 @@ export const App: React.FC = () => {
     if (client) {
       setInputs(client.inputs);
     }
-  }, [activeClientId, clients]);
+  }, [activeClientId]);
 
   // Persist clients to localStorage
   useEffect(() => {
@@ -166,35 +172,36 @@ export const App: React.FC = () => {
   const handleInputChange = (updated: Partial<CalculatorInputs>) => {
     setInputs((prev) => {
       const next = { ...prev, ...updated };
-      const currentActiveIdLower = activeClientId.toLowerCase();
-      const hasNameChange = updated.clientName !== undefined && updated.clientName.trim().length > 0;
-      const targetName = hasNameChange ? updated.clientName!.trim() : undefined;
-
-      setClients((prevClients) =>
-        prevClients.map((c) => {
-          if (c.id.toLowerCase() === currentActiveIdLower || c.name.toLowerCase() === currentActiveIdLower) {
-            const nextName = targetName || next.clientName || c.name;
-            return {
-              ...c,
-              id: nextName,
-              name: nextName,
-              updatedAt: new Date().toISOString(),
-              inputs: {
-                ...next,
-                clientName: nextName,
-              },
-            };
-          }
-          return c;
-        })
-      );
-
-      if (targetName) {
-        setActiveClientId(targetName);
-      }
-
       return next;
     });
+
+    const activeIdLower = activeClientId.toLowerCase();
+    const hasNameChange = updated.clientName !== undefined && updated.clientName.trim().length > 0;
+    const nextClientName = hasNameChange ? updated.clientName!.trim() : undefined;
+
+    setClients((prevClients) =>
+      prevClients.map((c) => {
+        if (c.id.toLowerCase() === activeIdLower || c.name.toLowerCase() === activeIdLower) {
+          const nameToUse = nextClientName || c.name;
+          return {
+            ...c,
+            id: nameToUse,
+            name: nameToUse,
+            updatedAt: new Date().toISOString(),
+            inputs: {
+              ...c.inputs,
+              ...updated,
+              clientName: nameToUse,
+            },
+          };
+        }
+        return c;
+      })
+    );
+
+    if (nextClientName) {
+      setActiveClientId(nextClientName);
+    }
   };
 
   // Client management handlers
@@ -215,10 +222,12 @@ export const App: React.FC = () => {
         clientName: newName,
       },
     };
+    // Añadir nuevo cliente sin borrar ninguno de los existentes
     setClients((prev) => [...prev, newClient]);
     setActiveClientId(newName);
     setInputs(newClient.inputs);
     setActiveTab('Resumen');
+    showToast(`Cliente "${newName}" añadido a la lista.`, 'info');
   };
 
   const handleDuplicateClient = () => {
@@ -242,6 +251,7 @@ export const App: React.FC = () => {
     setClients((prev) => [...prev, newClient]);
     setActiveClientId(newName);
     setInputs(newClient.inputs);
+    showToast(`Cliente duplicado como "${newName}".`, 'info');
   };
 
   const handleDeleteClient = (id: string) => {
@@ -252,6 +262,7 @@ export const App: React.FC = () => {
     const nextActive = filtered[0];
     setActiveClientId(nextActive.id);
     setInputs(nextActive.inputs);
+    showToast(`Cliente eliminado.`, 'info');
   };
 
   const handleRenameActiveClient = (name: string) => {
@@ -452,11 +463,11 @@ export const App: React.FC = () => {
         clients={clients}
         activeClient={currentClient}
         onLoadClients={(loadedClients) => {
-          setClients(loadedClients);
-          if (loadedClients.length > 0) {
-            setActiveClientId(loadedClients[0].id);
-            setInputs(loadedClients[0].inputs);
-          }
+          setClients((prev) => mergeClientProfiles(prev, loadedClients));
+          showToast(
+            `Sincronizados ${loadedClients.length} clientes desde Google Sheet sin borrar tus clientes locales.`,
+            'success'
+          );
         }}
       />
 

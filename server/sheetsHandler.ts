@@ -157,7 +157,7 @@ export async function handleSheetsRequest(req: Request | any, res: Response | an
 
       // ACCIÓN: LOAD / LOAD_CLIENTS
       if (action === 'load' || action === 'load_clients') {
-        // Leemos de las pestañas habituales: Spain, UK, USA y Hoja 1/Resumen General
+        // Leemos de las pestañas territoriales: Spain, UK, USA y Resumen General
         const meta = await sheets.spreadsheets.get({ spreadsheetId });
         const sheetTitles = (meta.data.sheets || [])
           .map((s: any) => s.properties?.title)
@@ -165,10 +165,16 @@ export async function handleSheetsRequest(req: Request | any, res: Response | an
 
         const clientsMap = new Map<string, any>();
 
-        // Si no hay pestañas territoriales, leemos la primera hoja
-        const tabsToRead = sheetTitles.length > 0 ? sheetTitles : ['Sheet1'];
+        // Prioridad de lectura: primero las pestañas territoriales
+        const territorialTabs = ['Spain', 'UK', 'USA'].filter((t) => sheetTitles.includes(t));
+        const otherTabs = sheetTitles.filter(
+          (t: string) => !territorialTabs.includes(t) && t !== 'Resumen General' && t !== 'Margen'
+        );
+        const tabsToRead = [...territorialTabs, ...otherTabs, 'Resumen General'].filter((t) =>
+          sheetTitles.includes(t)
+        );
 
-        for (const tab of tabsToRead) {
+        for (const tab of (tabsToRead.length > 0 ? tabsToRead : ['Sheet1'])) {
           try {
             const resp = await sheets.spreadsheets.values.get({
               spreadsheetId,
@@ -178,11 +184,21 @@ export async function handleSheetsRequest(req: Request | any, res: Response | an
             for (const row of rows) {
               const client = rowToClient(row);
               if (client && (client.id || client.name)) {
-                // Clave única por nombre normalizado de cliente para cruzar datos
-                const uniqueKey = client.name ? client.name.trim().toLowerCase() : String(client.id);
-                // Si no existía o si esta pestaña tiene datos más completos, guardar
-                if (!clientsMap.has(uniqueKey) || tab !== 'Resumen General') {
+                const uniqueKey = (client.name || client.id).trim().toLowerCase();
+                const clientTerritory = String(client.inputs?.warehouse || '').trim().toLowerCase();
+                const tabLower = tab.toLowerCase();
+
+                if (!clientsMap.has(uniqueKey)) {
+                  // Si no existía aún en el mapa, añadirlo
                   clientsMap.set(uniqueKey, client);
+                } else {
+                  // Si ya existía, pero esta fila viene de la pestaña territorial que coincide exactamente con su warehouse
+                  const currentInMap = clientsMap.get(uniqueKey);
+                  const currentInMapTerritory = String(currentInMap.inputs?.warehouse || '').trim().toLowerCase();
+
+                  if (clientTerritory === tabLower && currentInMapTerritory !== tabLower) {
+                    clientsMap.set(uniqueKey, client);
+                  }
                 }
               }
             }

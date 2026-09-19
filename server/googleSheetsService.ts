@@ -371,10 +371,25 @@ export function clientToRow(c: any, overrideId?: string): any[] {
   ];
 }
 
+export function parseSheetNumber(val: any): number {
+  if (val === null || val === undefined) return 0;
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
+  const str = String(val).trim();
+  if (!str) return 0;
+  let clean = str.replace(/[€$£%\s]/g, '');
+  if (clean.includes(',') && clean.includes('.')) {
+    clean = clean.replace(/,/g, '');
+  } else if (clean.includes(',')) {
+    clean = clean.replace(',', '.');
+  }
+  const n = parseFloat(clean);
+  return isNaN(n) ? 0 : n;
+}
+
 export function rowToClient(row: any[]): any | null {
   if (!row || row.length === 0) return null;
 
-  // Buscar si alguna celda contiene el JSON completo (suele ser la última columna)
+  // 1. Buscar si alguna celda contiene el JSON completo (suele ser la última columna)
   for (let i = row.length - 1; i >= 0; i--) {
     const val = row[i];
     if (typeof val === 'string' && val.trim().startsWith('{') && val.includes('"inputs"')) {
@@ -393,27 +408,29 @@ export function rowToClient(row: any[]): any | null {
           };
         }
       } catch {
-        // Fallback a columnas sueltas
+        // Fallback a columnas individuales
       }
     }
   }
 
+  // 2. Si no hay JSON serializado, parsear columnas individuales de la hoja
   const rawCol0 = String(row[0] || '').trim();
   const rawCol1 = String(row[1] || '').trim();
   const clientName = rawCol1 || rawCol0 || 'Cliente';
   const clientId = clientName;
-  const warehouse = String(row[2] || 'Spain');
-  const productType = String(row[3] || 'Suplementos');
-  const skuCount = Number(row[4]) || 15;
-  const ordersMonth = Number(row[5]) || 0;
-  const unitsPerOrder = Number(row[6]) || 1.0;
+  const warehouse = String(row[2] || 'Spain').trim();
+  const productType = String(row[3] || 'Suplementos').trim();
+  const skuCount = Math.round(parseSheetNumber(row[4])) || 15;
+  const ordersMonth = Math.round(parseSheetNumber(row[5])) || 0;
+  const unitsPerOrder = parseSheetNumber(row[6]) || 1.0;
 
-  const packPrice = Number(row[7]) || 0;
-  const firstPickPrice = Number(row[8]) || 0;
-  const addPickPrice = Number(row[9]) || 0;
-  const shippingPrice = Number(row[10]) || 0;
+  // Parsear tarifas extrayendo símbolos de moneda ("€2.00" -> 2.00)
+  const packPrice = parseSheetNumber(row[7]);
+  const firstPickPrice = parseSheetNumber(row[8]);
+  const addPickPrice = parseSheetNumber(row[9]);
+  const shippingPrice = parseSheetNumber(row[10]);
 
-  // Detectar si la columna 11 es la suscripción (esquema 23 cols) o si es ingresos (esquema 22 cols antiguo)
+  // Detección de esquema de columnas (21 columnas sin suscripción vs 22-23 columnas con suscripción)
   let subPrice = 0;
   let subTier = 'none';
   let goLiveDate = '';
@@ -421,25 +438,44 @@ export function rowToClient(row: any[]): any | null {
   let notes = '';
   let updatedAt = new Date().toISOString();
 
-  if (row.length >= 23) {
-    // Nuevo esquema con Suscripción en col 11
-    subPrice = Number(row[11]) || 0;
-    if (subPrice === 50) subTier = 'tier-50';
-    else if (subPrice === 150) subTier = 'tier-150';
-    else if (subPrice === 450) subTier = 'tier-450';
-    else if (subPrice > 0) subTier = 'custom';
+  // Buscar dinámicamente si alguna celda contiene una fecha YYYY-MM-DD
+  for (let i = 11; i < row.length; i++) {
+    const cellStr = String(row[i] || '').trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(cellStr)) {
+      goLiveDate = cellStr;
+    } else if (
+      cellStr.includes('Shopify') ||
+      cellStr.includes('WooCommerce') ||
+      cellStr.includes('Amazon') ||
+      cellStr.includes('PrestaShop') ||
+      cellStr.includes('TikTok') ||
+      cellStr.includes('Temu') ||
+      cellStr.includes('Mirakl') ||
+      cellStr.includes('eBay')
+    ) {
+      channelsStr = cellStr;
+    }
+  }
 
-    goLiveDate = String(row[18] || '');
-    channelsStr = String(row[19] || '');
+  if (row.length >= 23) {
+    // Esquema de 23 columnas con Suscripción en col 11
+    subPrice = parseSheetNumber(row[11]);
+    if (!goLiveDate) goLiveDate = String(row[18] || '');
+    if (!channelsStr) channelsStr = String(row[19] || '');
     notes = String(row[20] || '');
     updatedAt = String(row[21] || new Date().toISOString());
   } else {
-    // Esquema de 22 columnas
-    goLiveDate = String(row[17] || '');
-    channelsStr = String(row[18] || '');
+    // Esquema de 21 o 22 columnas (donde col 11 suele ser Ingresos/Mes)
+    if (!goLiveDate) goLiveDate = String(row[17] || '');
+    if (!channelsStr) channelsStr = String(row[18] || '');
     notes = String(row[19] || '');
     updatedAt = String(row[20] || new Date().toISOString());
   }
+
+  if (subPrice === 50) subTier = 'tier-50';
+  else if (subPrice === 150) subTier = 'tier-150';
+  else if (subPrice === 450) subTier = 'tier-450';
+  else if (subPrice > 0) subTier = 'custom';
 
   const techs = channelsStr
     ? channelsStr
@@ -465,17 +501,21 @@ export function rowToClient(row: any[]): any | null {
       packCostSource: 'Calculadora (negociado)',
       volumeMode: 'Pedidos/mes',
       workingDays: 22,
-      ordersPerDay: Math.round(ordersMonth / 22),
+      ordersPerDay: ordersMonth > 0 ? Math.round(ordersMonth / 22) : 15,
       mixSpk: 40,
       mixSpl: 40,
       mixMpl: 15,
       mixLpl: 5,
+      packPriceMode: packPrice > 0 ? 'manual' : 'margin',
       packPriceManual: packPrice,
+      firstPickPriceMode: firstPickPrice > 0 ? 'manual' : 'margin',
       firstPickPriceManual: firstPickPrice,
+      additionalPickPriceMode: addPickPrice > 0 ? 'manual' : 'margin',
       additionalPickPriceManual: addPickPrice,
+      shippingPriceMode: shippingPrice > 0 ? 'manual' : 'margin',
       shippingPriceManual: shippingPrice,
-      goLiveDate: goLiveDate,
-      technologies: techs,
+      goLiveDate: goLiveDate || '2026-10-01',
+      technologies: techs.length > 0 ? techs : ['Shopify'],
       clientNotes: notes,
     },
   };
