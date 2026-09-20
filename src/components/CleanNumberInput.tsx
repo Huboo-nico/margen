@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { parseSheetNumber } from '../utils/numberParser';
 
 export interface CleanNumberInputProps {
   value: number;
@@ -62,7 +63,7 @@ export const CleanNumberInput: React.FC<CleanNumberInputProps> = ({
       return;
     }
 
-    const parsed = integerOnly ? parseInt(raw, 10) : parseFloat(raw);
+    const parsed = parseSheetNumber(raw, integerOnly);
     if (!isNaN(parsed)) {
       onChange(parsed);
     }
@@ -77,7 +78,7 @@ export const CleanNumberInput: React.FC<CleanNumberInputProps> = ({
 
   const handleBlur = () => {
     isFocusedRef.current = false;
-    let num = integerOnly ? parseInt(localStr, 10) : parseFloat(localStr);
+    let num = parseSheetNumber(localStr, integerOnly);
     const fallback = fallbackValue ?? (min !== undefined ? min : 0);
 
     if (isNaN(num) || localStr.trim() === '') {
@@ -98,18 +99,32 @@ export const CleanNumberInput: React.FC<CleanNumberInputProps> = ({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       inputRef.current?.blur();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const current = parseSheetNumber(localStr, integerOnly) || (fallbackValue ?? 0);
+      const stepNum = typeof step === 'number' ? step : parseFloat(step) || 1;
+      let next = current + stepNum;
+      if (max !== undefined && next > max) next = max;
+      onChange(next);
+      setLocalStr(formatVal(next));
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const current = parseSheetNumber(localStr, integerOnly) || (fallbackValue ?? 0);
+      const stepNum = typeof step === 'number' ? step : parseFloat(step) || 1;
+      let next = current - stepNum;
+      if (min !== undefined && next < min) next = min;
+      onChange(next);
+      setLocalStr(formatVal(next));
     }
   };
 
   return (
     <input
       ref={inputRef}
-      type="number"
+      type="text"
+      inputMode={integerOnly ? "numeric" : "decimal"}
       id={id}
       name={name}
-      min={min}
-      max={max}
-      step={step}
       value={localStr}
       onChange={handleChange}
       onFocus={handleFocus}

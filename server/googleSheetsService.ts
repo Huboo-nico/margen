@@ -404,19 +404,86 @@ export function clientToRow(c: any, overrideId?: string, rowNumber?: number): an
   ];
 }
 
-export function parseSheetNumber(val: any): number {
+export function parseSheetNumber(val: any, options?: { isInteger?: boolean } | boolean): number {
   if (val === null || val === undefined) return 0;
-  if (typeof val === 'number') return isNaN(val) ? 0 : val;
-  const str = String(val).trim();
-  if (!str) return 0;
-  let clean = str.replace(/[€$£%\s]/g, '');
-  if (clean.includes(',') && clean.includes('.')) {
-    clean = clean.replace(/,/g, '');
-  } else if (clean.includes(',')) {
-    clean = clean.replace(',', '.');
+  const isInteger = typeof options === 'boolean' ? options : Boolean(options?.isInteger);
+
+  if (typeof val === 'number') {
+    if (isNaN(val)) return 0;
+    return isInteger ? Math.round(val) : val;
   }
-  const n = parseFloat(clean);
-  return isNaN(n) ? 0 : n;
+
+  let str = String(val).trim();
+  if (!str) return 0;
+
+  // Eliminar símbolos de moneda, comillas, porcentajes y espacios
+  str = str.replace(/[€$£%'"\s\u00A0\u202F]/g, '');
+  if (!str) return 0;
+
+  const lastDot = str.lastIndexOf('.');
+  const lastComma = str.lastIndexOf(',');
+
+  // Caso 1: Ambos separadores presentes ("1,000.50" o "1.000,50")
+  if (lastDot !== -1 && lastComma !== -1) {
+    if (lastDot > lastComma) {
+      str = str.replace(/,/g, '');
+    } else {
+      str = str.replace(/\./g, '').replace(',', '.');
+    }
+    const n = parseFloat(str);
+    if (isNaN(n)) return 0;
+    return isInteger ? Math.round(n) : n;
+  }
+
+  // Caso 2: Solo coma presente
+  if (lastComma !== -1) {
+    const parts = str.split(',');
+    if (parts.length > 2) {
+      str = str.replace(/,/g, '');
+      const n = parseFloat(str);
+      return isNaN(n) ? 0 : (isInteger ? Math.round(n) : n);
+    }
+    const dec = parts[1];
+    if (isInteger) {
+      if (dec.length === 3) {
+        str = str.replace(/,/g, '');
+      } else if (dec === '0' || dec === '00') {
+        str = parts[0];
+      } else {
+        str = str.replace(',', '.');
+      }
+    } else {
+      if (dec.length === 3 && parts[0].length >= 1 && parts[0].length <= 3) {
+        str = str.replace(/,/g, '');
+      } else {
+        str = str.replace(',', '.');
+      }
+    }
+  } else if (lastDot !== -1) {
+    // Caso 3: Solo punto presente
+    const parts = str.split('.');
+    if (parts.length > 2) {
+      str = str.replace(/\./g, '');
+      const n = parseFloat(str);
+      return isNaN(n) ? 0 : (isInteger ? Math.round(n) : n);
+    }
+    const dec = parts[1];
+    if (isInteger) {
+      if (dec.length === 3) {
+        str = str.replace(/\./g, '');
+      } else if (dec === '0' || dec === '00') {
+        str = parts[0];
+      }
+    } else {
+      if (dec.length === 3 && parts[0].length >= 1 && parts[0].length <= 3) {
+        str = str.replace(/\./g, '');
+      }
+    }
+  }
+
+  const result = parseFloat(str);
+  if (isNaN(result)) return 0;
+  return isInteger ? Math.round(result) : result;
 }
 
 export function rowToClient(row: any[]): any | null {
@@ -430,13 +497,16 @@ export function rowToClient(row: any[]): any | null {
         const parsed = JSON.parse(val);
         if (parsed && (parsed.id || parsed.name || parsed.inputs)) {
           const clientName = String(parsed.inputs?.clientName || parsed.name || parsed.id || 'Cliente').trim();
+          const rawInputs = parsed.inputs || {};
+          const parsedOrders = parseSheetNumber(rawInputs.ordersMonth, true);
           return {
             ...parsed,
             id: clientName,
             name: clientName,
             inputs: {
-              ...(parsed.inputs || {}),
+              ...rawInputs,
               clientName: clientName,
+              ordersMonth: parsedOrders > 0 ? parsedOrders : (Number(rawInputs.ordersMonth) || 0),
             },
           };
         }
@@ -453,15 +523,15 @@ export function rowToClient(row: any[]): any | null {
   const clientId = clientName;
   const warehouse = String(row[2] || 'Spain').trim();
   const productType = String(row[3] || 'Suplementos').trim();
-  const skuCount = Math.round(parseSheetNumber(row[4])) || 15;
-  const ordersMonth = Math.round(parseSheetNumber(row[5])) || 0;
-  const unitsPerOrder = parseSheetNumber(row[6]) || 1.0;
+  const skuCount = Math.round(parseSheetNumber(row[4], true)) || 15;
+  const ordersMonth = Math.round(parseSheetNumber(row[5], true)) || 0;
+  const unitsPerOrder = parseSheetNumber(row[6], false) || 1.0;
 
   // Parsear tarifas extrayendo símbolos de moneda ("€2.00" -> 2.00)
-  const packPrice = parseSheetNumber(row[7]);
-  const firstPickPrice = parseSheetNumber(row[8]);
-  const addPickPrice = parseSheetNumber(row[9]);
-  const shippingPrice = parseSheetNumber(row[10]);
+  const packPrice = parseSheetNumber(row[7], false);
+  const firstPickPrice = parseSheetNumber(row[8], false);
+  const addPickPrice = parseSheetNumber(row[9], false);
+  const shippingPrice = parseSheetNumber(row[10], false);
 
   // Detección de esquema de columnas (21 columnas sin suscripción vs 22-23 columnas con suscripción)
   let subPrice = 0;

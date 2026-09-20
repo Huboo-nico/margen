@@ -1,6 +1,9 @@
 import { ClientProfile } from '../types';
 import { calculateAll } from './calculations';
 import { DEFAULT_INPUTS } from '../data/constants';
+import { parseSheetNumber } from './numberParser';
+
+export { parseSheetNumber };
 
 export const GOOGLE_SHEETS_STORAGE_KEY = 'huboo_google_sheets_webapp_url_v1';
 
@@ -128,18 +131,43 @@ function readClientsFromSpreadsheet(ss) {
         }
       }
 
-      // 2. Reconstrucción por columnas individuales
+      // 2. Reconstrucción por columnas individuales con soporte para 1,000 = 1.000 = 1000
+      function parseVal(v, isInt) {
+        if (v === null || v === undefined) return 0;
+        if (typeof v === "number") return isNaN(v) ? 0 : (isInt ? Math.round(v) : v);
+        var s = String(v).trim().replace(/[€$£%'"\s\u00A0\u202F]/g, "");
+        if (!s) return 0;
+        var d = s.lastIndexOf("."), c = s.lastIndexOf(",");
+        if (d !== -1 && c !== -1) {
+          s = (d > c) ? s.replace(/,/g, "") : s.replace(/\./g, "").replace(",", ".");
+          var n = parseFloat(s);
+          return isNaN(n) ? 0 : (isInt ? Math.round(n) : n);
+        }
+        if (c !== -1) {
+          var pC = s.split(",");
+          if (pC.length > 2) { s = s.replace(/,/g, ""); }
+          else if (pC[1] && (pC[1].length === 3 || isInt)) { s = (pC[1].length === 3) ? s.replace(/,/g, "") : (pC[1] === "0" || pC[1] === "00") ? pC[0] : s.replace(",", "."); }
+          else { s = s.replace(",", "."); }
+        } else if (d !== -1) {
+          var pD = s.split(".");
+          if (pD.length > 2) { s = s.replace(/\./g, ""); }
+          else if (pD[1] && (pD[1].length === 3 || isInt)) { s = (pD[1].length === 3) ? s.replace(/\./g, "") : (pD[1] === "0" || pD[1] === "00") ? pD[0] : s; }
+        }
+        var res = parseFloat(s);
+        return isNaN(res) ? 0 : (isInt ? Math.round(res) : res);
+      }
+
       var clientId = String(row[0] || ("client-" + (index + 1)));
       var clientName = String(row[1] || ("Cliente " + (index + 1)));
       var warehouse = String(row[2] || "Spain");
       var productType = String(row[3] || "Suplementos");
-      var skuCount = Number(row[4]) || 1;
-      var ordersMonth = Number(row[5]) || 100;
-      var unitsPerOrder = Number(row[6]) || 1;
-      var packPrice = Number(row[7]) || 0;
-      var firstPickPrice = Number(row[8]) || 0;
-      var addPickPrice = Number(row[9]) || 0;
-      var shippingPrice = Number(row[10]) || 0;
+      var skuCount = parseVal(row[4], true) || 1;
+      var ordersMonth = parseVal(row[5], true) || 100;
+      var unitsPerOrder = parseVal(row[6], false) || 1;
+      var packPrice = parseVal(row[7], false) || 0;
+      var firstPickPrice = parseVal(row[8], false) || 0;
+      var addPickPrice = parseVal(row[9], false) || 0;
+      var shippingPrice = parseVal(row[10], false) || 0;
       var goLiveDate = String(row[17] || "");
       var techs = row[18] ? String(row[18]).split(",").map(function(item) { return item.trim(); }).filter(Boolean) : [];
       var notes = String(row[19] || "");
@@ -648,10 +676,25 @@ function sanitizeClientList(rawList: any[]): ClientProfile[] {
     // El ID es idéntico al nombre del cliente
     const id = name;
 
-    const packPrice = Number(rawInputs.packPriceManual) || 0;
-    const firstPickPrice = Number(rawInputs.firstPickPriceManual) || 0;
-    const addPickPrice = Number(rawInputs.additionalPickPriceManual) || 0;
-    const shippingPrice = Number(rawInputs.shippingPriceManual) || 0;
+    const packPrice = parseSheetNumber(rawInputs.packPriceManual, false);
+    const firstPickPrice = parseSheetNumber(rawInputs.firstPickPriceManual, false);
+    const addPickPrice = parseSheetNumber(rawInputs.additionalPickPriceManual, false);
+    const shippingPrice = parseSheetNumber(rawInputs.shippingPriceManual, false);
+
+    const parsedOrdersMonth = parseSheetNumber(rawInputs.ordersMonth, true);
+    const ordersMonth = parsedOrdersMonth > 0 ? parsedOrdersMonth : (Number(rawInputs.ordersMonth) || DEFAULT_INPUTS.ordersMonth);
+
+    const parsedSkuCount = parseSheetNumber(rawInputs.skuCount, true);
+    const skuCount = parsedSkuCount > 0 ? parsedSkuCount : (Number(rawInputs.skuCount) || DEFAULT_INPUTS.skuCount);
+
+    const parsedUnits = parseSheetNumber(rawInputs.unitsPerOrder, false);
+    const unitsPerOrder = parsedUnits > 0 ? parsedUnits : (Number(rawInputs.unitsPerOrder) || DEFAULT_INPUTS.unitsPerOrder);
+
+    const parsedWorkingDays = parseSheetNumber(rawInputs.workingDays, true);
+    const workingDays = parsedWorkingDays > 0 ? parsedWorkingDays : (Number(rawInputs.workingDays) || DEFAULT_INPUTS.workingDays);
+
+    const parsedOrdersPerDay = parseSheetNumber(rawInputs.ordersPerDay, false);
+    const ordersPerDay = parsedOrdersPerDay > 0 ? parsedOrdersPerDay : Math.round(ordersMonth / (workingDays || 22));
 
     return {
       id,
@@ -662,16 +705,11 @@ function sanitizeClientList(rawList: any[]): ClientProfile[] {
         ...DEFAULT_INPUTS,
         ...rawInputs,
         clientName: name,
-        ordersMonth: Number(rawInputs.ordersMonth) || DEFAULT_INPUTS.ordersMonth,
-        unitsPerOrder: Number(rawInputs.unitsPerOrder) || DEFAULT_INPUTS.unitsPerOrder,
-        skuCount: Number(rawInputs.skuCount) || DEFAULT_INPUTS.skuCount,
-        workingDays: Number(rawInputs.workingDays) || DEFAULT_INPUTS.workingDays,
-        ordersPerDay:
-          Number(rawInputs.ordersPerDay) ||
-          Math.round(
-            (Number(rawInputs.ordersMonth) || DEFAULT_INPUTS.ordersMonth) /
-              (Number(rawInputs.workingDays) || 22)
-          ),
+        ordersMonth: ordersMonth,
+        unitsPerOrder: unitsPerOrder,
+        skuCount: skuCount,
+        workingDays: workingDays,
+        ordersPerDay: ordersPerDay,
         mixSpk: Number(rawInputs.mixSpk) ?? DEFAULT_INPUTS.mixSpk,
         mixSpl: Number(rawInputs.mixSpl) ?? DEFAULT_INPUTS.mixSpl,
         mixMpl: Number(rawInputs.mixMpl) ?? DEFAULT_INPUTS.mixMpl,
@@ -685,7 +723,7 @@ function sanitizeClientList(rawList: any[]): ClientProfile[] {
         shippingPriceManual: shippingPrice,
         shippingPriceMode: rawInputs.shippingPriceMode || (shippingPrice > 0 ? 'manual' : 'margin'),
         subscriptionTier: rawInputs.subscriptionTier || 'none',
-        subscriptionPrice: Number(rawInputs.subscriptionPrice) || 0,
+        subscriptionPrice: parseSheetNumber(rawInputs.subscriptionPrice, false),
         technologies: Array.isArray(rawInputs.technologies) ? rawInputs.technologies : ['Shopify'],
       },
     };

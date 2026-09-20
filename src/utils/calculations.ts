@@ -14,6 +14,7 @@ import {
   BASE_ADDITIONAL_PICK_COST,
   SUBSCRIPTION_TIERS,
 } from '../data/constants';
+import { parseSheetNumber } from './numberParser';
 
 export function getSkuTier(skuCount: number): {
   tierName: string;
@@ -189,17 +190,19 @@ export function calculateAll(inputs: CalculatorInputs): CalculationResults {
     storageCost,
   } = inputs;
 
-  const { tierName, skuMultiplier, targetPickMarginDefault } = getSkuTier(Number(skuCount));
+  const safeSkuCount = parseSheetNumber(skuCount, true) || 1;
+  const { tierName, skuMultiplier, targetPickMarginDefault } = getSkuTier(safeSkuCount);
   const productPickMultiplier = 1.0;
 
   // Orders volume
-  let ordersPerDay = inputs.ordersPerDay;
-  let ordersMonth = inputs.ordersMonth;
+  const safeWorkingDays = parseSheetNumber(workingDays, true) || 22;
+  let ordersPerDay = parseSheetNumber(inputs.ordersPerDay, false);
+  let ordersMonth = parseSheetNumber(inputs.ordersMonth, true);
 
   if (volumeMode === 'Pedidos/día') {
-    ordersMonth = Number(ordersPerDay) * Number(workingDays);
+    ordersMonth = Math.round(ordersPerDay * safeWorkingDays);
   } else {
-    ordersPerDay = workingDays > 0 ? Number(ordersMonth) / Number(workingDays) : 0;
+    ordersPerDay = safeWorkingDays > 0 ? ordersMonth / safeWorkingDays : 0;
   }
 
   // Pack costs & mix: Siempre calculadora

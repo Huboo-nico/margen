@@ -924,6 +924,7 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
               <CleanNumberInput
                 min={0}
                 step={10}
+                integerOnly={true}
                 fallbackValue={0}
                 value={inputs.ordersMonth}
                 onChange={(val) => {
