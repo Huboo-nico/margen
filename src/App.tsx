@@ -2,7 +2,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { CalculatorInputs, ClientProfile } from './types';
 import { DEFAULT_INPUTS, INITIAL_CLIENT_PROFILES } from './data/constants';
 import { calculateAll } from './utils/calculations';
-import { ClientManagerHeader } from './components/ClientManagerHeader';
 import { ResumenTab } from './components/ResumenTab';
 import { PreciosMargenesTab } from './components/PreciosMargenesTab';
 import { DesgloseTab } from './components/DesgloseTab';
@@ -16,7 +15,7 @@ import { CurrencySwitcher } from './components/CurrencySwitcher';
 import { ThemeSwitcher } from './components/ThemeSwitcher';
 import { useLanguage } from './context/LanguageContext';
 import { useTheme } from './context/ThemeContext';
-import { PackageCheck, CheckCircle2, AlertCircle, Info } from 'lucide-react';
+import { PackageCheck, CheckCircle2, AlertCircle, Info, Users, FileSpreadsheet, Save } from 'lucide-react';
 import {
   getSavedGoogleSheetsUrl,
   saveSingleClientToGoogleSheets,
@@ -239,30 +238,6 @@ export const App: React.FC = () => {
     showToast(`Nuevo cliente "${newName}" creado. Tus cotizaciones anteriores siguen disponibles en la lista.`, 'info');
   };
 
-  const handleDuplicateClient = () => {
-    const baseName = inputs.clientName || 'Cliente';
-    let newName = `${baseName} (Copia)`;
-    let copyIdx = 2;
-    while (clients.some((c) => c.name.trim().toLowerCase() === newName.toLowerCase())) {
-      newName = `${baseName} (Copia ${copyIdx})`;
-      copyIdx++;
-    }
-    const newClient: ClientProfile = {
-      id: newName,
-      name: newName,
-      notes: `Duplicado de ${baseName}`,
-      updatedAt: new Date().toISOString(),
-      inputs: {
-        ...inputs,
-        clientName: newName,
-      },
-    };
-    setClients((prev) => [...prev, newClient]);
-    setActiveClientId(newName);
-    setInputs(newClient.inputs);
-    showToast(`Cliente duplicado como "${newName}".`, 'info');
-  };
-
   const handleDeleteClient = (id: string) => {
     if (clients.length <= 1) return;
     const targetLower = id.toLowerCase();
@@ -272,10 +247,6 @@ export const App: React.FC = () => {
     setActiveClientId(nextActive.id);
     setInputs(nextActive.inputs);
     showToast(`Cliente eliminado.`, 'info');
-  };
-
-  const handleRenameActiveClient = (name: string) => {
-    handleInputChange({ clientName: name });
   };
 
   const handleRenameClientById = (id: string, newName: string) => {
@@ -320,7 +291,7 @@ export const App: React.FC = () => {
     );
   };
 
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { isDark } = useTheme();
 
   const tabs = [
@@ -337,21 +308,21 @@ export const App: React.FC = () => {
     <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${
       isDark ? 'bg-[#120e26] text-[#F0F0F0]' : 'bg-[#FAF7F2] text-[#2D2825]'
     }`}>
-      {/* Top Header with Brand styling and Theme / Currency / Language Switchers */}
-      <header className={`px-4 sm:px-6 py-3.5 flex items-center justify-between sticky top-0 z-20 shadow-2xs gap-4 no-print print:hidden transition-colors duration-200 ${
+      {/* Top Header with Brand styling, Client Selector, Google Sheets button and Switchers */}
+      <header className={`px-3 sm:px-6 py-2.5 sm:py-3.5 flex flex-wrap items-center justify-between sticky top-0 z-20 shadow-2xs gap-2.5 sm:gap-4 no-print print:hidden transition-colors duration-200 ${
         isDark ? 'bg-[#1E1B2E] border-b border-[#2E2A48]' : 'bg-[#FAF7F2] border-b border-[#E5DDD0]'
       }`}>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap min-w-0">
           {/* Huboo Brand Badge */}
-          <div className="w-9 h-9 rounded-lg bg-[#6B4ABF] border border-[#47D2BF]/40 flex items-center justify-center text-white shadow-2xs shrink-0">
-            <PackageCheck className="w-5 h-5 text-[#47D2BF]" />
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-[#6B4ABF] border border-[#47D2BF]/40 flex items-center justify-center text-white shadow-2xs shrink-0">
+            <PackageCheck className="w-4 h-4 sm:w-5 sm:h-5 text-[#47D2BF]" />
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className={`text-lg sm:text-xl font-black tracking-tight ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
+              <h1 className={`text-base sm:text-xl font-black tracking-tight ${isDark ? 'text-white' : 'text-[#2D2825]'}`}>
                 {t('app.title')}
               </h1>
-              <span className={`px-2 py-0.5 text-[11px] font-bold rounded ${
+              <span className={`hidden sm:inline-block px-2 py-0.5 text-[11px] font-bold rounded ${
                 isDark
                   ? 'bg-[#25203D] text-[#47D2BF] border border-[#47D2BF]/40'
                   : 'bg-[#F4EEE4] text-[#6B4ABF] border border-[#E5DDD0]'
@@ -359,44 +330,88 @@ export const App: React.FC = () => {
                 {t('app.clientByClient')}
               </span>
             </div>
-            <p className={`text-xs hidden sm:block ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
+            <p className={`text-[11px] sm:text-xs hidden md:block ${isDark ? 'text-gray-400' : 'text-[#6D635B]'}`}>
               {t('app.subtitle')}
             </p>
           </div>
+
+          {/* Clean In-Header Client Selector */}
+          <div className="flex items-center gap-1.5 ml-1 sm:ml-2">
+            <span className={`font-semibold flex items-center gap-1 text-xs ${isDark ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`}>
+              <Users className="w-3.5 h-3.5 shrink-0" />
+            </span>
+            <select
+              value={activeClientId}
+              onChange={(e) => handleSelectClient(e.target.value)}
+              aria-label="Seleccionar cliente cotizado"
+              className={`rounded-lg px-2 sm:px-2.5 py-1 text-xs font-bold cursor-pointer max-w-[150px] sm:max-w-[210px] truncate transition border shadow-2xs ${
+                isDark
+                  ? 'bg-[#120e26] border-[#2E2A48] text-[#47D2BF] focus:ring-1 focus:ring-[#47D2BF]'
+                  : 'border-[#E5DDD0] bg-white text-[#6B4ABF] focus:ring-1 focus:ring-[#6B4ABF]'
+              }`}
+            >
+              {clients.map((c) => (
+                <option key={c.id} value={c.id} className={isDark ? 'bg-[#1E1B2E] text-white' : 'bg-white text-[#2D2825]'}>
+                  {c.name} {c.inputs.warehouse ? `· ${c.inputs.warehouse}` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        {/* Right side: Theme Switcher (Icons only), Currency & Language Switcher Controls */}
-        <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+        {/* Right side: Google Sheets Sync & Save, Theme Switcher, Currency & Language Switcher Controls */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 flex-wrap justify-end">
+          {/* Quick Save to Google Sheets */}
+          <button
+            type="button"
+            onClick={handleQuickSaveCurrentClient}
+            disabled={isSavingToSheets}
+            title={language === 'en' ? 'Quick save active client to Google Sheet' : 'Guardar cliente actual en Google Sheet'}
+            className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 text-xs font-bold rounded-lg border transition shadow-2xs cursor-pointer ${
+              saveToSheetsSuccess
+                ? 'bg-emerald-600 text-white border-emerald-500'
+                : isDark
+                ? 'bg-[#151226] hover:bg-[#25203D] text-gray-200 border-[#2E2A48]'
+                : 'bg-white hover:bg-[#FAF7F2] text-[#4D453E] border-[#E5DDD0]'
+            }`}
+          >
+            <Save className={`w-3.5 h-3.5 ${isSavingToSheets ? 'animate-spin text-amber-400' : 'text-emerald-500'}`} />
+            <span className="hidden md:inline">
+              {saveToSheetsSuccess
+                ? language === 'en'
+                  ? 'Saved'
+                  : 'Guardado'
+                : language === 'en'
+                ? 'Save'
+                : 'Guardar'}
+            </span>
+          </button>
+
+          {/* Quick Google Sheets Modal Trigger */}
+          <button
+            type="button"
+            onClick={() => setIsGoogleSheetsOpen(true)}
+            title={language === 'en' ? 'Google Sheets Sync & Settings' : 'Sincronización y Configuración de Google Sheets'}
+            className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 text-xs font-bold rounded-lg border transition shadow-2xs cursor-pointer ${
+              isDark
+                ? 'bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border-emerald-700/60'
+                : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300'
+            }`}
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+            <span className="hidden xs:inline">Sheets</span>
+          </button>
+
           <ThemeSwitcher />
           <CurrencySwitcher />
           <LanguageSwitcher />
         </div>
       </header>
 
-      {/* Client Switcher & Name Editor Bar */}
-      <div className="no-print">
-        <ClientManagerHeader
-          clients={clients}
-          activeClientId={activeClientId}
-          onSelectClient={handleSelectClient}
-          onCreateClient={handleCreateClient}
-          onDuplicateClient={handleDuplicateClient}
-          onDeleteClient={handleDeleteClient}
-          onRenameClient={handleRenameActiveClient}
-          onUpdateNotes={(notes) => handleUpdateNotes(activeClientId, notes)}
-          currentInputs={inputs}
-          onQuickSaveToSheets={handleQuickSaveCurrentClient}
-          onQuickLoadFromSheets={handleQuickLoadClients}
-          isSavingToSheets={isSavingToSheets}
-          isLoadingFromSheets={isLoadingFromSheets}
-          saveToSheetsSuccess={saveToSheetsSuccess}
-        />
-      </div>
-
       {/* Main Responsive Content Area */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 print:p-0 print:m-0 print:max-w-none">
-        {/* Navigation Tabs */}
-        <div className={`border-b mb-6 flex gap-1 overflow-x-auto pb-0.5 scrollbar-none no-print ${
+      <main className="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 print:p-0 print:m-0 print:max-w-none">
+        {/* Navigation Tabs (Smooth Horizontal Scroll on Mobile) */}
+        <div className={`border-b mb-5 sm:mb-6 flex gap-1 overflow-x-auto pb-0.5 scrollbar-none no-print ${
           isDark ? 'border-[#2E2A48]' : 'border-[#E5DDD0]'
         }`}>
           {tabs.map((tab) => (
@@ -404,7 +419,7 @@ export const App: React.FC = () => {
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`pb-3 px-3.5 text-xs sm:text-sm font-semibold transition border-b-2 -mb-px whitespace-nowrap cursor-pointer ${
+              className={`pb-2.5 sm:pb-3 px-3 sm:px-3.5 text-xs sm:text-sm font-semibold transition border-b-2 -mb-px whitespace-nowrap cursor-pointer shrink-0 ${
                 activeTab === tab.id
                   ? isDark
                     ? 'border-[#47D2BF] text-[#47D2BF]'
@@ -478,9 +493,9 @@ export const App: React.FC = () => {
 
       {/* Floating Action Toast */}
       {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 animate-in fade-in slide-in-from-bottom-3 duration-300 max-w-md">
+        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 z-50 animate-in fade-in slide-in-from-bottom-3 duration-300 sm:max-w-md pointer-events-none">
           <div
-            className={`flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border text-xs font-semibold ${
+            className={`flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl border text-xs font-semibold pointer-events-auto ${
               toastMessage.type === 'success'
                 ? 'bg-[#121B17] text-emerald-300 border-emerald-500/40 shadow-emerald-950/40'
                 : toastMessage.type === 'info'

@@ -391,7 +391,7 @@ export const PropuestaClienteTab: React.FC<PropuestaClienteTabProps> = ({
       >
         {/* Document Header */}
         <div
-          className={`border-b flex justify-between items-start print:border-gray-200 ${
+          className={`border-b flex flex-col sm:flex-row justify-between items-start gap-3 print:flex-row print:border-gray-200 ${
             isDark ? 'border-[#2E2A48]' : 'border-[#E5DDD0]'
           } ${compactMode ? 'pb-3.5' : 'pb-5'}`}
         >
@@ -434,7 +434,7 @@ export const PropuestaClienteTab: React.FC<PropuestaClienteTabProps> = ({
             </p>
           </div>
 
-          <div className={`text-right text-xs ${isDark ? 'text-gray-400' : 'text-[#8C8278]'}`}>
+          <div className={`text-left sm:text-right text-xs shrink-0 ${isDark ? 'text-gray-400' : 'text-[#8C8278]'}`}>
             <div>
               {language === 'en' ? 'Date: ' : 'Fecha: '}
               <span className={`font-semibold ${isDark ? 'text-gray-200' : 'text-[#2D2825]'}`}>
@@ -494,10 +494,10 @@ export const PropuestaClienteTab: React.FC<PropuestaClienteTabProps> = ({
                 </h3>
               </div>
 
-              <div className={`border rounded-lg overflow-hidden ${
+              <div className={`border rounded-lg overflow-x-auto ${
                 isDark ? 'border-[#2E2A48]' : 'border-[#E5DDD0]'
               }`}>
-                <table className="w-full text-xs text-left">
+                <table className="w-full text-xs text-left min-w-[320px]">
                   <thead className={`uppercase text-[10px] font-semibold border-b ${
                     isDark
                       ? 'bg-[#151226] text-gray-400 border-[#2E2A48]'
@@ -596,10 +596,10 @@ export const PropuestaClienteTab: React.FC<PropuestaClienteTabProps> = ({
                 </h3>
               </div>
 
-              <div className={`border rounded-lg overflow-hidden ${
+              <div className={`border rounded-lg overflow-x-auto ${
                 isDark ? 'border-[#2E2A48]' : 'border-[#E5DDD0]'
               }`}>
-                <table className="w-full text-xs text-left">
+                <table className="w-full text-xs text-left min-w-[320px]">
                   <thead className={`uppercase text-[10px] font-semibold border-b ${
                     isDark
                       ? 'bg-[#151226] text-gray-400 border-[#2E2A48]'
@@ -647,10 +647,10 @@ export const PropuestaClienteTab: React.FC<PropuestaClienteTabProps> = ({
                 </h3>
               </div>
 
-              <div className={`border rounded-lg overflow-hidden ${
+              <div className={`border rounded-lg overflow-x-auto ${
                 isDark ? 'border-[#2E2A48]' : 'border-[#E5DDD0]'
               }`}>
-                <table className="w-full text-xs text-left">
+                <table className="w-full text-xs text-left min-w-[320px]">
                   <thead className={`uppercase text-[10px] font-semibold border-b ${
                     isDark
                       ? 'bg-[#151226] text-gray-400 border-[#2E2A48]'

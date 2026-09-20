@@ -305,9 +305,9 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
   const canOperate = Boolean(url || serverStatus?.configured);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div
-        className={`w-full max-w-4xl max-h-[90vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden ${
+        className={`w-full max-w-4xl max-h-[92vh] sm:max-h-[90vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden ${
           isDark
             ? 'bg-[#151226] border-[#2E2A48] text-gray-100'
             : 'bg-white border-[#E5DDD0] text-[#2D2825]'
@@ -315,7 +315,7 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
       >
         {/* Header */}
         <div
-          className={`flex items-center justify-between px-6 py-4 border-b ${
+          className={`flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b ${
             isDark ? 'bg-[#1A1630] border-[#2E2A48]' : 'bg-[#FAF7F2] border-[#E5DDD0]'
           }`}
         >

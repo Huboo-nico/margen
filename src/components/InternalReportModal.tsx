@@ -843,10 +843,10 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                 </span>
               </div>
 
-              <div className={`border rounded-lg overflow-hidden shadow-2xs ${
+              <div className={`border rounded-lg overflow-x-auto shadow-2xs ${
                 isDarkReport ? 'border-[#2E2A48] bg-[#1E1B2E]' : 'border-[#E5DDD0] bg-white'
               }`}>
-                <table className="w-full text-xs text-left print:text-[10.5px]">
+                <table className="w-full text-xs text-left min-w-[340px] print:text-[10.5px]">
                   <thead className={`font-semibold uppercase text-[9px] border-b ${
                     isDarkReport
                       ? 'bg-[#252238] text-gray-200 border-[#2E2A48]'
@@ -1349,10 +1349,10 @@ export const InternalReportModal: React.FC<InternalReportModalProps> = ({
                   : (showCharts ? '4. Cuenta de Explotación Mensual por Líneas de Servicio' : '3. Cuenta de Explotación Mensual por Líneas de Servicio')}
               </h3>
 
-              <div className={`border rounded-lg overflow-hidden shadow-2xs ${
+              <div className={`border rounded-lg overflow-x-auto shadow-2xs ${
                 isDarkReport ? 'border-[#2E2A48] bg-[#1E1B2E]' : 'border-[#E5DDD0] bg-white'
               }`}>
-                <table className="w-full text-xs text-left print:text-[10px]">
+                <table className="w-full text-xs text-left min-w-[380px] print:text-[10px]">
                   <thead className={`font-semibold uppercase text-[9px] border-b ${
                     isDarkReport
                       ? 'bg-[#252238] text-gray-200 border-[#2E2A48]'
