@@ -23,18 +23,24 @@ import {
   Check,
   Plus,
   X,
+  Save,
+  Loader2,
 } from 'lucide-react';
 
 interface PreciosMargenesTabProps {
   inputs: CalculatorInputs;
   results: CalculationResults;
   onChange: (updated: Partial<CalculatorInputs>) => void;
+  onSaveClient?: () => void;
+  isSavingClient?: boolean;
 }
 
 export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
   inputs,
   results,
   onChange,
+  onSaveClient,
+  isSavingClient,
 }) => {
   const { language } = useLanguage();
   const { isDark } = useTheme();
@@ -277,7 +283,7 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
       <section className={`rounded-xl border p-5 shadow-2xs ${
         isDark ? 'bg-[#1E1B2E] border-[#2E2A48]' : 'bg-white border-[#E5DDD0]'
       }`}>
-        <div className={`flex items-center justify-between border-b pb-3 mb-4 ${
+        <div className={`flex items-center justify-between border-b pb-3 mb-4 gap-2 flex-wrap ${
           isDark ? 'border-[#2E2A48]' : 'border-[#E5DDD0]'
         }`}>
           <div className="flex items-center gap-2">
@@ -286,11 +292,29 @@ export const PreciosMargenesTab: React.FC<PreciosMargenesTabProps> = ({
               {language === 'en' ? '1. Client Data & Operational Profile' : '1. Datos del Cliente & Perfil Operativo'}
             </h3>
           </div>
-          <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${
-            isDark ? 'text-gray-300 bg-[#151226] border-[#2E2A48]' : 'text-[#6D635B] bg-[#FAF7F2] border-[#E5DDD0]'
-          }`}>
-            Tier {results.tierName} (×{results.skuMultiplier.toFixed(2)})
-          </span>
+          <div className="flex items-center gap-2">
+            {onSaveClient && (
+              <button
+                type="button"
+                onClick={onSaveClient}
+                disabled={isSavingClient}
+                title={language === 'en' ? 'Save client information' : 'Guardar información del cliente'}
+                className="flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 disabled:opacity-50 text-white shadow-2xs border border-emerald-400/40 transition cursor-pointer"
+              >
+                {isSavingClient ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                ) : (
+                  <Save className="w-3.5 h-3.5 text-white" />
+                )}
+                <span>{language === 'en' ? 'Save client' : 'Guardar cliente'}</span>
+              </button>
+            )}
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${
+              isDark ? 'text-gray-300 bg-[#151226] border-[#2E2A48]' : 'text-[#6D635B] bg-[#FAF7F2] border-[#E5DDD0]'
+            }`}>
+              Tier {results.tierName} (×{results.skuMultiplier.toFixed(2)})
+            </span>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

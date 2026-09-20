@@ -57,6 +57,7 @@ const translations: Record<Language, Record<string, string>> = {
     'client.reset': 'Restablecer',
     'client.exportJson': 'Exportar JSON',
     'client.importJson': 'Importar JSON',
+    'client.save': 'Guardar cliente',
     'client.deleteConfirm': '¿Estás seguro de que deseas eliminar este cliente?',
     'client.resetConfirm': '¿Deseas restablecer los clientes a los valores iniciales por defecto?',
 
@@ -264,6 +265,7 @@ const translations: Record<Language, Record<string, string>> = {
     'client.reset': 'Reset',
     'client.exportJson': 'Export JSON',
     'client.importJson': 'Import JSON',
+    'client.save': 'Save client',
     'client.deleteConfirm': 'Are you sure you want to delete this client?',
     'client.resetConfirm': 'Do you want to reset clients to initial default values?',
 

@@ -15,7 +15,7 @@ import { CurrencySwitcher } from './components/CurrencySwitcher';
 import { ThemeSwitcher } from './components/ThemeSwitcher';
 import { useLanguage } from './context/LanguageContext';
 import { useTheme } from './context/ThemeContext';
-import { PackageCheck, CheckCircle2, AlertCircle, Info, Users, Plus } from 'lucide-react';
+import { PackageCheck, CheckCircle2, AlertCircle, Info, Users, Plus, Save, Loader2 } from 'lucide-react';
 import {
   getSavedGoogleSheetsUrl,
   saveSingleClientToGoogleSheets,
@@ -45,6 +45,7 @@ export const App: React.FC = () => {
   const [activeClientId, setActiveClientId] = useState<string>(() => clients[0]?.id || clients[0]?.name || 'NutriLife (Suplementos)');
   const [isGoogleSheetsOpen, setIsGoogleSheetsOpen] = useState<boolean>(false);
   const [isLoadingFromSheets, setIsLoadingFromSheets] = useState<boolean>(false);
+  const [isSavingClient, setIsSavingClient] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   const [activeTab, setActiveTab] = useState<
@@ -65,22 +66,78 @@ export const App: React.FC = () => {
   };
 
   const handleQuickSaveCurrentClient = async () => {
-    const url = getSavedGoogleSheetsUrl();
-    const clientToSave =
-      clients.find((c) => c.id.toLowerCase() === activeClientId.toLowerCase() || c.name.toLowerCase() === activeClientId.toLowerCase()) ||
-      currentClient;
-    if (!clientToSave) return;
-
+    setIsSavingClient(true);
     try {
-      const res = await saveSingleClientToGoogleSheets(clientToSave, url || undefined);
+      const activeIdLower = activeClientId.toLowerCase();
+      const existing =
+        clients.find((c) => c.id.toLowerCase() === activeIdLower || c.name.toLowerCase() === activeIdLower) ||
+        currentClient;
+
+      const clientName = (inputs.clientName || existing.name || 'Cliente').trim();
+      const updatedClient: ClientProfile = {
+        ...existing,
+        id: clientName,
+        name: clientName,
+        updatedAt: new Date().toISOString(),
+        inputs: {
+          ...existing.inputs,
+          ...inputs,
+          clientName: clientName,
+        },
+      };
+
+      // 1. Guardar localmente de inmediato (setClients y localStorage)
+      setClients((prev) => {
+        const idx = prev.findIndex(
+          (c) => c.id.toLowerCase() === activeIdLower || c.name.toLowerCase() === activeIdLower
+        );
+        let nextList: ClientProfile[];
+        if (idx !== -1) {
+          nextList = [...prev];
+          nextList[idx] = updatedClient;
+        } else {
+          nextList = [...prev, updatedClient];
+        }
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(nextList));
+        } catch {
+          // ignore
+        }
+        return nextList;
+      });
+
+      if (activeClientId !== clientName) {
+        setActiveClientId(clientName);
+      }
+
+      // 2. Guardar en Google Sheets (API o Webhook)
+      const url = getSavedGoogleSheetsUrl();
+      const res = await saveSingleClientToGoogleSheets(updatedClient, url || undefined);
       if (res.status === 'success' || (res as any).success) {
-        showToast(res.message || `Cliente "${clientToSave.name}" guardado en Google Sheet.`, 'success');
+        showToast(
+          language === 'en'
+            ? `Client "${clientName}" information saved successfully (local & Google Sheet).`
+            : `Información del cliente "${clientName}" guardada correctamente (local y Google Sheet).`,
+          'success'
+        );
       } else {
-        showToast(res.message || 'Error al guardar en Google Sheet', 'error');
+        showToast(
+          language === 'en'
+            ? `Client "${clientName}" saved locally. (Sheets: ${res.message || 'error syncing'})`
+            : `Cliente "${clientName}" guardado localmente. (${res.message || 'Sheets no sincronizado'})`,
+          'info'
+        );
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      showToast(`Error al guardar en Sheet: ${msg}`, 'error');
+      showToast(
+        language === 'en'
+          ? `Saved locally, error syncing to Sheet: ${msg}`
+          : `Guardado localmente, error al sincronizar con Sheet: ${msg}`,
+        'error'
+      );
+    } finally {
+      setIsSavingClient(false);
     }
   };
 
@@ -365,6 +422,22 @@ export const App: React.FC = () => {
               <Plus className="w-3.5 h-3.5 text-[#47D2BF]" />
               <span>{language === 'en' ? 'New Client' : 'Nuevo Cliente'}</span>
             </button>
+
+            {/* Botón: Guardar información del cliente (logo de guardar, Guardar cliente / Save client) */}
+            <button
+              type="button"
+              onClick={handleQuickSaveCurrentClient}
+              disabled={isSavingClient}
+              title={language === 'en' ? 'Save client information' : 'Guardar información del cliente'}
+              className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 disabled:opacity-50 text-white shadow-2xs border border-emerald-400/40 transition cursor-pointer shrink-0"
+            >
+              {isSavingClient ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+              ) : (
+                <Save className="w-3.5 h-3.5 text-white" />
+              )}
+              <span>{language === 'en' ? 'Save client' : 'Guardar cliente'}</span>
+            </button>
           </div>
         </div>
 
@@ -413,7 +486,13 @@ export const App: React.FC = () => {
               />
             )}
             {activeTab === 'Precios & Margen' && (
-              <PreciosMargenesTab inputs={inputs} results={results} onChange={handleInputChange} />
+              <PreciosMargenesTab
+                inputs={inputs}
+                results={results}
+                onChange={handleInputChange}
+                onSaveClient={handleQuickSaveCurrentClient}
+                isSavingClient={isSavingClient}
+              />
             )}
             {activeTab === 'Desglose' && <DesgloseTab results={results} />}
             {activeTab === 'Propuesta Cliente' && (
