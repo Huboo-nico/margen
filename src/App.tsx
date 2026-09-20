@@ -15,7 +15,7 @@ import { CurrencySwitcher } from './components/CurrencySwitcher';
 import { ThemeSwitcher } from './components/ThemeSwitcher';
 import { useLanguage } from './context/LanguageContext';
 import { useTheme } from './context/ThemeContext';
-import { PackageCheck, CheckCircle2, AlertCircle, Info, Users, FileSpreadsheet, Save } from 'lucide-react';
+import { PackageCheck, CheckCircle2, AlertCircle, Info, Users, Plus } from 'lucide-react';
 import {
   getSavedGoogleSheetsUrl,
   saveSingleClientToGoogleSheets,
@@ -44,9 +44,7 @@ export const App: React.FC = () => {
 
   const [activeClientId, setActiveClientId] = useState<string>(() => clients[0]?.id || clients[0]?.name || 'NutriLife (Suplementos)');
   const [isGoogleSheetsOpen, setIsGoogleSheetsOpen] = useState<boolean>(false);
-  const [isSavingToSheets, setIsSavingToSheets] = useState<boolean>(false);
   const [isLoadingFromSheets, setIsLoadingFromSheets] = useState<boolean>(false);
-  const [saveToSheetsSuccess, setSaveToSheetsSuccess] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   const [activeTab, setActiveTab] = useState<
@@ -73,21 +71,16 @@ export const App: React.FC = () => {
       currentClient;
     if (!clientToSave) return;
 
-    setIsSavingToSheets(true);
     try {
       const res = await saveSingleClientToGoogleSheets(clientToSave, url || undefined);
       if (res.status === 'success' || (res as any).success) {
-        setSaveToSheetsSuccess(true);
         showToast(res.message || `Cliente "${clientToSave.name}" guardado en Google Sheet.`, 'success');
-        setTimeout(() => setSaveToSheetsSuccess(false), 3000);
       } else {
         showToast(res.message || 'Error al guardar en Google Sheet', 'error');
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       showToast(`Error al guardar en Sheet: ${msg}`, 'error');
-    } finally {
-      setIsSavingToSheets(false);
     }
   };
 
@@ -234,8 +227,13 @@ export const App: React.FC = () => {
     setClients((prev) => [...prev, newClient]);
     setActiveClientId(newName);
     setInputs(newClient.inputs);
-    setActiveTab('Resumen');
-    showToast(`Nuevo cliente "${newName}" creado. Tus cotizaciones anteriores siguen disponibles en la lista.`, 'info');
+    setActiveTab('Precios & Margen');
+    showToast(
+      language === 'en'
+        ? `New client "${newName}" created. You can now add and configure all information.`
+        : `Nuevo cliente "${newName}" creado. Ya puedes agregar y configurar toda su información.`,
+      'info'
+    );
   };
 
   const handleDeleteClient = (id: string) => {
@@ -335,8 +333,8 @@ export const App: React.FC = () => {
             </p>
           </div>
 
-          {/* Clean In-Header Client Selector */}
-          <div className="flex items-center gap-1.5 ml-1 sm:ml-2">
+          {/* Clean In-Header Client Selector & Nuevo Cliente Button */}
+          <div className="flex items-center gap-1.5 sm:gap-2 ml-1 sm:ml-2">
             <span className={`font-semibold flex items-center gap-1 text-xs ${isDark ? 'text-[#47D2BF]' : 'text-[#6B4ABF]'}`}>
               <Users className="w-3.5 h-3.5 shrink-0" />
             </span>
@@ -344,7 +342,7 @@ export const App: React.FC = () => {
               value={activeClientId}
               onChange={(e) => handleSelectClient(e.target.value)}
               aria-label="Seleccionar cliente cotizado"
-              className={`rounded-lg px-2 sm:px-2.5 py-1 text-xs font-bold cursor-pointer max-w-[150px] sm:max-w-[210px] truncate transition border shadow-2xs ${
+              className={`rounded-lg px-2 sm:px-2.5 py-1 text-xs font-bold cursor-pointer max-w-[130px] sm:max-w-[190px] truncate transition border shadow-2xs ${
                 isDark
                   ? 'bg-[#120e26] border-[#2E2A48] text-[#47D2BF] focus:ring-1 focus:ring-[#47D2BF]'
                   : 'border-[#E5DDD0] bg-white text-[#6B4ABF] focus:ring-1 focus:ring-[#6B4ABF]'
@@ -356,52 +354,22 @@ export const App: React.FC = () => {
                 </option>
               ))}
             </select>
+
+            {/* Botón: Nuevo Cliente para poder agregar información */}
+            <button
+              type="button"
+              onClick={handleCreateClient}
+              title={language === 'en' ? 'Add new client to quote' : 'Crear nuevo cliente para cotizar'}
+              className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 text-xs font-bold rounded-lg bg-[#6B4ABF] hover:bg-[#583aa3] text-white shadow-2xs border border-[#47D2BF]/30 transition cursor-pointer shrink-0"
+            >
+              <Plus className="w-3.5 h-3.5 text-[#47D2BF]" />
+              <span>{language === 'en' ? 'New Client' : 'Nuevo Cliente'}</span>
+            </button>
           </div>
         </div>
 
-        {/* Right side: Google Sheets Sync & Save, Theme Switcher, Currency & Language Switcher Controls */}
+        {/* Right side: Theme Switcher, Currency & Language Switcher Controls */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 flex-wrap justify-end">
-          {/* Quick Save to Google Sheets */}
-          <button
-            type="button"
-            onClick={handleQuickSaveCurrentClient}
-            disabled={isSavingToSheets}
-            title={language === 'en' ? 'Quick save active client to Google Sheet' : 'Guardar cliente actual en Google Sheet'}
-            className={`flex items-center gap-1 px-2 sm:px-2.5 py-1 text-xs font-bold rounded-lg border transition shadow-2xs cursor-pointer ${
-              saveToSheetsSuccess
-                ? 'bg-emerald-600 text-white border-emerald-500'
-                : isDark
-                ? 'bg-[#151226] hover:bg-[#25203D] text-gray-200 border-[#2E2A48]'
-                : 'bg-white hover:bg-[#FAF7F2] text-[#4D453E] border-[#E5DDD0]'
-            }`}
-          >
-            <Save className={`w-3.5 h-3.5 ${isSavingToSheets ? 'animate-spin text-amber-400' : 'text-emerald-500'}`} />
-            <span className="hidden md:inline">
-              {saveToSheetsSuccess
-                ? language === 'en'
-                  ? 'Saved'
-                  : 'Guardado'
-                : language === 'en'
-                ? 'Save'
-                : 'Guardar'}
-            </span>
-          </button>
-
-          {/* Quick Google Sheets Modal Trigger */}
-          <button
-            type="button"
-            onClick={() => setIsGoogleSheetsOpen(true)}
-            title={language === 'en' ? 'Google Sheets Sync & Settings' : 'Sincronización y Configuración de Google Sheets'}
-            className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 text-xs font-bold rounded-lg border transition shadow-2xs cursor-pointer ${
-              isDark
-                ? 'bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border-emerald-700/60'
-                : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300'
-            }`}
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-            <span className="hidden xs:inline">Sheets</span>
-          </button>
-
           <ThemeSwitcher />
           <CurrencySwitcher />
           <LanguageSwitcher />
